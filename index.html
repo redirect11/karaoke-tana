@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Karaoke – La Tana del Coniglio</title>
+  <style>
+    :root {
+      --bg:        #12071f;
+      --bg2:       #1e0f35;
+      --card:      #2a1650;
+      --gold:      #d4a017;
+      --gold-soft: #f0c94a;
+      --red:       #9b1c2e;
+      --text:      #f0e6d3;
+      --muted:     #a08ca0;
+      --green:     #2ecc71;
+      --radius:    14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── header ── */
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    header .logo {
+      font-size: 3rem;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--gold);
+    }
+    header p.sub {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* ── steps indicator ── */
+    .steps {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      transition: color 0.3s;
+    }
+    .step.active { color: var(--gold); }
+    .step.done   { color: var(--green); }
+    .step-num {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem;
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .step.done .step-num {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+    .step.active .step-num {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: #12071f;
+    }
+    .step-line {
+      width: 40px; height: 2px;
+      background: var(--card);
+      border-radius: 2px;
+    }
+
+    /* ── card ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      margin-bottom: 8px;
+      color: var(--gold-soft);
+    }
+    .card p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 20px;
+    }
+
+    /* ── Instagram block ── */
+    .ig-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* gradient Instagram button */
+    .btn-ig {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      border-radius: 50px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #f58529, #dd2a7b, #8134af, #515bd4);
+      background-size: 200% 200%;
+      animation: igGlow 3s ease infinite;
+      transition: transform 0.15s, box-shadow 0.15s;
+      text-decoration: none;
+    }
+    .btn-ig:hover { transform: scale(1.04); box-shadow: 0 4px 24px rgba(221,42,123,0.5); }
+    .btn-ig:active { transform: scale(0.97); }
+    @keyframes igGlow {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .btn-ig svg { width: 22px; height: 22px; flex-shrink: 0; }
+
+    .btn-skip {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 0.78rem;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 4px;
+    }
+    .btn-skip:hover { color: var(--text); }
+
+    /* follow confirmed state */
+    .follow-done {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      text-align: center;
+    }
+    .follow-done .check-icon {
+      font-size: 3rem;
+      animation: popIn 0.4s cubic-bezier(.17,.67,.35,1.3);
+    }
+    @keyframes popIn {
+      0%   { transform: scale(0); }
+      100% { transform: scale(1); }
+    }
+    .follow-done h3 {
+      color: var(--green);
+      font-size: 1.1rem;
+    }
+    .btn-proceed {
+      margin-top: 4px;
+      padding: 12px 32px;
+      background: var(--gold);
+      border: none;
+      border-radius: 50px;
+      color: #12071f;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+    }
+    .btn-proceed:hover { background: var(--gold-soft); transform: scale(1.03); }
+
+    /* ── booking form ── */
+    #step-form { display: none; }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    input {
+      background: var(--bg2);
+      border: 1.5px solid #3d2366;
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
+      padding: 11px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--gold); }
+    input::placeholder { color: #5a4070; }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      border-radius: 50px;
+      border: none;
+      background: var(--red);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+      letter-spacing: 0.04em;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .btn-submit:hover { background: #c0233a; transform: scale(1.02); }
+    .btn-submit:active { transform: scale(0.98); }
+
+    /* ── success ── */
+    #step-success {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+    }
+    #step-success .big-icon { font-size: 3.5rem; }
+    #step-success h2 { color: var(--gold-soft); font-size: 1.3rem; }
+    #step-success p { font-size: 0.88rem; }
+    .btn-new {
+      margin-top: 8px;
+      padding: 10px 24px;
+      background: none;
+      border: 1.5px solid var(--gold);
+      border-radius: 50px;
+      color: var(--gold);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-new:hover { background: rgba(212,160,23,0.1); }
+
+    footer {
+      margin-top: 40px;
+      font-size: 0.72rem;
+      color: #3d2366;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">🐰🎤</div>
+    <h1>La Tana del Coniglio</h1>
+    <p class="sub">Karaoke · Nola</p>
+  </header>
+
+  <!-- step indicator -->
+  <div class="steps">
+    <div class="step active" id="ind-1">
+      <div class="step-num" id="ind-1-num">1</div>
+      <span>Segui</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="ind-2">
+      <div class="step-num">2</div>
+      <span>Prenota</span>
+    </div>
+  </div>
+
+  <!-- STEP 1: follow -->
+  <div class="card" id="step-follow">
+
+    <!-- stato A: deve ancora cliccare -->
+    <div id="follow-cta">
+      <h2>Prima di tutto…</h2>
+      <p>
+        Per prenotare una canzone devi seguire la nostra pagina Instagram.
+        Clicca il bottone qui sotto: se sei già loggato su Instagram si aprirà
+        direttamente il profilo dove potrai seguirci con un tap!
+      </p>
+      <div class="ig-block">
+        <a id="ig-link" class="btn-ig" href="#" target="_blank" rel="noopener">
+          <!-- Instagram icon -->
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="20" height="20" rx="5.5" stroke="white" stroke-width="2"/>
+            <circle cx="12" cy="12" r="4" stroke="white" stroke-width="2"/>
+            <circle cx="17.5" cy="6.5" r="1" fill="white"/>
+          </svg>
+          Seguici su Instagram
+        </a>
+        <button class="btn-skip" id="btn-already">Seguo già la pagina →</button>
+      </div>
+    </div>
+
+    <!-- stato B: link cliccato, aspetta conferma -->
+    <div class="follow-done" id="follow-done">
+      <div class="check-icon">✅</div>
+      <h3>Ottimo!</h3>
+      <p style="color:var(--muted); font-size:0.88rem;">
+        Ora vai su Instagram e premi <strong style="color:var(--text)">Segui</strong>,
+        poi torna qui per prenotare.
+      </p>
+      <button class="btn-proceed" id="btn-proceed">Ho seguito, prenota ora 🎤</button>
+    </div>
+
+  </div>
+
+  <!-- STEP 2: form -->
+  <div class="card" id="step-form">
+    <h2>Prenota la tua canzone 🎤</h2>
+    <p>Compila il form e lo staff la aggiungerà alla lista appena possibile.</p>
+
+    <form id="booking-form" novalidate>
+      <div class="form-group">
+        <label for="nome">Il tuo nome</label>
+        <input id="nome" type="text" placeholder="Es. Mario" required />
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label for="canzone">Canzone</label>
+          <input id="canzone" type="text" placeholder="Es. Shallow" required />
+        </div>
+        <div class="form-group">
+          <label for="artista">Artista</label>
+          <input id="artista" type="text" placeholder="Es. Lady Gaga" required />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="tavolo">Numero tavolo</label>
+        <input id="tavolo" type="number" placeholder="Es. 4" min="1" max="50" required />
+      </div>
+      <button type="submit" class="btn-submit">🎙 Prenota</button>
+    </form>
+  </div>
+
+  <!-- STEP 3: success -->
+  <div class="card" id="step-success">
+    <div class="big-icon">🎉</div>
+    <h2>Sei in lista!</h2>
+    <p>Aspetta il tuo turno e preparati a salire sul palco. 🎤</p>
+    <button class="btn-new" id="btn-new">Aggiungi un'altra canzone</button>
+  </div>
+
+  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.1</footer>
+
+  <script>
+    const IG_USERNAME = 'latanadelconiglionola'; // ← aggiorna con l'username reale
+
+    const igLink     = document.getElementById('ig-link');
+    const followCta  = document.getElementById('follow-cta');
+    const followDone = document.getElementById('follow-done');
+    const stepFollow = document.getElementById('step-follow');
+    const stepForm   = document.getElementById('step-form');
+    const stepSuccess= document.getElementById('step-success');
+    const ind1       = document.getElementById('ind-1');
+    const ind1num    = document.getElementById('ind-1-num');
+    const ind2       = document.getElementById('ind-2');
+
+    // Costruisce l'URL ottimale: prova deep link app su mobile, fallback web
+    function getIgUrl() {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      return isMobile
+        ? `instagram://user?username=${IG_USERNAME}`
+        : `https://www.instagram.com/${IG_USERNAME}/`;
+    }
+
+    igLink.href = getIgUrl();
+
+    // Se su mobile, il deep link apre l'app ma non apre una nuova tab;
+    // apriamo comunque la web url come fallback dopo un breve delay.
+    igLink.addEventListener('click', (e) => {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        e.preventDefault();
+        window.location.href = `instagram://user?username=${IG_USERNAME}`;
+        setTimeout(() => {
+          window.open(`https://www.instagram.com/${IG_USERNAME}/`, '_blank');
+        }, 800);
+      }
+      onInstagramClicked();
+    });
+
+    function onInstagramClicked() {
+      localStorage.setItem('ig_clicked', Date.now());
+      followCta.style.display  = 'none';
+      followDone.style.display = 'flex';
+    }
+
+    document.getElementById('btn-already').addEventListener('click', onInstagramClicked);
+    document.getElementById('btn-proceed').addEventListener('click', goToForm);
+
+    function goToForm() {
+      localStorage.setItem('ig_followed', 'true');
+      stepFollow.style.display = 'none';
+      stepForm.style.display   = 'block';
+      ind1.classList.remove('active');
+      ind1.classList.add('done');
+      ind1num.textContent = '✓';
+      ind2.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Se ha già confermato il follow in una sessione precedente, vai diretto al form
+    if (localStorage.getItem('ig_followed') === 'true') {
+      goToForm();
+    }
+    // Se ha cliccato ma non ancora confermato, mostra lo stato intermedio
+    else if (localStorage.getItem('ig_clicked')) {
+      followCta.style.display  = 'none';
+      followDone.style.display = 'flex';
+    }
+
+    // Form submit
+    document.getElementById('booking-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nome    = document.getElementById('nome').value.trim();
+      const canzone = document.getElementById('canzone').value.trim();
+      const artista = document.getElementById('artista').value.trim();
+      const tavolo  = document.getElementById('tavolo').value.trim();
+
+      if (!nome || !canzone || !artista || !tavolo) {
+        alert('Compila tutti i campi prima di prenotare!');
+        return;
+      }
+
+      // TODO: inviare a Supabase / backend reale
+      console.log('Prenotazione:', { nome, canzone, artista, tavolo, ts: new Date().toISOString() });
+
+      stepForm.style.display    = 'none';
+      stepSuccess.style.display = 'flex';
+      ind2.classList.remove('active');
+      ind2.classList.add('done');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    document.getElementById('btn-new').addEventListener('click', () => {
+      document.getElementById('booking-form').reset();
+      stepSuccess.style.display = 'none';
+      stepForm.style.display    = 'block';
+      ind2.classList.add('active');
+      ind2.classList.remove('done');
+    });
+  </script>
+</body>
+</html>
