@@ -223,30 +223,19 @@
     .btn-submit:hover { background: #c0233a; transform: scale(1.02); }
     .btn-submit:active { transform: scale(0.98); }
 
-    /* ── success ── */
-    #step-success {
+    /* ── success / waiting ── */
+    #step-success, #step-waiting {
       display: none;
       flex-direction: column;
       align-items: center;
       text-align: center;
       gap: 12px;
     }
-    #step-success .big-icon { font-size: 3.5rem; }
-    #step-success h2 { color: var(--gold-soft); font-size: 1.3rem; }
-    #step-success p { font-size: 0.88rem; }
-    .btn-new {
-      margin-top: 8px;
-      padding: 10px 24px;
-      background: none;
-      border: 1.5px solid var(--gold);
-      border-radius: 50px;
-      color: var(--gold);
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .btn-new:hover { background: rgba(212,160,23,0.1); }
+    #step-success .big-icon, #step-waiting .big-icon { font-size: 3.5rem; }
+    #step-success h2, #step-waiting h2 { color: var(--gold-soft); font-size: 1.3rem; }
+    #step-success p,  #step-waiting p  { font-size: 0.88rem; }
+    #waiting-song  { font-size: 0.95rem !important; font-weight: 700; color: var(--text) !important; }
+    #waiting-timer { font-size: 0.75rem !important; color: var(--muted) !important; }
 
     footer {
       margin-top: 40px;
@@ -336,7 +325,15 @@
     <div class="big-icon">🎉</div>
     <h2>Sei in lista!</h2>
     <p>Aspetta il tuo turno e preparati a salire sul palco. 🎤</p>
-    <button class="btn-new" id="btn-new">Aggiungi un'altra canzone</button>
+  </div>
+
+  <!-- STEP waiting: già prenotato -->
+  <div class="card" id="step-waiting">
+    <div class="big-icon">🎤</div>
+    <h2>Sei già in lista!</h2>
+    <p id="waiting-song"></p>
+    <p>Puoi prenotare di nuovo quando la tua canzone sarà cantata.</p>
+    <p id="waiting-timer"></p>
   </div>
 
   <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.2</footer>
@@ -370,9 +367,61 @@
     const stepFollow  = document.getElementById('step-follow');
     const stepForm    = document.getElementById('step-form');
     const stepSuccess = document.getElementById('step-success');
+    const stepWaiting = document.getElementById('step-waiting');
     const ind1        = document.getElementById('ind-1');
     const ind1num     = document.getElementById('ind-1-num');
     const ind2        = document.getElementById('ind-2');
+
+    // ── Pending booking check ────────────────────────────────
+    const COOLDOWN_MIN = CONFIG.BOOKING_COOLDOWN_MIN || 90;
+    let pollInterval = null;
+
+    async function checkPendingBooking() {
+      const stored = localStorage.getItem('last_booking');
+      if (!stored) return false;
+      const { id, timestamp, canzone, artista } = JSON.parse(stored);
+      if ((Date.now() - timestamp) / 60000 > COOLDOWN_MIN) {
+        localStorage.removeItem('last_booking');
+        return false;
+      }
+      if (db) {
+        const { data } = await db.from('prenotazioni').select('cantata').eq('id', id).single();
+        if (!data || data.cantata) {
+          localStorage.removeItem('last_booking');
+          return false;
+        }
+      }
+      showWaitingScreen(timestamp, canzone, artista);
+      return true;
+    }
+
+    function showWaitingScreen(timestamp, canzone, artista) {
+      [stepFollow, stepForm, stepSuccess].forEach(s => s.style.display = 'none');
+      stepWaiting.style.display = 'flex';
+      document.getElementById('waiting-song').textContent = `${canzone} – ${artista}`;
+      updateWaitingTimer(timestamp);
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(async () => {
+        const pending = await checkPendingBooking();
+        if (!pending) { clearInterval(pollInterval); showForm(); }
+      }, 30000);
+      setInterval(() => updateWaitingTimer(timestamp), 60000);
+    }
+
+    function updateWaitingTimer(timestamp) {
+      const min = Math.floor((Date.now() - timestamp) / 60000);
+      document.getElementById('waiting-timer').textContent =
+        `Prenotata ${min === 0 ? 'pochi istanti' : min + (min === 1 ? ' minuto' : ' minuti')} fa`;
+    }
+
+    function showForm() {
+      [stepFollow, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+      stepForm.style.display = 'block';
+      ind1.classList.remove('active'); ind1.classList.add('done');
+      ind1num.textContent = '✓';
+      ind2.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     // ── Instagram profile card ──────────────────────────────
     const igProfileUrl = `https://www.instagram.com/${CONFIG.IG_USERNAME}/`;
@@ -404,15 +453,11 @@
     window.addEventListener('focus', handleReturn);
     window.addEventListener('pageshow', handleReturn);
 
-    function goToForm() {
+    async function goToForm() {
       localStorage.setItem('ig_followed', 'true');
       stepFollow.style.display = 'none';
-      stepForm.style.display   = 'block';
-      ind1.classList.remove('active');
-      ind1.classList.add('done');
-      ind1num.textContent = '✓';
-      ind2.classList.add('active');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const pending = await checkPendingBooking();
+      if (!pending) showForm();
     }
 
     if (localStorage.getItem('ig_followed') === 'true') {
@@ -439,7 +484,7 @@
       const booking = { nome, canzone, artista, tavolo };
 
       if (db) {
-        const { error } = await db.from('prenotazioni').insert(booking);
+        const { data, error } = await db.from('prenotazioni').insert(booking).select('id').single();
         if (error) {
           console.error('Supabase error:', error);
           btn.disabled = false;
@@ -447,6 +492,9 @@
           alert('Errore durante la prenotazione. Riprova tra qualche secondo!');
           return;
         }
+        localStorage.setItem('last_booking', JSON.stringify({
+          id: data.id, timestamp: Date.now(), canzone, artista
+        }));
       }
 
       notifyTelegram(booking);
@@ -456,16 +504,6 @@
       ind2.classList.remove('active');
       ind2.classList.add('done');
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    document.getElementById('btn-new').addEventListener('click', () => {
-      document.getElementById('booking-form').reset();
-      document.querySelector('.btn-submit').disabled = false;
-      document.querySelector('.btn-submit').textContent = '🎙 Prenota';
-      stepSuccess.style.display = 'none';
-      stepForm.style.display    = 'block';
-      ind2.classList.add('active');
-      ind2.classList.remove('done');
     });
   </script>
 </body>
