@@ -25,6 +25,11 @@ const CONFIG = {
   // Password per accedere a /admin.html
   ADMIN_PASSWORD: 'tana2024',
 
+  // ── Cooldown prenotazione ──────────────────────────────────
+  // Minuti dopo i quali si può prenotare di nuovo anche senza
+  // che la canzone venga spuntata dallo staff (fallback)
+  BOOKING_COOLDOWN_MIN: 90,
+
 };
 
 // =============================================================
