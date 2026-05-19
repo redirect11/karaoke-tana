@@ -239,7 +239,7 @@
         .eq('serata_id', serata.id)
         .order('created_at', { ascending: true });
 
-      if (!error && (!data || data.length === 0)) {
+      if (error || !data || data.length === 0) {
         const fallback = await db
           .from('prenotazioni')
           .select('id, nome, canzone, artista')
@@ -248,6 +248,9 @@
           .order('created_at', { ascending: true });
         if (!fallback.error && fallback.data?.length) {
           data = fallback.data;
+          error = null;
+        } else if (fallback.error) {
+          error = fallback.error;
         }
       }
 

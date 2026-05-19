@@ -503,6 +503,7 @@
     let serataChannel   = null;
     let songListChannel = null;
     let isStaffMode = false;
+    let usingLegacySongFallback = false;
 
     // ── Telegram ────────────────────────────────────────────
     async function notifyTelegram(booking) {
@@ -559,7 +560,7 @@
         .eq('cantata', false)
         .order('created_at', { ascending: true });
 
-      if (!error && (!data || data.length === 0)) {
+      if (error || !data || data.length === 0) {
         const fallback = await db
           .from('prenotazioni')
           .select('id, nome, canzone, artista, created_at, cantata')
@@ -568,7 +569,16 @@
           .order('created_at', { ascending: true });
         if (!fallback.error && fallback.data?.length) {
           data = fallback.data;
+          error = null;
+          usingLegacySongFallback = true;
+        } else if (fallback.error) {
+          error = fallback.error;
+          usingLegacySongFallback = false;
+        } else {
+          usingLegacySongFallback = false;
         }
+      } else {
+        usingLegacySongFallback = false;
       }
 
       if (error) {
@@ -677,7 +687,7 @@
           table: 'prenotazioni',
           filter: 'serata_id=is.null'
         }, () => {
-          loadSongList();
+          if (usingLegacySongFallback) loadSongList();
         })
         .subscribe();
     }
