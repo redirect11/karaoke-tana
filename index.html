@@ -223,17 +223,17 @@
     .btn-submit:hover { background: #c0233a; transform: scale(1.02); }
     .btn-submit:active { transform: scale(0.98); }
 
-    /* ── success / waiting ── */
-    #step-success, #step-waiting {
+    /* ── success / waiting / closed ── */
+    #step-success, #step-waiting, #step-closed {
       display: none;
       flex-direction: column;
       align-items: center;
       text-align: center;
       gap: 12px;
     }
-    #step-success .big-icon, #step-waiting .big-icon { font-size: 3.5rem; }
-    #step-success h2, #step-waiting h2 { color: var(--gold-soft); font-size: 1.3rem; }
-    #step-success p,  #step-waiting p  { font-size: 0.88rem; }
+    #step-success .big-icon, #step-waiting .big-icon, #step-closed .big-icon { font-size: 3.5rem; }
+    #step-success h2, #step-waiting h2, #step-closed h2 { color: var(--gold-soft); font-size: 1.3rem; }
+    #step-success p,  #step-waiting p,  #step-closed p  { font-size: 0.88rem; }
     #waiting-song  { font-size: 0.95rem !important; font-weight: 700; color: var(--text) !important; }
     #waiting-timer { font-size: 0.75rem !important; color: var(--muted) !important; }
 
@@ -336,6 +336,13 @@
     <p id="waiting-timer"></p>
   </div>
 
+  <!-- STEP closed: nessuna serata aperta -->
+  <div class="card" id="step-closed">
+    <div class="big-icon">🌙</div>
+    <h2>Prenotazioni chiuse</h2>
+    <p>Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!</p>
+  </div>
+
   <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.2</footer>
 
   <script src="config.js"></script>
@@ -346,6 +353,8 @@
     const db = supabaseReady
       ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
       : null;
+
+    let currentSerataId = null;
 
     // ── Telegram ────────────────────────────────────────────
     async function notifyTelegram(booking) {
@@ -368,9 +377,30 @@
     const stepForm    = document.getElementById('step-form');
     const stepSuccess = document.getElementById('step-success');
     const stepWaiting = document.getElementById('step-waiting');
+    const stepClosed  = document.getElementById('step-closed');
     const ind1        = document.getElementById('ind-1');
     const ind1num     = document.getElementById('ind-1-num');
     const ind2        = document.getElementById('ind-2');
+
+    // ── Serata aperta ────────────────────────────────────────
+    async function checkSerataAperta() {
+      if (!db) return true;
+      const { data } = await db
+        .from('serate')
+        .select('id')
+        .eq('aperta', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!data) {
+        [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+        stepClosed.style.display = 'flex';
+        document.querySelector('.steps').style.display = 'none';
+        return false;
+      }
+      currentSerataId = data.id;
+      return true;
+    }
 
     // ── Pending booking check ────────────────────────────────
     const COOLDOWN_MIN = CONFIG.BOOKING_COOLDOWN_MIN || 90;
@@ -441,9 +471,10 @@
     });
 
     // Quando l'utente torna alla pagina dopo aver aperto Instagram
-    function handleReturn() {
+    async function handleReturn() {
       if (igOpened || localStorage.getItem('ig_clicked')) {
-        goToForm();
+        const open = await checkSerataAperta();
+        if (open) goToForm();
       }
     }
 
@@ -460,9 +491,14 @@
       if (!pending) showForm();
     }
 
-    if (localStorage.getItem('ig_followed') === 'true') {
-      goToForm();
-    }
+    // ── Init ─────────────────────────────────────────────────
+    (async () => {
+      const open = await checkSerataAperta();
+      if (!open) return;
+      if (localStorage.getItem('ig_followed') === 'true') {
+        goToForm();
+      }
+    })();
 
     // ── Form submit ─────────────────────────────────────────
     document.getElementById('booking-form').addEventListener('submit', async (e) => {
@@ -482,6 +518,7 @@
       btn.textContent = 'Invio in corso…';
 
       const booking = { nome, canzone, artista, tavolo };
+      if (currentSerataId) booking.serata_id = currentSerataId;
 
       if (db) {
         const { data, error } = await db.from('prenotazioni').insert(booking).select('id').single();
