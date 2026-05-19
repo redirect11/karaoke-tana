@@ -176,20 +176,6 @@
     .ig-btn-follow:hover { background: #1aa3ff; }
     .ig-btn-follow svg { width: 16px; height: 16px; flex-shrink: 0; }
 
-    .btn-proceed {
-      margin-top: 4px;
-      padding: 12px 32px;
-      background: var(--gold);
-      border: none;
-      border-radius: 50px;
-      color: #12071f;
-      font-size: 0.95rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.15s, background 0.15s;
-    }
-    .btn-proceed:hover { background: var(--gold-soft); transform: scale(1.03); }
-
     /* ── booking form ── */
     #step-form { display: none; }
     .form-group {
@@ -312,7 +298,9 @@
       </button>
     </div>
 
-    <button class="btn-proceed" id="btn-proceed">Ho seguito, prenota ora 🎤</button>
+    <p id="ig-hint" style="text-align:center; font-size:0.8rem; color:var(--muted); margin-top:-8px; display:none;">
+      Torna qui dopo aver seguito la pagina…
+    </p>
   </div>
 
   <!-- STEP 2: form -->
@@ -388,12 +376,13 @@
 
     // ── Instagram profile card ──────────────────────────────
     const igProfileUrl = `https://www.instagram.com/${CONFIG.IG_USERNAME}/`;
+    let igOpened = false;
 
     function openInstagram() {
       window.open(igProfileUrl, '_blank');
       localStorage.setItem('ig_clicked', Date.now());
-      document.getElementById('btn-proceed').style.opacity = '1';
-      document.getElementById('btn-proceed').style.pointerEvents = 'auto';
+      igOpened = true;
+      document.getElementById('ig-hint').style.display = 'block';
     }
 
     document.getElementById('ig-profile-card').addEventListener('click', openInstagram);
@@ -402,18 +391,18 @@
       openInstagram();
     });
 
-    // Tasto proceed inizialmente più tenue se non ancora cliccato
-    if (!localStorage.getItem('ig_clicked')) {
-      document.getElementById('btn-proceed').style.opacity = '0.5';
-      document.getElementById('btn-proceed').style.pointerEvents = 'none';
-      // Dopo 3s lo sblocca comunque (per chi ha già Instagram aperto)
-      setTimeout(() => {
-        document.getElementById('btn-proceed').style.opacity = '1';
-        document.getElementById('btn-proceed').style.pointerEvents = 'auto';
-      }, 3000);
+    // Quando l'utente torna alla pagina dopo aver aperto Instagram
+    function handleReturn() {
+      if (igOpened || localStorage.getItem('ig_clicked')) {
+        goToForm();
+      }
     }
 
-    document.getElementById('btn-proceed').addEventListener('click', goToForm);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') handleReturn();
+    });
+    window.addEventListener('focus', handleReturn);
+    window.addEventListener('pageshow', handleReturn);
 
     function goToForm() {
       localStorage.setItem('ig_followed', 'true');
