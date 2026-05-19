@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Karaoke – La Tana del Coniglio</title>
-  <script src="https://elfsightcdn.com/platform.js" async></script>
   <style>
     :root {
       --bg:        #12071f;
@@ -117,10 +116,66 @@
       margin-bottom: 20px;
     }
 
-    /* ── Elfsight widget ── */
-    .elfsight-wrap {
-      margin-bottom: 20px;
+    /* ── Instagram profile header card ── */
+    .ig-profile-card {
+      background: transparent;
+      border-radius: 12px;
+      padding: 8px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: opacity 0.15s;
     }
+    .ig-profile-card:hover { opacity: 0.85; }
+
+    .ig-pic {
+      width: 62px; height: 62px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .ig-pic img {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .ig-profile-info { flex: 1; min-width: 0; }
+    .ig-profile-name {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ig-profile-handle {
+      font-size: 0.78rem;
+      color: #aaa;
+      margin-top: 1px;
+    }
+
+    .ig-btn-follow {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #0095f6;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .ig-btn-follow:hover { background: #1aa3ff; }
+    .ig-btn-follow svg { width: 16px; height: 16px; flex-shrink: 0; }
 
     .btn-proceed {
       margin-top: 4px;
@@ -242,8 +297,23 @@
     <h2>Prima di tutto…</h2>
     <p>Segui la nostra pagina Instagram per poter prenotare una canzone.</p>
 
-    <div class="elfsight-wrap">
-      <div class="elfsight-app-cc1203d2-cfe9-4bce-9842-be6f8da6e75f" data-elfsight-app-lazy></div>
+    <div class="ig-profile-card" id="ig-profile-card">
+      <div class="ig-pic">
+        <img id="ig-logo" src="logo.png" alt="La Tana del Coniglio"
+             onerror="this.style.display='none'" />
+      </div>
+      <div class="ig-profile-info">
+        <div class="ig-profile-name">La Tana del Coniglio</div>
+        <div class="ig-profile-handle">@latanadelconiglio_nola</div>
+      </div>
+      <button class="ig-btn-follow" id="ig-follow-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <rect x="2" y="2" width="20" height="20" rx="5.5"/>
+          <circle cx="12" cy="12" r="4"/>
+          <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+        Segui
+      </button>
     </div>
 
     <button class="btn-proceed" id="btn-proceed">Ho seguito, prenota ora 🎤</button>
@@ -319,6 +389,33 @@
     const ind1        = document.getElementById('ind-1');
     const ind1num     = document.getElementById('ind-1-num');
     const ind2        = document.getElementById('ind-2');
+
+    // ── Instagram profile card ──────────────────────────────
+    const igProfileUrl = `https://www.instagram.com/${CONFIG.IG_USERNAME}/`;
+
+    function openInstagram() {
+      window.open(igProfileUrl, '_blank');
+      localStorage.setItem('ig_clicked', Date.now());
+      document.getElementById('btn-proceed').style.opacity = '1';
+      document.getElementById('btn-proceed').style.pointerEvents = 'auto';
+    }
+
+    document.getElementById('ig-profile-card').addEventListener('click', openInstagram);
+    document.getElementById('ig-follow-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openInstagram();
+    });
+
+    // Tasto proceed inizialmente più tenue se non ancora cliccato
+    if (!localStorage.getItem('ig_clicked')) {
+      document.getElementById('btn-proceed').style.opacity = '0.5';
+      document.getElementById('btn-proceed').style.pointerEvents = 'none';
+      // Dopo 3s lo sblocca comunque (per chi ha già Instagram aperto)
+      setTimeout(() => {
+        document.getElementById('btn-proceed').style.opacity = '1';
+        document.getElementById('btn-proceed').style.pointerEvents = 'auto';
+      }, 3000);
+    }
 
     document.getElementById('btn-proceed').addEventListener('click', goToForm);
 
