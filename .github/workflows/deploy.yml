@@ -1,0 +1,61 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate config.js from secrets
+        env:
+          IG_USERNAME:        ${{ secrets.IG_USERNAME }}
+          SUPABASE_URL:       ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY:  ${{ secrets.SUPABASE_ANON_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          ADMIN_PASSWORD:     ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          node -e "
+          const fs = require('fs');
+          const config = {
+            IG_USERNAME:        process.env.IG_USERNAME        || 'latanadelconiglio_nola',
+            SUPABASE_URL:       process.env.SUPABASE_URL       || '',
+            SUPABASE_ANON_KEY:  process.env.SUPABASE_ANON_KEY  || '',
+            TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '',
+            TELEGRAM_CHAT_ID:   process.env.TELEGRAM_CHAT_ID   || '',
+            ADMIN_PASSWORD:     process.env.ADMIN_PASSWORD      || 'tana2024',
+          };
+          fs.writeFileSync('config.js', 'const CONFIG = ' + JSON.stringify(config, null, 2) + ';');
+          console.log('config.js generato.');
+          "
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
