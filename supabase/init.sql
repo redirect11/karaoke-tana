@@ -61,6 +61,10 @@ CREATE TABLE IF NOT EXISTS prenotazioni (
 ALTER TABLE prenotazioni
   ADD COLUMN IF NOT EXISTS serata_id BIGINT REFERENCES serate(id);
 
+-- tavolo non è più raccolto dal form; rende la colonna opzionale
+ALTER TABLE prenotazioni ALTER COLUMN tavolo DROP NOT NULL;
+ALTER TABLE prenotazioni ALTER COLUMN tavolo SET DEFAULT 0;
+
 ALTER TABLE prenotazioni ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
