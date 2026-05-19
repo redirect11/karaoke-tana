@@ -116,61 +116,17 @@
       margin-bottom: 20px;
     }
 
-    /* ── Instagram block ── */
-    .ig-block {
+    /* ── Instagram embed ── */
+    .ig-embed-wrap {
+      margin: 0 -4px 20px;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
+      justify-content: center;
+    }
+    .ig-embed-wrap .instagram-media {
+      min-width: 0 !important;
+      width: 100% !important;
     }
 
-    /* gradient Instagram button */
-    .btn-ig {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 28px;
-      border-radius: 50px;
-      border: none;
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: 700;
-      color: #fff;
-      background: linear-gradient(135deg, #f58529, #dd2a7b, #8134af, #515bd4);
-      background-size: 200% 200%;
-      animation: igGlow 3s ease infinite;
-      transition: transform 0.15s, box-shadow 0.15s;
-      text-decoration: none;
-    }
-    .btn-ig:hover { transform: scale(1.04); box-shadow: 0 4px 24px rgba(221,42,123,0.5); }
-    .btn-ig:active { transform: scale(0.97); }
-    @keyframes igGlow {
-      0%   { background-position: 0% 50%; }
-      50%  { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    .btn-ig svg { width: 22px; height: 22px; flex-shrink: 0; }
-
-    /* follow confirmed state */
-    .follow-done {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      text-align: center;
-    }
-    .follow-done .check-icon {
-      font-size: 3rem;
-      animation: popIn 0.4s cubic-bezier(.17,.67,.35,1.3);
-    }
-    @keyframes popIn {
-      0%   { transform: scale(0); }
-      100% { transform: scale(1); }
-    }
-    .follow-done h3 {
-      color: var(--green);
-      font-size: 1.1rem;
-    }
     .btn-proceed {
       margin-top: 4px;
       padding: 12px 32px;
@@ -288,39 +244,14 @@
 
   <!-- STEP 1: follow -->
   <div class="card" id="step-follow">
+    <h2>Prima di tutto…</h2>
+    <p>Segui la nostra pagina Instagram e poi prenota la tua canzone!</p>
 
-    <!-- stato A: deve ancora cliccare -->
-    <div id="follow-cta">
-      <h2>Prima di tutto…</h2>
-      <p>
-        Per prenotare una canzone devi seguire la nostra pagina Instagram.
-        Clicca il bottone qui sotto: se sei già loggato su Instagram si aprirà
-        direttamente il profilo dove potrai seguirci con un tap!
-      </p>
-      <div class="ig-block">
-        <a id="ig-link" class="btn-ig" href="#" rel="noopener">
-          <!-- Instagram icon -->
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="2" width="20" height="20" rx="5.5" stroke="white" stroke-width="2"/>
-            <circle cx="12" cy="12" r="4" stroke="white" stroke-width="2"/>
-            <circle cx="17.5" cy="6.5" r="1" fill="white"/>
-          </svg>
-          Seguici su Instagram
-        </a>
-      </div>
+    <div class="ig-embed-wrap">
+      <blockquote id="ig-profile-embed" class="instagram-media" data-instgrm-version="14"></blockquote>
     </div>
 
-    <!-- stato B: link cliccato, aspetta conferma -->
-    <div class="follow-done" id="follow-done">
-      <div class="check-icon">✅</div>
-      <h3>Ottimo!</h3>
-      <p style="color:var(--muted); font-size:0.88rem;">
-        Ora vai su Instagram e premi <strong style="color:var(--text)">Segui</strong>,
-        poi torna qui per prenotare.
-      </p>
-      <button class="btn-proceed" id="btn-proceed">Ho seguito, prenota ora 🎤</button>
-    </div>
-
+    <button class="btn-proceed" id="btn-proceed">Ho seguito, prenota ora 🎤</button>
   </div>
 
   <!-- STEP 2: form -->
@@ -387,34 +318,23 @@
     }
 
     // ── UI refs ─────────────────────────────────────────────
-    const igLink     = document.getElementById('ig-link');
-    const followCta  = document.getElementById('follow-cta');
-    const followDone = document.getElementById('follow-done');
-    const stepFollow = document.getElementById('step-follow');
-    const stepForm   = document.getElementById('step-form');
-    const stepSuccess= document.getElementById('step-success');
-    const ind1       = document.getElementById('ind-1');
-    const ind1num    = document.getElementById('ind-1-num');
-    const ind2       = document.getElementById('ind-2');
+    const stepFollow  = document.getElementById('step-follow');
+    const stepForm    = document.getElementById('step-form');
+    const stepSuccess = document.getElementById('step-success');
+    const ind1        = document.getElementById('ind-1');
+    const ind1num     = document.getElementById('ind-1-num');
+    const ind2        = document.getElementById('ind-2');
 
-    // ── Instagram link ──────────────────────────────────────
-    const IG_USERNAME = CONFIG.IG_USERNAME;
+    // ── Instagram profile embed ─────────────────────────────
+    const embed = document.getElementById('ig-profile-embed');
+    embed.setAttribute('data-instgrm-permalink',
+      `https://www.instagram.com/${CONFIG.IG_USERNAME}/`);
 
-    igLink.href = `https://www.instagram.com/${IG_USERNAME}/`;
-
-    igLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      // Apre sempre in nuova tab; il browser mobile mostra automaticamente
-      // "Apri in Instagram" se l'app è installata — senza toccare la pagina corrente.
-      window.open(`https://www.instagram.com/${IG_USERNAME}/`, '_blank');
-      onInstagramClicked();
-    });
-
-    function onInstagramClicked() {
-      localStorage.setItem('ig_clicked', Date.now());
-      followCta.style.display  = 'none';
-      followDone.style.display = 'flex';
-    }
+    const igScript = document.createElement('script');
+    igScript.async = true;
+    igScript.src   = '//www.instagram.com/embed.js';
+    igScript.onload = () => { if (window.instgrm) window.instgrm.Embeds.process(); };
+    document.body.appendChild(igScript);
 
     document.getElementById('btn-proceed').addEventListener('click', goToForm);
 
@@ -431,9 +351,6 @@
 
     if (localStorage.getItem('ig_followed') === 'true') {
       goToForm();
-    } else if (localStorage.getItem('ig_clicked')) {
-      followCta.style.display  = 'none';
-      followDone.style.display = 'flex';
     }
 
     // ── Form submit ─────────────────────────────────────────
