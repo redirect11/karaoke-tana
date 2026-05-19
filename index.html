@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Karaoke – La Tana del Coniglio</title>
+  <script src="https://elfsightcdn.com/platform.js" async></script>
   <style>
     :root {
       --bg:        #12071f;
@@ -116,50 +117,9 @@
       margin-bottom: 20px;
     }
 
-    /* ── Instagram profile card ── */
-    .ig-card {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: linear-gradient(135deg, #f58529 0%, #dd2a7b 40%, #8134af 70%, #515bd4 100%);
-      border-radius: 12px;
-      padding: 2px;
+    /* ── Elfsight widget ── */
+    .elfsight-wrap {
       margin-bottom: 20px;
-      text-decoration: none;
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    .ig-card:hover { transform: scale(1.02); box-shadow: 0 6px 28px rgba(221,42,123,0.45); }
-    .ig-card:active { transform: scale(0.98); }
-    .ig-card-inner {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: #1a0d2e;
-      border-radius: 11px;
-      padding: 14px 18px;
-      width: 100%;
-    }
-    .ig-avatar {
-      width: 52px; height: 52px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #f58529, #dd2a7b, #8134af);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.5rem;
-      flex-shrink: 0;
-    }
-    .ig-info { flex: 1; min-width: 0; }
-    .ig-username { font-weight: 700; font-size: 0.95rem; color: #fff; }
-    .ig-name    { font-size: 0.78rem; color: var(--muted); margin-top: 1px; }
-    .ig-follow-btn {
-      background: linear-gradient(135deg, #f58529, #dd2a7b);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 7px 16px;
-      font-size: 0.82rem;
-      font-weight: 700;
-      white-space: nowrap;
-      flex-shrink: 0;
     }
 
     .btn-proceed {
@@ -282,16 +242,9 @@
     <h2>Prima di tutto…</h2>
     <p>Segui la nostra pagina Instagram per poter prenotare una canzone.</p>
 
-    <a id="ig-card-link" class="ig-card" href="#" target="_blank" rel="noopener">
-      <div class="ig-card-inner">
-        <div class="ig-avatar">🐰</div>
-        <div class="ig-info">
-          <div class="ig-username" id="ig-card-username"></div>
-          <div class="ig-name">La Tana del Coniglio · Nola</div>
-        </div>
-        <div class="ig-follow-btn">Segui</div>
-      </div>
-    </a>
+    <div class="elfsight-wrap">
+      <div class="elfsight-app-cc1203d2-cfe9-4bce-9842-be6f8da6e75f" data-elfsight-app-lazy></div>
+    </div>
 
     <button class="btn-proceed" id="btn-proceed">Ho seguito, prenota ora 🎤</button>
   </div>
@@ -366,11 +319,6 @@
     const ind1        = document.getElementById('ind-1');
     const ind1num     = document.getElementById('ind-1-num');
     const ind2        = document.getElementById('ind-2');
-
-    // ── Instagram profile card ──────────────────────────────
-    const igUrl = `https://www.instagram.com/${CONFIG.IG_USERNAME}/`;
-    document.getElementById('ig-card-link').href = igUrl;
-    document.getElementById('ig-card-username').textContent = `@${CONFIG.IG_USERNAME}`;
 
     document.getElementById('btn-proceed').addEventListener('click', goToForm);
 
