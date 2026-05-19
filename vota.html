@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vota le esibizioni – La Tana del Coniglio</title>
+  <style>
+    :root {
+      --bg:     #12071f;
+      --bg2:    #1e0f35;
+      --card:   #2a1650;
+      --card2:  #341a63;
+      --gold:   #d4a017;
+      --gold-s: #f0c94a;
+      --red:    #9b1c2e;
+      --green:  #2ecc71;
+      --text:   #f0e6d3;
+      --muted:  #a08ca0;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 48px;
+    }
+
+    header {
+      background: var(--bg2);
+      padding: 16px 20px;
+      text-align: center;
+      border-bottom: 1px solid #2d1b4e;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header .logo { font-size: 1.6rem; }
+    header h1 { font-size: 1rem; font-weight: 700; color: var(--gold); }
+    header p  { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── status banner ── */
+    #status-banner {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    #status-banner.closed { background: rgba(155,28,46,0.15); color: #e74c3c; display: flex; }
+    #status-banner.open   { background: rgba(46,204,113,0.1);  color: var(--green); display: flex; }
+
+    /* ── main content ── */
+    #content {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ── empty / loading states ── */
+    .state-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px;
+      text-align: center;
+      gap: 12px;
+    }
+    .state-box .big { font-size: 3rem; }
+    .state-box p { color: var(--muted); font-size: 0.9rem; }
+
+    /* ── song card ── */
+    .song-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .song-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .song-title { font-weight: 700; font-size: 1rem; color: var(--gold-s); }
+    .song-artist { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+    .song-singer {
+      font-size: 0.72rem;
+      color: var(--muted);
+      background: var(--bg2);
+      border-radius: 50px;
+      padding: 3px 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ── applause rating ── */
+    .rating-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .btn-vote {
+      padding: 7px 12px;
+      border: 1.5px solid #3d2366;
+      border-radius: 50px;
+      background: transparent;
+      color: var(--text);
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn-vote:hover { border-color: var(--gold); background: rgba(212,160,23,0.12); }
+    .btn-vote:active { transform: scale(0.93); }
+    .btn-vote.selected {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: #12071f;
+      font-weight: 700;
+    }
+    .btn-vote:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .vote-score {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: right;
+      white-space: nowrap;
+    }
+    .vote-score span {
+      display: block;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold-s);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">🐰🎤</div>
+    <h1>Vota le esibizioni</h1>
+    <p>La Tana del Coniglio · Nola</p>
+  </header>
+
+  <div id="status-banner"></div>
+
+  <div id="content">
+    <div class="state-box" id="loading-state">
+      <div class="big">⏳</div>
+      <p>Caricamento…</p>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    const supabaseReady = CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes('TUO-PROGETTO');
+    const db = supabaseReady
+      ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
+      : null;
+
+    const content       = document.getElementById('content');
+    const statusBanner  = document.getElementById('status-banner');
+
+    let serata       = null;
+    let songs        = [];
+    let votingOpen   = false;
+    // localVotes: { [prenotazione_id]: { voto, db_id } }
+    const localVotes = JSON.parse(localStorage.getItem('local_votes') || '{}');
+
+    function saveLocalVotes() {
+      localStorage.setItem('local_votes', JSON.stringify(localVotes));
+    }
+
+    // ── Load serata ────────────────────────────────────────────
+    async function loadSerata() {
+      if (!db) {
+        showEmpty('Supabase non configurato.');
+        return;
+      }
+      // Load most recent serata (open or last closed)
+      const { data } = await db
+        .from('serate')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!data) {
+        showEmpty('Nessuna serata trovata.');
+        return;
+      }
+      serata     = data;
+      votingOpen = data.voto_aperto;
+      updateBanner();
+      await loadSongs();
+      subscribeRealtime();
+    }
+
+    function updateBanner() {
+      if (votingOpen) {
+        statusBanner.className = 'open';
+        statusBanner.textContent = '🟢 Votazioni aperte — esprimi il tuo applauso!';
+      } else {
+        statusBanner.className = 'closed';
+        statusBanner.textContent = '⭕ Votazioni chiuse';
+      }
+    }
+
+    // ── Load songs ─────────────────────────────────────────────
+    async function loadSongs() {
+      const { data, error } = await db
+        .from('prenotazioni')
+        .select('id, nome, canzone, artista')
+        .eq('cantata', true)
+        .eq('serata_id', serata.id)
+        .order('created_at', { ascending: true });
+
+      if (error) { console.error(error); return; }
+      songs = data || [];
+      await loadScores();
+    }
+
+    // ── Load scores ────────────────────────────────────────────
+    async function loadScores() {
+      if (songs.length === 0) { renderContent(); return; }
+      const ids = songs.map(s => s.id);
+      const { data } = await db
+        .from('voti')
+        .select('prenotazione_id, voto')
+        .in('prenotazione_id', ids);
+
+      const scores = {};
+      (data || []).forEach(v => {
+        if (!scores[v.prenotazione_id]) scores[v.prenotazione_id] = { sum: 0, count: 0 };
+        scores[v.prenotazione_id].sum   += v.voto;
+        scores[v.prenotazione_id].count += 1;
+      });
+
+      songs.forEach(s => { s._scores = scores[s.id] || { sum: 0, count: 0 }; });
+      renderContent(scores);
+    }
+
+    // ── Render ─────────────────────────────────────────────────
+    function renderContent() {
+      content.innerHTML = '';
+
+      if (songs.length === 0) {
+        content.innerHTML = `
+          <div class="state-box">
+            <div class="big">🎤</div>
+            <p>Nessuna esibizione ancora.<br>Torna dopo la prima canzone!</p>
+          </div>
+        `;
+        return;
+      }
+
+      songs.forEach(s => content.appendChild(makeSongCard(s)));
+    }
+
+    function makeSongCard(s) {
+      const div      = document.createElement('div');
+      div.className  = 'song-card';
+      div.dataset.id = s.id;
+
+      const myVote   = localVotes[s.id]?.voto || 0;
+      const sc       = s._scores || { sum: 0, count: 0 };
+      const avg      = sc.count > 0 ? (sc.sum / sc.count).toFixed(1) : '—';
+
+      const btns = [1,2,3,4,5].map(v => {
+        const label = '👏'.repeat(v);
+        const sel   = myVote === v ? ' selected' : '';
+        const dis   = !votingOpen ? ' disabled' : '';
+        return `<button class="btn-vote${sel}"${dis} data-v="${v}">${label}</button>`;
+      }).join('');
+
+      div.innerHTML = `
+        <div class="song-header">
+          <div>
+            <div class="song-title">${esc(s.canzone)}</div>
+            <div class="song-artist">${esc(s.artista)}</div>
+          </div>
+          <div class="song-singer">👤 ${esc(s.nome)}</div>
+        </div>
+        <div class="rating-row">
+          ${btns}
+          <div class="vote-score">
+            <span>${avg}</span>
+            ${sc.count} vot${sc.count === 1 ? 'o' : 'i'}
+          </div>
+        </div>
+      `;
+
+      if (votingOpen) {
+        div.querySelectorAll('.btn-vote').forEach(btn => {
+          btn.addEventListener('click', () => castVote(s.id, parseInt(btn.dataset.v), div));
+        });
+      }
+      return div;
+    }
+
+    async function castVote(songId, voto, card) {
+      card.querySelectorAll('.btn-vote').forEach(b => b.disabled = true);
+
+      const existing = localVotes[songId];
+      let error;
+
+      if (existing?.db_id) {
+        const res = await db.from('voti').update({ voto }).eq('id', existing.db_id);
+        error = res.error;
+      } else {
+        const res = await db.from('voti').insert({ prenotazione_id: songId, voto }).select('id').single();
+        error = res.error;
+        if (!error) localVotes[songId] = { voto, db_id: res.data.id };
+      }
+
+      if (error) {
+        console.error(error);
+        card.querySelectorAll('.btn-vote').forEach(b => b.disabled = false);
+        return;
+      }
+
+      if (existing?.db_id) localVotes[songId].voto = voto;
+      saveLocalVotes();
+
+      // refresh scores for this card
+      const song = songs.find(s => s.id === songId);
+      if (song) {
+        const { data } = await db.from('voti').select('voto').eq('prenotazione_id', songId);
+        const arr = data || [];
+        song._scores = {
+          sum:   arr.reduce((a, v) => a + v.voto, 0),
+          count: arr.length,
+        };
+        const fresh = makeSongCard(song);
+        card.replaceWith(fresh);
+      }
+    }
+
+    function showEmpty(msg) {
+      content.innerHTML = `<div class="state-box"><div class="big">🌙</div><p>${esc(msg)}</p></div>`;
+    }
+
+    // ── Real-time ──────────────────────────────────────────────
+    function subscribeRealtime() {
+      db.channel('vota-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'prenotazioni' }, async () => {
+          await loadSongs();
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate',
+          filter: `id=eq.${serata.id}` }, async payload => {
+          serata     = payload.new;
+          votingOpen = serata.voto_aperto;
+          updateBanner();
+          renderContent();
+        })
+        .subscribe();
+    }
+
+    function esc(str) {
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    loadSerata();
+  </script>
+</body>
+</html>
