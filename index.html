@@ -151,17 +151,6 @@
     }
     .btn-ig svg { width: 22px; height: 22px; flex-shrink: 0; }
 
-    .btn-skip {
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-size: 0.78rem;
-      cursor: pointer;
-      text-decoration: underline;
-      padding: 4px;
-    }
-    .btn-skip:hover { color: var(--text); }
-
     /* follow confirmed state */
     .follow-done {
       display: none;
@@ -309,7 +298,7 @@
         direttamente il profilo dove potrai seguirci con un tap!
       </p>
       <div class="ig-block">
-        <a id="ig-link" class="btn-ig" href="#" target="_blank" rel="noopener">
+        <a id="ig-link" class="btn-ig" href="#" rel="noopener">
           <!-- Instagram icon -->
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="2" y="2" width="20" height="20" rx="5.5" stroke="white" stroke-width="2"/>
@@ -318,7 +307,6 @@
           </svg>
           Seguici su Instagram
         </a>
-        <button class="btn-skip" id="btn-already">Seguo già la pagina →</button>
       </div>
     </div>
 
@@ -412,21 +400,13 @@
     // ── Instagram link ──────────────────────────────────────
     const IG_USERNAME = CONFIG.IG_USERNAME;
 
-    function getIgUrl() {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      return isMobile
-        ? `instagram://user?username=${IG_USERNAME}`
-        : `https://www.instagram.com/${IG_USERNAME}/`;
-    }
-    igLink.href = getIgUrl();
+    igLink.href = `https://www.instagram.com/${IG_USERNAME}/`;
 
     igLink.addEventListener('click', (e) => {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        e.preventDefault();
-        window.location.href = `instagram://user?username=${IG_USERNAME}`;
-        setTimeout(() => window.open(`https://www.instagram.com/${IG_USERNAME}/`, '_blank'), 800);
-      }
+      e.preventDefault();
+      // Apre sempre in nuova tab; il browser mobile mostra automaticamente
+      // "Apri in Instagram" se l'app è installata — senza toccare la pagina corrente.
+      window.open(`https://www.instagram.com/${IG_USERNAME}/`, '_blank');
       onInstagramClicked();
     });
 
@@ -436,7 +416,6 @@
       followDone.style.display = 'flex';
     }
 
-    document.getElementById('btn-already').addEventListener('click', onInstagramClicked);
     document.getElementById('btn-proceed').addEventListener('click', goToForm);
 
     function goToForm() {
