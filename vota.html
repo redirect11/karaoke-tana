@@ -232,12 +232,24 @@
 
     // ── Load songs ─────────────────────────────────────────────
     async function loadSongs() {
-      const { data, error } = await db
+      let { data, error } = await db
         .from('prenotazioni')
         .select('id, nome, canzone, artista')
         .eq('cantata', true)
         .eq('serata_id', serata.id)
         .order('created_at', { ascending: true });
+
+      if (!error && (!data || data.length === 0)) {
+        const fallback = await db
+          .from('prenotazioni')
+          .select('id, nome, canzone, artista')
+          .eq('cantata', true)
+          .is('serata_id', null)
+          .order('created_at', { ascending: true });
+        if (!fallback.error && fallback.data?.length) {
+          data = fallback.data;
+        }
+      }
 
       if (error) { console.error(error); return; }
       songs = data || [];
