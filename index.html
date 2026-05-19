@@ -503,6 +503,7 @@
     let serataChannel   = null;
     let songListChannel = null;
     let isStaffMode = false;
+    let usingLegacySongFallback = false;
 
     // ── Telegram ────────────────────────────────────────────
     async function notifyTelegram(booking) {
@@ -552,12 +553,33 @@
 
       songListStatus.textContent = 'Caricamento lista…';
 
-      const { data, error } = await db
+      let { data, error } = await db
         .from('prenotazioni')
         .select('id, nome, canzone, artista, created_at, cantata')
         .eq('serata_id', currentSerataId)
         .eq('cantata', false)
         .order('created_at', { ascending: true });
+
+      if (error || !data || data.length === 0) {
+        const fallback = await db
+          .from('prenotazioni')
+          .select('id, nome, canzone, artista, created_at, cantata')
+          .is('serata_id', null)
+          .eq('cantata', false)
+          .order('created_at', { ascending: true });
+        if (!fallback.error && fallback.data?.length) {
+          data = fallback.data;
+          error = null;
+          usingLegacySongFallback = true;
+        } else if (fallback.error) {
+          error = fallback.error;
+          usingLegacySongFallback = false;
+        } else {
+          usingLegacySongFallback = false;
+        }
+      } else {
+        usingLegacySongFallback = false;
+      }
 
       if (error) {
         console.error('Errore caricamento lista:', error);
@@ -658,6 +680,14 @@
           filter: `serata_id=eq.${serataId}`
         }, () => {
           loadSongList();
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'prenotazioni',
+          filter: 'serata_id=is.null'
+        }, () => {
+          if (usingLegacySongFallback) loadSongList();
         })
         .subscribe();
     }
