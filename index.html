@@ -371,11 +371,34 @@
     <button class="btn-new" id="btn-new">Aggiungi un'altra canzone</button>
   </div>
 
-  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.1</footer>
+  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.2</footer>
 
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
-    const IG_USERNAME = 'latanadelconiglio_nola'; // ← aggiorna con l'username reale
+    // ── Supabase ────────────────────────────────────────────
+    const supabaseReady = CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes('TUO-PROGETTO');
+    const db = supabaseReady
+      ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
+      : null;
 
+    // ── Telegram ────────────────────────────────────────────
+    async function notifyTelegram(booking) {
+      if (!CONFIG.TELEGRAM_BOT_TOKEN || !CONFIG.TELEGRAM_CHAT_ID) return;
+      const time = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      const text = `🎤 <b>Nuova prenotazione!</b>\n👤 ${booking.nome}\n🎵 ${booking.canzone} – ${booking.artista}\n🪑 Tavolo ${booking.tavolo}\n🕐 ${time}`;
+      try {
+        await fetch(`https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: CONFIG.TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' }),
+        });
+      } catch (e) {
+        console.warn('Telegram non raggiungibile', e);
+      }
+    }
+
+    // ── UI refs ─────────────────────────────────────────────
     const igLink     = document.getElementById('ig-link');
     const followCta  = document.getElementById('follow-cta');
     const followDone = document.getElementById('follow-done');
@@ -386,26 +409,23 @@
     const ind1num    = document.getElementById('ind-1-num');
     const ind2       = document.getElementById('ind-2');
 
-    // Costruisce l'URL ottimale: prova deep link app su mobile, fallback web
+    // ── Instagram link ──────────────────────────────────────
+    const IG_USERNAME = CONFIG.IG_USERNAME;
+
     function getIgUrl() {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       return isMobile
         ? `instagram://user?username=${IG_USERNAME}`
         : `https://www.instagram.com/${IG_USERNAME}/`;
     }
-
     igLink.href = getIgUrl();
 
-    // Se su mobile, il deep link apre l'app ma non apre una nuova tab;
-    // apriamo comunque la web url come fallback dopo un breve delay.
     igLink.addEventListener('click', (e) => {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
         e.preventDefault();
         window.location.href = `instagram://user?username=${IG_USERNAME}`;
-        setTimeout(() => {
-          window.open(`https://www.instagram.com/${IG_USERNAME}/`, '_blank');
-        }, 800);
+        setTimeout(() => window.open(`https://www.instagram.com/${IG_USERNAME}/`, '_blank'), 800);
       }
       onInstagramClicked();
     });
@@ -430,31 +450,44 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Se ha già confermato il follow in una sessione precedente, vai diretto al form
     if (localStorage.getItem('ig_followed') === 'true') {
       goToForm();
-    }
-    // Se ha cliccato ma non ancora confermato, mostra lo stato intermedio
-    else if (localStorage.getItem('ig_clicked')) {
+    } else if (localStorage.getItem('ig_clicked')) {
       followCta.style.display  = 'none';
       followDone.style.display = 'flex';
     }
 
-    // Form submit
-    document.getElementById('booking-form').addEventListener('submit', (e) => {
+    // ── Form submit ─────────────────────────────────────────
+    document.getElementById('booking-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const nome    = document.getElementById('nome').value.trim();
       const canzone = document.getElementById('canzone').value.trim();
       const artista = document.getElementById('artista').value.trim();
-      const tavolo  = document.getElementById('tavolo').value.trim();
+      const tavolo  = parseInt(document.getElementById('tavolo').value.trim(), 10);
 
       if (!nome || !canzone || !artista || !tavolo) {
         alert('Compila tutti i campi prima di prenotare!');
         return;
       }
 
-      // TODO: inviare a Supabase / backend reale
-      console.log('Prenotazione:', { nome, canzone, artista, tavolo, ts: new Date().toISOString() });
+      const btn = e.target.querySelector('.btn-submit');
+      btn.disabled = true;
+      btn.textContent = 'Invio in corso…';
+
+      const booking = { nome, canzone, artista, tavolo };
+
+      if (db) {
+        const { error } = await db.from('prenotazioni').insert(booking);
+        if (error) {
+          console.error('Supabase error:', error);
+          btn.disabled = false;
+          btn.textContent = '🎙 Prenota';
+          alert('Errore durante la prenotazione. Riprova tra qualche secondo!');
+          return;
+        }
+      }
+
+      notifyTelegram(booking);
 
       stepForm.style.display    = 'none';
       stepSuccess.style.display = 'flex';
@@ -465,6 +498,8 @@
 
     document.getElementById('btn-new').addEventListener('click', () => {
       document.getElementById('booking-form').reset();
+      document.querySelector('.btn-submit').disabled = false;
+      document.querySelector('.btn-submit').textContent = '🎙 Prenota';
       stepSuccess.style.display = 'none';
       stepForm.style.display    = 'block';
       ind2.classList.add('active');
