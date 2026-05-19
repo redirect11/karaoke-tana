@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Karaoke – La Tana del Coniglio</title>
+  <script src="https://elfsightcdn.com/platform.js" async></script>
   <style>
     :root {
       --bg:        #12071f;
@@ -116,15 +117,9 @@
       margin-bottom: 20px;
     }
 
-    /* ── Instagram embed ── */
-    .ig-embed-wrap {
-      margin: 0 -4px 20px;
-      display: flex;
-      justify-content: center;
-    }
-    .ig-embed-wrap .instagram-media {
-      min-width: 0 !important;
-      width: 100% !important;
+    /* ── Elfsight widget ── */
+    .elfsight-wrap {
+      margin-bottom: 20px;
     }
 
     .btn-proceed {
@@ -245,10 +240,10 @@
   <!-- STEP 1: follow -->
   <div class="card" id="step-follow">
     <h2>Prima di tutto…</h2>
-    <p>Segui la nostra pagina Instagram e poi prenota la tua canzone!</p>
+    <p>Segui la nostra pagina Instagram per poter prenotare una canzone.</p>
 
-    <div class="ig-embed-wrap">
-      <blockquote id="ig-profile-embed" class="instagram-media" data-instgrm-version="14"></blockquote>
+    <div class="elfsight-wrap">
+      <div class="elfsight-app-cc1203d2-cfe9-4bce-9842-be6f8da6e75f" data-elfsight-app-lazy></div>
     </div>
 
     <button class="btn-proceed" id="btn-proceed">Ho seguito, prenota ora 🎤</button>
@@ -324,17 +319,6 @@
     const ind1        = document.getElementById('ind-1');
     const ind1num     = document.getElementById('ind-1-num');
     const ind2        = document.getElementById('ind-2');
-
-    // ── Instagram profile embed ─────────────────────────────
-    const embed = document.getElementById('ig-profile-embed');
-    embed.setAttribute('data-instgrm-permalink',
-      `https://www.instagram.com/${CONFIG.IG_USERNAME}/`);
-
-    const igScript = document.createElement('script');
-    igScript.async = true;
-    igScript.src   = '//www.instagram.com/embed.js';
-    igScript.onload = () => { if (window.instgrm) window.instgrm.Embeds.process(); };
-    document.body.appendChild(igScript);
 
     document.getElementById('btn-proceed').addEventListener('click', goToForm);
 
