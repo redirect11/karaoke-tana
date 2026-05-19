@@ -176,6 +176,25 @@
     .ig-btn-follow:hover { background: #1aa3ff; }
     .ig-btn-follow svg { width: 16px; height: 16px; flex-shrink: 0; }
 
+    /* ── vota banner ── */
+    #vota-banner {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(212,160,23,0.15);
+      border: 1px solid var(--gold);
+      border-radius: 50px;
+      color: var(--gold-soft);
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-decoration: none;
+      padding: 8px 22px;
+      margin-bottom: 20px;
+      transition: background 0.15s;
+    }
+    #vota-banner:hover { background: rgba(212,160,23,0.28); }
+
     /* ── booking form ── */
     #step-form { display: none; }
     .form-group {
@@ -183,6 +202,7 @@
       flex-direction: column;
       gap: 6px;
       margin-bottom: 16px;
+      min-width: 0;
     }
     label {
       font-size: 0.78rem;
@@ -192,6 +212,7 @@
       text-transform: uppercase;
     }
     input {
+      width: 100%;
       background: var(--bg2);
       border: 1.5px solid #3d2366;
       border-radius: 8px;
@@ -253,6 +274,8 @@
     <p class="sub">Karaoke · Nola</p>
   </header>
 
+  <a href="vota.html" id="vota-banner">🗳 Vota le esibizioni! →</a>
+
   <!-- step indicator -->
   <div class="steps">
     <div class="step active" id="ind-1">
@@ -312,10 +335,6 @@
           <input id="artista" type="text" placeholder="Es. Lady Gaga" required />
         </div>
       </div>
-      <div class="form-group">
-        <label for="tavolo">Numero tavolo</label>
-        <input id="tavolo" type="number" placeholder="Es. 4" min="1" max="50" required />
-      </div>
       <button type="submit" class="btn-submit">🎙 Prenota</button>
     </form>
   </div>
@@ -348,6 +367,20 @@
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
+    // ── Cookie helpers ──────────────────────────────────────
+    function getCookie(name) {
+      return document.cookie.split('; ').reduce((r, c) => {
+        const [k, ...v] = c.split('=');
+        return k === name ? decodeURIComponent(v.join('=')) : r;
+      }, null);
+    }
+    function setCookie(name, value, maxAgeSec) {
+      document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${maxAgeSec}; path=/; SameSite=Lax`;
+    }
+    function deleteCookie(name) {
+      document.cookie = `${name}=; max-age=0; path=/; SameSite=Lax`;
+    }
+
     // ── Supabase ────────────────────────────────────────────
     const supabaseReady = CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes('TUO-PROGETTO');
     const db = supabaseReady
@@ -355,12 +388,13 @@
       : null;
 
     let currentSerataId = null;
+    let serataChannel   = null;
 
     // ── Telegram ────────────────────────────────────────────
     async function notifyTelegram(booking) {
       if (!CONFIG.TELEGRAM_BOT_TOKEN || !CONFIG.TELEGRAM_CHAT_ID) return;
       const time = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-      const text = `🎤 <b>Nuova prenotazione!</b>\n👤 ${booking.nome}\n🎵 ${booking.canzone} – ${booking.artista}\n🪑 Tavolo ${booking.tavolo}\n🕐 ${time}`;
+      const text = `🎤 <b>Nuova prenotazione!</b>\n👤 ${booking.nome}\n🎵 ${booking.canzone} – ${booking.artista}\n🕐 ${time}`;
       try {
         await fetch(`https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: 'POST',
@@ -382,12 +416,18 @@
     const ind1num     = document.getElementById('ind-1-num');
     const ind2        = document.getElementById('ind-2');
 
+    // ── Vota banner ──────────────────────────────────────────
+    const votaBanner = document.getElementById('vota-banner');
+    function setVotaBanner(open) {
+      votaBanner.style.display = open ? 'flex' : 'none';
+    }
+
     // ── Serata aperta ────────────────────────────────────────
     async function checkSerataAperta() {
       if (!db) return true;
       const { data } = await db
         .from('serate')
-        .select('id')
+        .select('id, voto_aperto')
         .eq('aperta', true)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -396,10 +436,29 @@
         [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
+        setVotaBanner(false);
         return false;
       }
       currentSerataId = data.id;
+      setVotaBanner(data.voto_aperto);
+      subscribeSerata(data.id);
       return true;
+    }
+
+    function subscribeSerata(serataId) {
+      if (!db || serataChannel) return;
+      serataChannel = db.channel('index-serata')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate',
+          filter: `id=eq.${serataId}` }, payload => {
+          setVotaBanner(payload.new.voto_aperto);
+          if (!payload.new.aperta) {
+            currentSerataId = null;
+            [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+            stepClosed.style.display = 'flex';
+            document.querySelector('.steps').style.display = 'none';
+          }
+        })
+        .subscribe();
     }
 
     // ── Pending booking check ────────────────────────────────
@@ -407,17 +466,17 @@
     let pollInterval = null;
 
     async function checkPendingBooking() {
-      const stored = localStorage.getItem('last_booking');
+      const stored = getCookie('last_booking');
       if (!stored) return false;
       const { id, timestamp, canzone, artista } = JSON.parse(stored);
       if ((Date.now() - timestamp) / 60000 > COOLDOWN_MIN) {
-        localStorage.removeItem('last_booking');
+        deleteCookie('last_booking');
         return false;
       }
       if (db) {
         const { data } = await db.from('prenotazioni').select('cantata').eq('id', id).single();
         if (!data || data.cantata) {
-          localStorage.removeItem('last_booking');
+          deleteCookie('last_booking');
           return false;
         }
       }
@@ -459,7 +518,7 @@
 
     function openInstagram() {
       window.open(igProfileUrl, '_blank');
-      localStorage.setItem('ig_clicked', Date.now());
+      setCookie('ig_clicked', Date.now(), 2 * 3600);
       igOpened = true;
       document.getElementById('ig-hint').style.display = 'block';
     }
@@ -472,7 +531,7 @@
 
     // Quando l'utente torna alla pagina dopo aver aperto Instagram
     async function handleReturn() {
-      if (igOpened || localStorage.getItem('ig_clicked')) {
+      if (igOpened || getCookie('ig_clicked')) {
         const open = await checkSerataAperta();
         if (open) goToForm();
       }
@@ -485,7 +544,7 @@
     window.addEventListener('pageshow', handleReturn);
 
     async function goToForm() {
-      localStorage.setItem('ig_followed', 'true');
+      setCookie('ig_followed', 'true', 365 * 24 * 3600);
       stepFollow.style.display = 'none';
       const pending = await checkPendingBooking();
       if (!pending) showForm();
@@ -495,7 +554,7 @@
     (async () => {
       const open = await checkSerataAperta();
       if (!open) return;
-      if (localStorage.getItem('ig_followed') === 'true') {
+      if (getCookie('ig_followed') === 'true') {
         goToForm();
       }
     })();
@@ -506,9 +565,8 @@
       const nome    = document.getElementById('nome').value.trim();
       const canzone = document.getElementById('canzone').value.trim();
       const artista = document.getElementById('artista').value.trim();
-      const tavolo  = parseInt(document.getElementById('tavolo').value.trim(), 10);
 
-      if (!nome || !canzone || !artista || !tavolo) {
+      if (!nome || !canzone || !artista) {
         alert('Compila tutti i campi prima di prenotare!');
         return;
       }
@@ -517,7 +575,7 @@
       btn.disabled = true;
       btn.textContent = 'Invio in corso…';
 
-      const booking = { nome, canzone, artista, tavolo };
+      const booking = { nome, canzone, artista };
       if (currentSerataId) booking.serata_id = currentSerataId;
 
       if (db) {
@@ -529,9 +587,9 @@
           alert('Errore durante la prenotazione. Riprova tra qualche secondo!');
           return;
         }
-        localStorage.setItem('last_booking', JSON.stringify({
+        setCookie('last_booking', JSON.stringify({
           id: data.id, timestamp: Date.now(), canzone, artista
-        }));
+        }), COOLDOWN_MIN * 60);
       }
 
       notifyTelegram(booking);

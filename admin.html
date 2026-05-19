@@ -370,8 +370,9 @@
     const queueCount = document.getElementById('queue-count');
     const serataWrap = document.getElementById('serata-wrap');
 
-    let bookings     = [];
-    let currentSerata = null;
+    let bookings          = [];
+    let currentSerata     = null;
+    let realtimeConnected = false;
 
     // ── Password gate ────────────────────────────────────────
     const overlay  = document.getElementById('pwd-overlay');
@@ -402,7 +403,7 @@
 
     async function initAdmin() {
       if (!db) {
-        setLive(false, 'Supabase non configurato');
+        updateLiveDot();
         renderQueue([]);
         renderSerata();
         return;
@@ -423,6 +424,7 @@
         .maybeSingle();
       currentSerata = data || null;
       renderSerata();
+      updateLiveDot();
     }
 
     function renderSerata() {
@@ -430,11 +432,11 @@
         serataWrap.innerHTML = `
           <div class="serata-card serata-closed">
             <div class="serata-info">
-              <div class="serata-status">⭕ Nessuna serata aperta</div>
+              <div class="serata-status">⭕ Nessun karaoke aperto</div>
               <div class="serata-sub">Le prenotazioni sono disabilitate</div>
             </div>
             <div class="serata-actions">
-              <button class="btn-serata btn-open" id="btn-open-serata">Apri serata</button>
+              <button class="btn-serata btn-open" id="btn-open-serata">Apri karaoke</button>
             </div>
           </div>
         `;
@@ -448,11 +450,11 @@
       serataWrap.innerHTML = `
         <div class="serata-card serata-open">
           <div class="serata-info">
-            <div class="serata-status">🟢 Serata aperta</div>
+            <div class="serata-status">🟢 Karaoke aperto</div>
             <div class="serata-sub">${dateStr}</div>
           </div>
           <div class="serata-actions">
-            <button class="btn-serata btn-close" id="btn-close-serata">Chiudi serata</button>
+            <button class="btn-serata btn-close" id="btn-close-serata">Chiudi karaoke</button>
           </div>
           <div class="serata-voto-row">
             <div>
@@ -483,17 +485,19 @@
       if (error) { console.error(error); btn.disabled = false; return; }
       currentSerata = data;
       renderSerata();
+      updateLiveDot();
       renderQueue([]);
     }
 
     async function closeSerata() {
-      if (!confirm('Chiudere la serata? Le prenotazioni verranno disabilitate.')) return;
+      if (!confirm('Chiudere il karaoke? Le prenotazioni verranno disabilitate.')) return;
       const btn = document.getElementById('btn-close-serata');
       btn.disabled = true;
       const { error } = await db.from('serate').update({ aperta: false, voto_aperto: false }).eq('id', currentSerata.id);
       if (error) { console.error(error); btn.disabled = false; return; }
       currentSerata = null;
       renderSerata();
+      updateLiveDot();
       renderQueue([]);
     }
 
@@ -526,14 +530,22 @@
         .on('postgres_changes', { event: '*', schema: 'public', table: 'prenotazioni' }, loadBookings)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'serate' }, loadSerata)
         .subscribe(status => {
-          if (status === 'SUBSCRIBED') setLive(true, 'live');
-          else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') setLive(false, 'disconnesso');
+          realtimeConnected = status === 'SUBSCRIBED';
+          updateLiveDot();
         });
     }
 
-    function setLive(ok, label) {
-      liveDot.className = ok ? 'green' : 'red';
-      liveLabel.textContent = label;
+    function updateLiveDot() {
+      if (!currentSerata) {
+        liveDot.className = '';
+        liveLabel.textContent = 'chiuso';
+      } else if (realtimeConnected) {
+        liveDot.className = 'green';
+        liveLabel.textContent = 'live';
+      } else {
+        liveDot.className = 'red';
+        liveLabel.textContent = 'disconnesso';
+      }
     }
 
     // ── Render queue ──────────────────────────────────────────
@@ -571,7 +583,7 @@
             <span class="badge-next">Prossimo</span>
           </div>
           <div class="card-song">🎵 ${esc(b.canzone)}</div>
-          <div class="card-meta">${esc(b.artista)} · Tavolo ${b.tavolo}</div>
+          <div class="card-meta">${esc(b.artista)}</div>
         </div>
         <div class="card-time">${time}</div>
         <button class="btn-done" data-id="${b.id}">✓ Fatto</button>
