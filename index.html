@@ -134,12 +134,11 @@
       border-radius: 50%;
       flex-shrink: 0;
       overflow: hidden;
-    }
-    .ig-pic img {
-      width: 100%; height: 100%;
-      border-radius: 50%;
-      display: block;
-      object-fit: cover;
+      background-image: url('logo.png');
+      background-size: 80%;        /* aumenta per zoomare, diminuisci per stringere */
+      background-position: center; /* sposta es. "48% 52%" per aggiustare */
+      background-repeat: no-repeat;
+      background-color: #000;
     }
 
     .ig-profile-info { flex: 1; min-width: 0; }
@@ -298,10 +297,7 @@
     <p>Segui la nostra pagina Instagram per poter prenotare una canzone.</p>
 
     <div class="ig-profile-card" id="ig-profile-card">
-      <div class="ig-pic">
-        <img id="ig-logo" src="logo.png" alt="La Tana del Coniglio"
-             onerror="this.style.display='none'" />
-      </div>
+      <div class="ig-pic"></div>
       <div class="ig-profile-info">
         <div class="ig-profile-name">La Tana del Coniglio</div>
         <div class="ig-profile-handle">@latanadelconiglio_nola</div>
