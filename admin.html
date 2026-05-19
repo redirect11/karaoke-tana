@@ -357,6 +357,22 @@
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
+    // ── Supabase ─────────────────────────────────────────────
+    const supabaseReady = CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes('TUO-PROGETTO');
+    const db = supabaseReady
+      ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
+      : null;
+
+    const liveDot    = document.getElementById('live-dot');
+    const liveLabel  = document.getElementById('live-label');
+    const queueWrap  = document.getElementById('queue-wrap');
+    const emptyState = document.getElementById('empty-state');
+    const queueCount = document.getElementById('queue-count');
+    const serataWrap = document.getElementById('serata-wrap');
+
+    let bookings     = [];
+    let currentSerata = null;
+
     // ── Password gate ────────────────────────────────────────
     const overlay  = document.getElementById('pwd-overlay');
     const pwdInput = document.getElementById('pwd-input');
@@ -383,22 +399,6 @@
       document.getElementById('panel').style.display = 'block';
       initAdmin();
     }
-
-    // ── Supabase ─────────────────────────────────────────────
-    const supabaseReady = CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes('TUO-PROGETTO');
-    const db = supabaseReady
-      ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
-      : null;
-
-    const liveDot    = document.getElementById('live-dot');
-    const liveLabel  = document.getElementById('live-label');
-    const queueWrap  = document.getElementById('queue-wrap');
-    const emptyState = document.getElementById('empty-state');
-    const queueCount = document.getElementById('queue-count');
-    const serataWrap = document.getElementById('serata-wrap');
-
-    let bookings     = [];
-    let currentSerata = null;
 
     async function initAdmin() {
       if (!db) {
