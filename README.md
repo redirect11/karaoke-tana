@@ -15,6 +15,7 @@ App web statica per prenotazioni karaoke e votazioni, con database Supabase.
 Questa repo include la funzione:
 
 - `supabase/functions/submit-booking/index.ts`
+- `supabase/functions/booking-status/index.ts`
 
 Scopo: creare una prenotazione lato server (no insert diretto dal browser), con:
 
@@ -33,6 +34,7 @@ Configura su Supabase Edge Functions:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `ALLOWED_ORIGINS` (es. `https://redirect11.github.io` oppure `*`)
 - `REQUIRE_AUTH` (`false` per flusso anonimo attuale)
+- `BOOKING_PENDING_EXPIRY_MIN` (default `30`, max `60`)
 
 ## Edge Function: admin-bookings
 
@@ -106,6 +108,7 @@ Per l'auto-deploy delle Edge Functions nei branch preview, questa repo dichiara 
 con almeno:
 
 - `[functions.submit-booking]`
+- `[functions.booking-status]`
 - `[functions.admin-bookings]`
 - `[functions.admin-login]`
 
@@ -153,6 +156,8 @@ La pipeline (`.github/workflows/deploy.yml`) genera `config.js` dai secrets:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUBMIT_BOOKING_FUNCTION_URL` (opzionale)
+- `BOOKING_STATUS_FUNCTION_URL` (opzionale)
+- `BOOKING_PENDING_EXPIRY_MIN`
 - `BOOKING_COOLDOWN_MIN`
 
 ## Nota piano Free Supabase
