@@ -7,13 +7,9 @@
   <style>
     :root {
       --bg:     #12071f;
-      --bg2:    #1e0f35;
       --card:   #2a1650;
-      --card2:  #341a63;
       --gold:   #d4a017;
       --gold-s: #f0c94a;
-      --red:    #9b1c2e;
-      --green:  #2ecc71;
       --text:   #f0e6d3;
       --muted:  #a08ca0;
       --radius: 14px;
@@ -22,791 +18,83 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
       min-height: 100vh;
-    }
-
-    /* ── password modal ── */
-    #pwd-overlay {
-      position: fixed; inset: 0;
-      background: var(--bg);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(212,160,23,0.14), transparent 40%),
+        var(--bg);
+      color: var(--text);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 100;
-      padding: 16px;
+      padding: 24px;
     }
-    #pwd-overlay.hidden { display: none; }
 
-    .pwd-box {
+    .notice-card {
+      width: 100%;
+      max-width: 520px;
       background: var(--card);
+      border: 1px solid rgba(212,160,23,0.18);
       border-radius: var(--radius);
-      padding: 36px 28px;
-      width: 100%;
-      max-width: 360px;
+      padding: 32px 26px;
       text-align: center;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
     }
-    .pwd-box .logo { font-size: 2.5rem; margin-bottom: 8px; }
-    .pwd-box h2 { color: var(--gold); margin-bottom: 4px; font-size: 1.2rem; }
-    .pwd-box p  { color: var(--muted); font-size: 0.82rem; margin-bottom: 20px; }
 
-    .pwd-box input {
-      width: 100%;
-      background: var(--bg2);
-      border: 1.5px solid #3d2366;
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 1rem;
-      padding: 11px 14px;
-      outline: none;
-      text-align: center;
-      letter-spacing: 0.1em;
+    .logo {
+      font-size: 3rem;
       margin-bottom: 12px;
-      transition: border-color 0.2s;
-    }
-    .pwd-box input:focus { border-color: var(--gold); }
-
-    .pwd-box button {
-      width: 100%;
-      padding: 12px;
-      background: var(--gold);
-      border: none;
-      border-radius: 50px;
-      color: #12071f;
-      font-weight: 700;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .pwd-box button:hover { background: var(--gold-s); }
-
-    .pwd-error {
-      color: #e74c3c;
-      font-size: 0.8rem;
-      margin-top: 10px;
-      min-height: 18px;
     }
 
-    /* ── main panel ── */
-    #panel { display: none; }
-
-    header {
-      background: var(--bg2);
-      padding: 14px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid #2d1b4e;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    .header-left { display: flex; align-items: center; gap: 10px; }
-    .header-left .logo { font-size: 1.4rem; }
-    .header-left h1  { font-size: 1rem; font-weight: 700; color: var(--gold); }
-    .header-left .sub { font-size: 0.72rem; color: var(--muted); }
-
-    .header-right { display: flex; align-items: center; gap: 14px; }
-
-    .header-tools {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    #live-badge {
-      display: flex; align-items: center; gap: 5px;
-      font-size: 0.72rem; color: var(--muted);
-    }
-    #live-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: #555;
-      transition: background 0.3s;
-    }
-    #live-dot.green  { background: var(--green); box-shadow: 0 0 6px var(--green); }
-    #live-dot.red    { background: #e74c3c; }
-
-    #queue-count {
-      font-size: 0.8rem;
-      font-weight: 700;
+    h1 {
       color: var(--gold-s);
+      font-size: 1.45rem;
+      margin-bottom: 12px;
     }
-    .settings-link {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
+
+    p {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.96rem;
+      margin-bottom: 14px;
+    }
+
+    .notice-pill {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid #3d2366;
-      color: var(--gold);
-      text-decoration: none;
-      font-size: 1rem;
-      transition: background 0.15s, transform 0.1s;
-    }
-    .settings-link:hover { background: rgba(212,160,23,0.14); }
-    .settings-link:active { transform: scale(0.95); }
-
-    /* ── serata management ── */
-    #serata-wrap {
-      padding: 16px 16px 0;
-      max-width: 560px;
-      margin: 0 auto;
-    }
-
-    .serata-card {
-      border-radius: var(--radius);
-      padding: 16px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .serata-card.serata-open  { background: rgba(46,204,113,0.12); border: 1.5px solid var(--green); }
-    .serata-card.serata-closed { background: var(--card); border: 1.5px solid #3d2366; }
-
-    .serata-info .serata-status {
-      font-weight: 700;
-      font-size: 0.9rem;
-    }
-    .serata-info .serata-sub {
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-    .serata-actions {
-      display: flex;
       gap: 8px;
-      flex-wrap: wrap;
-    }
-    .btn-serata {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 50px;
-      font-weight: 700;
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
-      white-space: nowrap;
-    }
-    .btn-serata:active { transform: scale(0.95); }
-    .btn-open  { background: var(--green); color: #12071f; }
-    .btn-open:hover  { background: #27ae60; }
-    .btn-close { background: var(--red); color: #fff; }
-    .btn-close:hover { background: #c0233a; }
-    .btn-voto-open  { background: var(--gold); color: #12071f; }
-    .btn-voto-open:hover  { background: var(--gold-s); }
-    .btn-voto-close { background: #555; color: #fff; }
-    .btn-voto-close:hover { background: #444; }
-
-    .serata-voto-row {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
-    .voto-label {
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-    .vota-link {
-      font-size: 0.75rem;
-      color: var(--gold);
-      text-decoration: none;
-      margin-top: 2px;
-      display: inline-block;
-    }
-    .vota-link:hover { text-decoration: underline; }
-
-    /* ── queue ── */
-    #queue-wrap {
-      padding: 20px 16px;
-      max-width: 560px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .queue-tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 4px;
-    }
-    .queue-tab {
-      border: 1px solid rgba(255,255,255,0.14);
-      background: #1d1430;
-      color: var(--text);
       border-radius: 999px;
-      padding: 8px 12px;
-      font-size: 0.78rem;
+      background: rgba(212,160,23,0.12);
+      color: var(--gold-s);
+      padding: 8px 14px;
+      font-size: 0.8rem;
       font-weight: 700;
-      cursor: pointer;
+      margin-bottom: 20px;
     }
-    .queue-tab.active {
-      background: var(--gold);
-      color: #12071f;
-      border-color: transparent;
-    }
-    /* ── empty state ── */
-    #empty-state {
-      display: none;
-      flex-direction: column;
+
+    .back-link {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 80px 24px;
-      text-align: center;
-      gap: 12px;
-    }
-    #empty-state .big { font-size: 3rem; }
-    #empty-state p { color: var(--muted); font-size: 0.9rem; }
-
-    /* ── booking card ── */
-    .booking-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 16px 18px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-      animation: slideIn 0.3s ease;
-      transition: opacity 0.3s, transform 0.3s;
-    }
-    .booking-card.next {
-      border: 1.5px solid var(--gold);
-      background: var(--card2);
-    }
-    .booking-card.removing {
-      opacity: 0;
-      transform: translateX(40px);
-    }
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .card-pos {
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: var(--muted);
-      min-width: 28px;
-      text-align: center;
-      flex-shrink: 0;
-    }
-    .booking-card.next .card-pos { color: var(--gold); }
-
-    .card-body { flex: 1; min-width: 0; }
-
-    .card-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 2px;
-    }
-    .card-name { font-weight: 700; font-size: 1rem; }
-    .badge-next {
-      display: none;
-      font-size: 0.62rem;
-      font-weight: 800;
+      margin-top: 8px;
+      padding: 12px 18px;
+      border-radius: 999px;
       background: var(--gold);
       color: #12071f;
-      padding: 2px 7px;
-      border-radius: 50px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-    .booking-card.next .badge-next { display: inline; }
-
-    .card-song { font-size: 0.88rem; color: var(--gold-s); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .card-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
-    .badge-pending {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.62rem;
-      font-weight: 800;
-      background: var(--gold-s);
-      color: #12071f;
-      padding: 2px 7px;
-      border-radius: 50px;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-    .badge-approved {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.62rem;
-      font-weight: 800;
-      background: rgba(47, 198, 108, 0.2);
-      color: #89f2b7;
-      padding: 2px 7px;
-      border-radius: 50px;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    .card-side {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-    .card-time {
-      font-size: 0.72rem;
-      color: var(--muted);
-      text-align: right;
-    }
-    .card-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .btn-action {
-      padding: 8px 14px;
-      border: none;
-      border-radius: 50px;
+      text-decoration: none;
       font-weight: 700;
-      font-size: 0.78rem;
-      cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
-      white-space: nowrap;
-    }
-    .btn-approve { background: var(--gold); color: #12071f; }
-    .btn-approve:hover { background: var(--gold-s); }
-    .btn-done { background: var(--green); color: #12071f; }
-    .btn-done:hover  { background: #27ae60; }
-    .btn-delete { background: var(--red); color: #fff; }
-    .btn-delete:hover { background: #c0233a; }
-    .btn-action:active { transform: scale(0.95); }
-
-    @media (max-width: 520px) {
-      header {
-        align-items: flex-start;
-      }
-      .header-right {
-        flex-direction: column;
-        align-items: flex-end;
-      }
-      .booking-card {
-        flex-wrap: wrap;
-      }
-      .card-side {
-        width: 100%;
-        align-items: stretch;
-      }
-      .card-time,
-      .card-actions {
-        text-align: left;
-        justify-content: flex-start;
-      }
     }
   </style>
 </head>
 <body>
-
-  <!-- ── Password overlay ── -->
-  <div id="pwd-overlay">
-    <div class="pwd-box">
-      <div class="logo">🐰</div>
-      <h2>Staff Panel</h2>
-      <p>Inserisci la password per accedere alla coda</p>
-      <input id="pwd-input" type="password" placeholder="••••••••" autocomplete="off" />
-      <button id="pwd-btn">Accedi</button>
-      <p class="pwd-error" id="pwd-error"></p>
-    </div>
-  </div>
-
-  <!-- ── Main panel ── -->
-  <div id="panel">
-    <header>
-      <div class="header-left">
-        <span class="logo">🐰🎤</span>
-        <div>
-          <h1>Staff Panel</h1>
-          <div class="sub">La Tana del Coniglio · Nola</div>
-        </div>
-      </div>
-      <div class="header-right">
-        <div id="live-badge">
-          <div id="live-dot"></div>
-          <span id="live-label">—</span>
-        </div>
-        <div class="header-tools">
-          <span id="queue-count"></span>
-          <a class="settings-link" href="admin-tools.html" title="Strumenti nascosti" aria-label="Strumenti nascosti">⚙️</a>
-        </div>
-      </div>
-    </header>
-
-    <div id="serata-wrap"></div>
-
-    <div id="queue-wrap">
-      <div class="queue-tabs">
-        <button class="queue-tab active" id="tab-pending" type="button">Da approvare</button>
-        <button class="queue-tab" id="tab-approved" type="button">Approvate</button>
-      </div>
-      <div id="empty-state">
-        <div class="big">🎉</div>
-        <p id="empty-state-text">Nessuna prenotazione in coda.<br>La serata è libera!</p>
-      </div>
-    </div>
-  </div>
-
-  <script src="config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script>
-    // ── Supabase ─────────────────────────────────────────────
-    const supabaseReady = CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes('TUO-PROGETTO');
-    const db = supabaseReady
-      ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
-      : null;
-
-    const liveDot    = document.getElementById('live-dot');
-    const liveLabel  = document.getElementById('live-label');
-    const queueWrap  = document.getElementById('queue-wrap');
-    const emptyState = document.getElementById('empty-state');
-    const emptyStateText = document.getElementById('empty-state-text');
-    const queueCount = document.getElementById('queue-count');
-    const serataWrap = document.getElementById('serata-wrap');
-    const tabPending = document.getElementById('tab-pending');
-    const tabApproved = document.getElementById('tab-approved');
-
-    let bookings          = [];
-    let currentSerata     = null;
-    let realtimeConnected = false;
-    let activeQueueTab    = 'pending';
-
-    // ── Password gate ────────────────────────────────────────
-    const overlay  = document.getElementById('pwd-overlay');
-    const pwdInput = document.getElementById('pwd-input');
-    const pwdError = document.getElementById('pwd-error');
-
-    if (sessionStorage.getItem('admin_ok') === 'true') unlockPanel();
-
-    document.getElementById('pwd-btn').addEventListener('click', checkPassword);
-    pwdInput.addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
-
-    function checkPassword() {
-      if (pwdInput.value === CONFIG.ADMIN_PASSWORD) {
-        sessionStorage.setItem('admin_ok', 'true');
-        unlockPanel();
-      } else {
-        pwdError.textContent = 'Password errata.';
-        pwdInput.value = '';
-        pwdInput.focus();
-      }
-    }
-
-    function unlockPanel() {
-      overlay.classList.add('hidden');
-      document.getElementById('panel').style.display = 'block';
-      initAdmin();
-    }
-
-    async function initAdmin() {
-      if (!db) {
-        updateLiveDot();
-        renderQueue([]);
-        renderSerata();
-        return;
-      }
-      await loadSerata();
-      await loadBookings();
-      subscribeRealtime();
-    }
-
-    // ── Serata management ─────────────────────────────────────
-    async function loadSerata() {
-      const { data } = await db
-        .from('serate')
-        .select('*')
-        .eq('aperta', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      currentSerata = data || null;
-      renderSerata();
-      updateLiveDot();
-    }
-
-    function renderSerata() {
-      if (!currentSerata) {
-        serataWrap.innerHTML = `
-          <div class="serata-card serata-closed">
-            <div class="serata-info">
-              <div class="serata-status">⭕ Nessun karaoke aperto</div>
-              <div class="serata-sub">Le prenotazioni sono disabilitate</div>
-            </div>
-            <div class="serata-actions">
-              <button class="btn-serata btn-open" id="btn-open-serata">Apri karaoke</button>
-            </div>
-          </div>
-        `;
-        document.getElementById('btn-open-serata').addEventListener('click', openSerata);
-        return;
-      }
-      const dateStr = new Date(currentSerata.data + 'T00:00:00').toLocaleDateString('it-IT', {
-        weekday: 'long', day: 'numeric', month: 'long'
-      });
-      const votoOpen = currentSerata.voto_aperto;
-      serataWrap.innerHTML = `
-        <div class="serata-card serata-open">
-          <div class="serata-info">
-            <div class="serata-status">🟢 Karaoke aperto</div>
-            <div class="serata-sub">${dateStr}</div>
-          </div>
-          <div class="serata-actions">
-            <button class="btn-serata btn-close" id="btn-close-serata">Chiudi karaoke</button>
-          </div>
-          <div class="serata-voto-row">
-            <div>
-              <div class="voto-label">Votazioni: ${votoOpen ? '🟢 aperte' : '⭕ chiuse'}</div>
-              <a class="vota-link" href="vota.html" target="_blank">Apri pagina voti ↗</a>
-            </div>
-            <div class="serata-actions">
-              <button class="btn-serata ${votoOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-voto">
-                ${votoOpen ? 'Chiudi votazioni' : 'Apri votazioni'}
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-      document.getElementById('btn-close-serata').addEventListener('click', closeSerata);
-      document.getElementById('btn-toggle-voto').addEventListener('click', toggleVoto);
-    }
-
-    async function openSerata() {
-      const btn = document.getElementById('btn-open-serata');
-      btn.disabled = true;
-      const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await db
-        .from('serate')
-        .insert({ data: today, aperta: true, voto_aperto: false })
-        .select()
-        .single();
-      if (error) { console.error(error); btn.disabled = false; return; }
-      currentSerata = data;
-      renderSerata();
-      updateLiveDot();
-      renderQueue([]);
-    }
-
-    async function closeSerata() {
-      if (!confirm('Chiudere il karaoke? Le prenotazioni verranno disabilitate.')) return;
-      const btn = document.getElementById('btn-close-serata');
-      btn.disabled = true;
-      const { error } = await db.from('serate').update({ aperta: false, voto_aperto: false }).eq('id', currentSerata.id);
-      if (error) { console.error(error); btn.disabled = false; return; }
-      currentSerata = null;
-      renderSerata();
-      updateLiveDot();
-      renderQueue([]);
-    }
-
-    async function toggleVoto() {
-      const btn = document.getElementById('btn-toggle-voto');
-      btn.disabled = true;
-      const newVal = !currentSerata.voto_aperto;
-      const { error } = await db.from('serate').update({ voto_aperto: newVal }).eq('id', currentSerata.id);
-      if (error) { console.error(error); btn.disabled = false; return; }
-      currentSerata.voto_aperto = newVal;
-      renderSerata();
-    }
-
-    // ── Bookings ──────────────────────────────────────────────
-    async function loadBookings() {
-      if (!db || !currentSerata) { renderQueue([]); return; }
-      const { data, error } = await db
-        .from('prenotazioni')
-        .select('*')
-        .eq('cantata', false)
-        .eq('serata_id', currentSerata.id)
-        .order('created_at', { ascending: true });
-      if (error) { console.error(error); return; }
-      bookings = data || [];
-      renderQueue(bookings);
-    }
-
-    function subscribeRealtime() {
-      db.channel('admin-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'prenotazioni' }, loadBookings)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'serate' }, loadSerata)
-        .subscribe(status => {
-          realtimeConnected = status === 'SUBSCRIBED';
-          updateLiveDot();
-        });
-    }
-
-    function updateLiveDot() {
-      if (!currentSerata) {
-        liveDot.className = '';
-        liveLabel.textContent = 'chiuso';
-      } else if (realtimeConnected) {
-        liveDot.className = 'green';
-        liveLabel.textContent = 'live';
-      } else {
-        liveDot.className = 'red';
-        liveLabel.textContent = 'disconnesso';
-      }
-    }
-
-    // ── Render queue ──────────────────────────────────────────
-    function renderQueue(list) {
-      queueWrap.querySelectorAll('.booking-card').forEach(el => el.remove());
-
-      const toApprove = list.filter(b => !b.cantata && !b.approvata);
-      const approved  = list.filter(b => !b.cantata && b.approvata);
-      const countParts = [];
-
-      if (approved.length) countParts.push(`${approved.length} in coda`);
-      if (toApprove.length) countParts.push(`${toApprove.length} da approvare`);
-      queueCount.textContent = countParts.length ? countParts.join(' · ') : 'coda vuota';
-      tabPending.textContent = `Da approvare (${toApprove.length})`;
-      tabApproved.textContent = `Approvate (${approved.length})`;
-      tabPending.classList.toggle('active', activeQueueTab === 'pending');
-      tabApproved.classList.toggle('active', activeQueueTab === 'approved');
-
-      const visibleList = activeQueueTab === 'pending' ? toApprove : approved;
-      if (!visibleList.length) {
-        emptyStateText.innerHTML = activeQueueTab === 'pending'
-          ? 'Nessuna prenotazione da approvare.<br>Ottimo lavoro!'
-          : 'Nessuna prenotazione approvata.<br>Appariranno qui dopo l’approvazione.';
-        emptyState.style.display = 'flex';
-        return;
-      }
-      emptyState.style.display = 'none';
-
-      visibleList.forEach((b, i) => {
-        queueWrap.insertBefore(makeCard(b, i, activeQueueTab), emptyState);
-      });
-    }
-
-    function makeCard(b, index, kind) {
-      const card = document.createElement('div');
-      const isApproved = kind === 'approved';
-      card.className = 'booking-card' + (isApproved && index === 0 ? ' next' : '');
-      card.dataset.id = b.id;
-
-      const time = new Date(b.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-
-      card.innerHTML = `
-        <div class="card-pos">${index + 1}</div>
-        <div class="card-body">
-          <div class="card-header">
-            <span class="card-name">${esc(b.nome)}</span>
-            ${isApproved ? '<span class="badge-approved">✅ Approvata</span>' : '<span class="badge-pending">Da approvare</span>'}
-          </div>
-          <div class="card-song">🎵 ${esc(b.canzone)}</div>
-          <div class="card-meta">${esc(b.artista)}</div>
-        </div>
-        <div class="card-side">
-          <div class="card-time">${time}</div>
-          <div class="card-actions">
-            ${isApproved ? `<button class="btn-action btn-done" data-action="done">✓ Fatto</button>` : `<button class="btn-action btn-approve" data-action="approve">Approva</button>`}
-            <button class="btn-action btn-delete" data-action="delete">Elimina</button>
-          </div>
-        </div>
-      `;
-
-      const approveBtn = card.querySelector('[data-action="approve"]');
-      const doneBtn = card.querySelector('[data-action="done"]');
-      const deleteBtn = card.querySelector('[data-action="delete"]');
-
-      if (approveBtn) approveBtn.addEventListener('click', () => approveBooking(b.id, card));
-      if (doneBtn) doneBtn.addEventListener('click', () => markDone(b.id, card));
-      deleteBtn.addEventListener('click', () => deleteBooking(b, card));
-      return card;
-    }
-
-    async function approveBooking(id, card) {
-      if (!db) {
-        restoreCardAfterError(card, 'Supabase non configurato.');
-        return;
-      }
-      setCardBusy(card, true);
-      const { error } = await db.from('prenotazioni').update({ approvata: true }).eq('id', id);
-      if (error) {
-        console.error(error);
-        restoreCardAfterError(card, 'Non sono riuscito ad approvare la prenotazione.');
-        return;
-      }
-      bookings = bookings.map(item => item.id === id ? { ...item, approvata: true } : item);
-      renderQueue(bookings);
-    }
-
-    async function markDone(id, card) {
-      if (!db) {
-        restoreCardAfterError(card, 'Supabase non configurato.');
-        return;
-      }
-      setCardBusy(card, true);
-      card.classList.add('removing');
-      setTimeout(async () => {
-        const { error } = await db.from('prenotazioni').update({ cantata: true }).eq('id', id);
-        if (error) {
-          console.error(error);
-          restoreCardAfterError(card, 'Non sono riuscito a segnare la prenotazione come completata.');
-        }
-      }, 280);
-    }
-
-    async function deleteBooking(booking, card) {
-      if (!confirm(`Eliminare la prenotazione di ${booking.nome} per "${booking.canzone}"?`)) return;
-      if (!db) {
-        restoreCardAfterError(card, 'Supabase non configurato.');
-        return;
-      }
-      setCardBusy(card, true);
-      card.classList.add('removing');
-      setTimeout(async () => {
-        const { error } = await db.from('prenotazioni').delete().eq('id', booking.id);
-        if (error) {
-          console.error(error);
-          restoreCardAfterError(card, 'Non sono riuscito a eliminare la prenotazione.');
-        }
-      }, 280);
-    }
-
-    function setCardBusy(card, busy) {
-      card.querySelectorAll('.btn-action').forEach(btn => {
-        btn.disabled = busy;
-      });
-    }
-
-    function restoreCardAfterError(card, message) {
-      if (document.body.contains(card)) {
-        card.classList.remove('removing');
-        setCardBusy(card, false);
-      }
-      alert(message);
-    }
-
-    function esc(str) {
-      return String(str)
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    tabPending.addEventListener('click', () => {
-      activeQueueTab = 'pending';
-      renderQueue(bookings);
-    });
-    tabApproved.addEventListener('click', () => {
-      activeQueueTab = 'approved';
-      renderQueue(bookings);
-    });
-  </script>
+  <main class="notice-card">
+    <div class="logo">🐰🎤</div>
+    <div class="notice-pill">Rafforzamento della sicurezza in corso</div>
+    <h1>Staff Panel temporaneamente disattivato</h1>
+    <p>Per il deploy statico su GitHub Pages non esponiamo più password admin, token Telegram o altri segreti nel browser.</p>
+    <p>Le operazioni staff sicure, le notifiche Telegram e gli strumenti di moderazione verranno spostati lato server in un follow-up con Supabase Edge Functions.</p>
+    <p>Questa pagina resta volutamente non operativa finché il nuovo flusso server-side non sarà disponibile.</p>
+    <a class="back-link" href="index.html">← Torna alle prenotazioni</a>
+  </main>
 </body>
 </html>

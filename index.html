@@ -463,7 +463,7 @@
   <!-- song list -->
   <div class="card" id="song-list-card">
     <h3>Lista canzoni</h3>
-    <p class="song-list-subtitle">Sotto la tua prenotazione puoi vedere la coda attuale. Lo staff può anche correggere nomi e titoli in caso di errori di battitura.</p>
+    <p class="song-list-subtitle">Sotto la tua prenotazione puoi vedere la coda attuale pubblica.</p>
     <div id="song-list-status">Caricamento lista…</div>
     <div class="song-list" id="song-list"></div>
   </div>
@@ -480,6 +480,8 @@
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
+    const config = window.CONFIG || {};
+
     // ── Cookie helpers ──────────────────────────────────────
     function getCookie(name) {
       return document.cookie.split('; ').reduce((r, c) => {
@@ -495,32 +497,15 @@
     }
 
     // ── Supabase ────────────────────────────────────────────
-    const supabaseReady = CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes('TUO-PROGETTO');
+    const supabaseReady = config.SUPABASE_URL && !config.SUPABASE_URL.includes('TUO-PROGETTO');
     const db = supabaseReady
-      ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
+      ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY)
       : null;
 
     let currentSerataId = null;
     let serataChannel   = null;
     let songListChannel = null;
-    let isStaffMode = false;
     let usingLegacySongFallback = false;
-
-    // ── Telegram ────────────────────────────────────────────
-    async function notifyTelegram(booking) {
-      if (!CONFIG.TELEGRAM_BOT_TOKEN || !CONFIG.TELEGRAM_CHAT_ID) return;
-      const time = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-      const text = `🎤 <b>Nuova prenotazione!</b>\n👤 ${booking.nome}\n🎵 ${booking.canzone} – ${booking.artista}\n🕐 ${time}`;
-      try {
-        await fetch(`https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: CONFIG.TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' }),
-        });
-      } catch (e) {
-        console.warn('Telegram non raggiungibile', e);
-      }
-    }
 
     // ── UI refs ─────────────────────────────────────────────
     const stepFollow   = document.getElementById('step-follow');
@@ -621,52 +606,9 @@
             </div>
             <div class="song-item-order">${index + 1}</div>
           </div>
-          ${isStaffMode ? `
-            <div class="song-item-edit">
-              <input type="text" class="edit-nome" value="${escapeHtml(item.nome)}" placeholder="Nome" />
-              <input type="text" class="edit-canzone" value="${escapeHtml(item.canzone)}" placeholder="Canzone" />
-              <input type="text" class="edit-artista" value="${escapeHtml(item.artista)}" placeholder="Artista" />
-              <div class="song-item-actions">
-                <button type="button" class="btn-small btn-save" onclick="saveSongEdit('${item.id}', this)">Salva</button>
-              </div>
-            </div>
-          ` : ''}
         </div>
       `).join('');
     }
-
-    async function saveSongEdit(id, button) {
-      if (!db) return;
-      const item = button.closest('.song-item');
-      const nome = item.querySelector('.edit-nome').value.trim();
-      const canzone = item.querySelector('.edit-canzone').value.trim();
-      const artista = item.querySelector('.edit-artista').value.trim();
-
-      if (!nome || !canzone || !artista) {
-        alert('Compila tutti i campi prima di salvare.');
-        return;
-      }
-
-      button.disabled = true;
-      button.textContent = 'Salvataggio…';
-
-      const { error } = await db
-        .from('prenotazioni')
-        .update({ nome, canzone, artista })
-        .eq('id', id);
-
-      if (error) {
-        console.error('Errore aggiornamento prenotazione:', error);
-        alert('Non sono riuscito a salvare le modifiche.');
-        button.disabled = false;
-        button.textContent = 'Salva';
-        return;
-      }
-
-      await loadSongList();
-    }
-
-    window.saveSongEdit = saveSongEdit;
 
     function subscribeSongList(serataId) {
       if (!db) return;
@@ -741,7 +683,7 @@
     }
 
     // ── Pending booking check ────────────────────────────────
-    const COOLDOWN_MIN = CONFIG.BOOKING_COOLDOWN_MIN || 90;
+    const COOLDOWN_MIN = config.BOOKING_COOLDOWN_MIN || 90;
     let pollInterval = null;
 
     async function checkPendingBooking() {
@@ -798,15 +740,8 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ── Staff mode ───────────────────────────────────────────
-    function initStaffMode() {
-      const params = new URLSearchParams(window.location.search);
-      isStaffMode = params.get('staff') === '1';
-      if (isStaffMode) loadSongList();
-    }
-
     // ── Instagram profile card ──────────────────────────────
-    const igProfileUrl = `https://www.instagram.com/${CONFIG.IG_USERNAME}/`;
+    const igProfileUrl = `https://www.instagram.com/${config.IG_USERNAME}/`;
     let igOpened = false;
 
     function openInstagram() {
@@ -846,7 +781,6 @@
 
     // ── Init ─────────────────────────────────────────────────
     (async () => {
-      initStaffMode();
       const open = await checkSerataAperta();
       if (!open) return;
       if (getCookie('ig_followed') === 'true') {
@@ -887,7 +821,6 @@
         }), COOLDOWN_MIN * 60);
       }
 
-      notifyTelegram(booking);
       loadSongList();
 
       stepForm.style.display    = 'none';
