@@ -759,9 +759,9 @@
           return false;
         }
         showWaitingScreen(timestamp, canzone, artista, Boolean(data.approvata));
-        return true;
+      } else {
+        showWaitingScreen(timestamp, canzone, artista, false);
       }
-      showWaitingScreen(timestamp, canzone, artista, false);
       return true;
     }
 

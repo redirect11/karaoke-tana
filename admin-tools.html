@@ -313,7 +313,8 @@
         return;
       }
 
-      const dateStr = new Date(currentSerata.data + 'T00:00:00').toLocaleDateString('it-IT', {
+      const [year, month, day] = String(currentSerata.data).split('-').map(Number);
+      const dateStr = new Date(year, month - 1, day).toLocaleDateString('it-IT', {
         weekday: 'long',
         day: 'numeric',
         month: 'long'
