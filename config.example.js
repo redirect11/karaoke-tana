@@ -37,6 +37,7 @@ const CONFIG = {
 //    artista    TEXT NOT NULL,
 //    tavolo     INTEGER NOT NULL,
 //    cantata    BOOLEAN DEFAULT FALSE,
+//    approvata  BOOLEAN NOT NULL DEFAULT FALSE,
 //    serata_id  BIGINT,
 //    created_at TIMESTAMPTZ DEFAULT NOW()
 //  );
@@ -45,6 +46,7 @@ const CONFIG = {
 //  CREATE POLICY "insert_public" ON prenotazioni FOR INSERT TO anon WITH CHECK (true);
 //  CREATE POLICY "select_public" ON prenotazioni FOR SELECT TO anon USING (true);
 //  CREATE POLICY "update_public" ON prenotazioni FOR UPDATE TO anon USING (true);
+//  CREATE POLICY "delete_public" ON prenotazioni FOR DELETE TO anon USING (true);
 //
 //  -- 2. Tabella serate (una sola può essere aperta alla volta)
 //  CREATE TABLE serate (
@@ -63,6 +65,7 @@ const CONFIG = {
 //  CREATE POLICY "select_public" ON serate FOR SELECT TO anon USING (true);
 //  CREATE POLICY "insert_public" ON serate FOR INSERT TO anon WITH CHECK (true);
 //  CREATE POLICY "update_public" ON serate FOR UPDATE TO anon USING (true);
+//  CREATE POLICY "delete_public" ON serate FOR DELETE TO anon USING (true);
 //
 //  -- Collega prenotazioni a serate
 //  ALTER TABLE prenotazioni

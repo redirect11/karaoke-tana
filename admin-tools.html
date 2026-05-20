@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Strumenti nascosti – La Tana del Coniglio</title>
+  <style>
+    :root {
+      --bg:     #12071f;
+      --card:   #2a1650;
+      --gold:   #d4a017;
+      --gold-s: #f0c94a;
+      --text:   #f0e6d3;
+      --muted:  #a08ca0;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(212,160,23,0.14), transparent 40%),
+        var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .notice-card {
+      width: 100%;
+      max-width: 520px;
+      background: var(--card);
+      border: 1px solid rgba(212,160,23,0.18);
+      border-radius: var(--radius);
+      padding: 32px 26px;
+      text-align: center;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+
+    .logo {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      color: var(--gold-s);
+      font-size: 1.45rem;
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.96rem;
+      margin-bottom: 14px;
+    }
+
+    .notice-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      background: rgba(212,160,23,0.12);
+      color: var(--gold-s);
+      padding: 8px 14px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 8px;
+      padding: 12px 18px;
+      border-radius: 999px;
+      background: var(--gold);
+      color: #12071f;
+      text-decoration: none;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main class="notice-card">
+    <div class="logo">⚙️</div>
+    <div class="notice-pill">Rafforzamento della sicurezza in corso</div>
+    <h1>Strumenti nascosti temporaneamente disattivati</h1>
+    <p>Le operazioni di pulizia e moderazione non possono essere protette in modo sicuro da una pagina statica pubblica.</p>
+    <p>Questi strumenti verranno ripristinati nel follow-up server-side con Supabase Edge Functions, senza esporre password o altri segreti nel browser.</p>
+    <a class="back-link" href="index.html">← Torna alle prenotazioni</a>
+  </main>
+</body>
+</html>
