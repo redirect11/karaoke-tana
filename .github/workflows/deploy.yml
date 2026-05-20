@@ -34,14 +34,15 @@ jobs:
         run: |
           node -e "
           const fs = require('fs');
+          const parseCooldownMin = (value) => {
+            const parsed = parseInt(value || '', 10);
+            return Number.isNaN(parsed) ? 90 : parsed;
+          };
           const config = {
             IG_USERNAME:           process.env.IG_USERNAME           || 'latanadelconiglio_nola',
             SUPABASE_URL:          process.env.SUPABASE_URL          || '',
             SUPABASE_ANON_KEY:     process.env.SUPABASE_ANON_KEY     || '',
-            BOOKING_COOLDOWN_MIN:  (() => {
-              const parsed = parseInt(process.env.BOOKING_COOLDOWN_MIN || '', 10);
-              return Number.isNaN(parsed) ? 90 : parsed;
-            })(),
+            BOOKING_COOLDOWN_MIN:  parseCooldownMin(process.env.BOOKING_COOLDOWN_MIN),
           };
           fs.writeFileSync('config.js', 'const CONFIG = ' + JSON.stringify(config, null, 2) + ';');
           console.log('config.js generato.');
