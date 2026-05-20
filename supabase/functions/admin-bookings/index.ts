@@ -278,7 +278,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
 
       const votoAperto = typeof body.votoAperto === "boolean"
         ? body.votoAperto
-        : !Boolean(currentSerata?.voto_aperto);
+        : !currentSerata?.voto_aperto;
 
       const { data, error } = await admin
         .from("serate")

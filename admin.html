@@ -374,8 +374,9 @@
   <script src="config.js"></script>
   <script>
     const config = typeof CONFIG === 'object' && CONFIG ? CONFIG : {};
-    const supabaseReady = Boolean(config.SUPABASE_URL) && !String(config.SUPABASE_URL).includes('TUO-PROGETTO');
-    const edgeBaseUrl = supabaseReady ? `${String(config.SUPABASE_URL).replace(/\/+$/, '')}/functions/v1` : '';
+    const supabaseUrl = `${config.SUPABASE_URL || ''}`;
+    const supabaseReady = !!supabaseUrl && !supabaseUrl.includes('TUO-PROGETTO');
+    const edgeBaseUrl = supabaseReady ? `${supabaseUrl.replace(/\/+$/, '')}/functions/v1` : '';
     const adminBookingsUrl = `${edgeBaseUrl}/admin-bookings`;
     const ADMIN_SECRET_KEY = 'admin_shared_secret';
     const ADMIN_SECRET_SESSION_KEY = 'admin_shared_secret_session';
@@ -580,8 +581,12 @@
         return;
       }
 
-      const dateStr = new Date(`${currentSerata.data}T00:00:00`).toLocaleDateString('it-IT', {
-        weekday: 'long', day: 'numeric', month: 'long',
+      const [year, month, day] = String(currentSerata.data).split('-').map(Number);
+      const dateStr = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('it-IT', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        timeZone: 'UTC',
       });
       const votoOpen = Boolean(currentSerata.voto_aperto);
 

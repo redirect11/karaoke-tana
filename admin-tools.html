@@ -202,8 +202,9 @@
   <script src="config.js"></script>
   <script>
     const config = typeof CONFIG === 'object' && CONFIG ? CONFIG : {};
-    const supabaseReady = Boolean(config.SUPABASE_URL) && !String(config.SUPABASE_URL).includes('TUO-PROGETTO');
-    const edgeBaseUrl = supabaseReady ? `${String(config.SUPABASE_URL).replace(/\/+$/, '')}/functions/v1` : '';
+    const supabaseUrl = `${config.SUPABASE_URL || ''}`;
+    const supabaseReady = !!supabaseUrl && !supabaseUrl.includes('TUO-PROGETTO');
+    const edgeBaseUrl = supabaseReady ? `${supabaseUrl.replace(/\/+$/, '')}/functions/v1` : '';
     const adminBookingsUrl = `${edgeBaseUrl}/admin-bookings`;
     const ADMIN_SECRET_KEY = 'admin_shared_secret';
     const ADMIN_SECRET_SESSION_KEY = 'admin_shared_secret_session';
