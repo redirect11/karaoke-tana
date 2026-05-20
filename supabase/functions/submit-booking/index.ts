@@ -205,7 +205,11 @@ serve(async (req) => {
     });
   }
 
-  if (validated.data.serata_id != null && validated.data.serata_id !== openSerata.data.id) {
+  if (
+    validated.data.serata_id !== null
+    && validated.data.serata_id !== undefined
+    && validated.data.serata_id !== openSerata.data.id
+  ) {
     return jsonResponse(req, 409, {
       success: false,
       data: null,
