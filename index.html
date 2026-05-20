@@ -586,8 +586,8 @@
         <li>Quando puoi prenotare di nuovo</li>
       </ul>
       <div class="notification-modal-actions">
-        <button type="button" class="btn-notification-skip" id="notification-skip-btn">Ora no</button>
-        <button type="button" class="btn-notification-accept" id="notification-accept-btn">Attiva notifiche</button>
+        <button type="button" class="btn-notification-skip" id="notification-skip-btn" aria-label="Non attivare le notifiche ora">Ora no</button>
+        <button type="button" class="btn-notification-accept" id="notification-accept-btn" aria-label="Attiva notifiche, nella schermata successiva si aprirà la richiesta del browser">Attiva notifiche</button>
       </div>
     </div>
   </div>
@@ -660,9 +660,9 @@
     const ind1         = document.getElementById('ind-1');
     const ind1num      = document.getElementById('ind-1-num');
     const ind2         = document.getElementById('ind-2');
-    const notificationModal = document.getElementById('notification-modal');
-    const notificationSkipBtn = document.getElementById('notification-skip-btn');
-    const notificationAcceptBtn = document.getElementById('notification-accept-btn');
+    const notificationModalEl = document.getElementById('notification-modal');
+    const notificationSkipBtnEl = document.getElementById('notification-skip-btn');
+    const notificationAcceptBtnEl = document.getElementById('notification-accept-btn');
     let activeSongTab = 'to-sing';
     let notificationPermissionRequested = false;
     let songListPollInterval = null;
@@ -1184,17 +1184,33 @@
     }
 
     function showNotificationExplainer() {
-      if (!notificationModal || !notificationSkipBtn || !notificationAcceptBtn) return Promise.resolve(false);
+      if (!notificationModalEl || !notificationSkipBtnEl || !notificationAcceptBtnEl) {
+        console.warn('Notification explainer is unavailable: missing modal elements.');
+        return Promise.resolve(false);
+      }
       return new Promise((resolve) => {
-        notificationModal.classList.add('open');
-        notificationSkipBtn.onclick = () => {
-          notificationModal.classList.remove('open');
+        const cleanup = () => {
+          notificationModalEl.classList.remove('open');
+          notificationSkipBtnEl.removeEventListener('click', onSkip);
+          notificationAcceptBtnEl.removeEventListener('click', onAccept);
+          notificationModalEl.removeEventListener('click', onBackdropClick);
+        };
+        const onSkip = () => {
+          cleanup();
           resolve(false);
         };
-        notificationAcceptBtn.onclick = () => {
-          notificationModal.classList.remove('open');
+        const onAccept = () => {
+          cleanup();
           resolve(true);
         };
+        const onBackdropClick = (event) => {
+          if (event.target === notificationModalEl) onSkip();
+        };
+
+        notificationModalEl.classList.add('open');
+        notificationSkipBtnEl.addEventListener('click', onSkip);
+        notificationAcceptBtnEl.addEventListener('click', onAccept);
+        notificationModalEl.addEventListener('click', onBackdropClick);
       });
     }
 
@@ -1202,9 +1218,9 @@
       if (notificationPermissionRequested) return;
       if (!('Notification' in window)) return;
       if (Notification.permission !== 'default') return;
+      notificationPermissionRequested = true;
       const shouldRequest = await showNotificationExplainer();
       if (!shouldRequest) return;
-      notificationPermissionRequested = true;
       try {
         await Notification.requestPermission();
       } catch (_) {}
