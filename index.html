@@ -259,6 +259,33 @@
     #waiting-timer { font-size: 0.75rem !important; color: var(--muted) !important; }
     #waiting-status, #success-status { margin-bottom: 0; }
     .waiting-position-critical { color: #ff6b6b; font-weight: 800; }
+    .waiting-status-hero {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+    #step-waiting .waiting-status-hero .big-icon { margin: 0; }
+    .waiting-remaining {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      line-height: 1;
+    }
+    .waiting-remaining-number {
+      font-size: 2.85rem;
+      font-weight: 900;
+      color: var(--gold-soft);
+    }
+    .waiting-remaining-number.is-critical { color: #ff4d4f; }
+    .waiting-remaining-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 2px;
+    }
 
     /* ── song list ── */
     #song-list-card {
@@ -572,7 +599,13 @@
 
   <!-- STEP waiting: già prenotato -->
   <div class="card" id="step-waiting">
-    <div class="big-icon">🎤</div>
+    <div class="waiting-status-hero">
+      <div class="big-icon">🎤</div>
+      <div class="waiting-remaining" id="waiting-remaining" hidden>
+        <span class="waiting-remaining-number" id="waiting-remaining-number"></span>
+        <span class="waiting-remaining-label" id="waiting-remaining-label"></span>
+      </div>
+    </div>
     <h2 id="waiting-title" aria-live="polite">Stato della tua prenotazione</h2>
     <p id="waiting-song"></p>
     <p id="waiting-status">Sto controllando lo stato della tua prenotazione…</p>
@@ -899,6 +932,24 @@
       titleEl.textContent = 'Sei già in lista!';
     }
 
+    function setWaitingRemainingSongs(remainingSongs) {
+      const wrapEl = document.getElementById('waiting-remaining');
+      const numberEl = document.getElementById('waiting-remaining-number');
+      const labelEl = document.getElementById('waiting-remaining-label');
+      if (!wrapEl || !numberEl || !labelEl) return;
+      if (remainingSongs == null || !Number.isInteger(remainingSongs) || remainingSongs < 1) {
+        wrapEl.hidden = true;
+        numberEl.textContent = '';
+        labelEl.textContent = '';
+        numberEl.classList.remove('is-critical');
+        return;
+      }
+      wrapEl.hidden = false;
+      numberEl.textContent = String(remainingSongs);
+      labelEl.textContent = remainingSongs === 1 ? 'canzone mancante' : 'canzoni mancanti';
+      numberEl.classList.toggle('is-critical', remainingSongs === 1);
+    }
+
     function getCurrentBookingQueueIndex(queueItems = songListCache.toSing) {
       const bookingId = getCurrentBookingId();
       const bookingIdNum = Number(bookingId);
@@ -914,34 +965,24 @@
       const safeQueueItems = Array.isArray(queueItems) ? queueItems : [];
       const index = getCurrentBookingQueueIndex(safeQueueItems);
       if (!isApproved) {
+        setWaitingRemainingSongs(null);
         setWaitingTitle('pending');
-        if (songListAvailability === 'loading' && safeQueueItems.length === 0) {
-          setWaitingStatus('Sto calcolando quante canzoni mancano prima della tua.');
-          return;
-        }
-        if (songListAvailability === 'unavailable' || songListAvailability === 'error') {
-          setWaitingStatus('La tua prenotazione è in attesa di approvazione. Contatore coda non disponibile al momento.');
-          return;
-        }
-        const estimatedSongsBeforeUser = index >= 0 ? index : safeQueueItems.length;
-        setWaitingStatus(
-          estimatedSongsBeforeUser === 1
-            ? 'In attesa di approvazione: manca <span class="waiting-position-critical">1</span> canzone prima della tua.'
-            : `In attesa di approvazione: mancano ${estimatedSongsBeforeUser} canzoni prima della tua.`,
-          { html: estimatedSongsBeforeUser === 1 },
-        );
+        setWaitingStatus('La tua prenotazione è in attesa di approvazione.');
         return;
       }
       if (index === -1) {
+        setWaitingRemainingSongs(null);
         setWaitingTitle('in-list');
         setWaitingStatus('La tua prenotazione è stata approvata. Resta in ascolto: la coda si aggiorna in tempo reale.');
         return;
       }
       if (index === 0) {
+        setWaitingRemainingSongs(null);
         setWaitingTitle('turn');
         setWaitingStatus('La tua canzone è in esecuzione ora.');
         return;
       }
+      setWaitingRemainingSongs(index);
       setWaitingTitle('in-list');
       if (index === 1) {
         setWaitingStatus('⏳ Manca una canzone: sei il numero <span class="waiting-position-critical">1</span> in lista di attesa.', { html: true });
@@ -1258,10 +1299,11 @@
       stepWaiting.style.display = 'flex';
       showSongListCard(true);
       document.getElementById('waiting-song').textContent = `${canzone} – ${artista}`;
+      setWaitingRemainingSongs(null);
       setWaitingTitle(approvata ? 'in-list' : 'pending');
       setWaitingStatus(approvata
         ? 'La tua prenotazione è stata approvata ed è visibile nella coda pubblica.'
-        : 'Sto calcolando quante canzoni mancano prima della tua.');
+        : 'La tua prenotazione è in attesa di approvazione.');
       updateWaitingTimer(pendingExpiryAt, approvata);
       updateWaitingPositionStatus(songListCache.toSing);
       clearWaitingIntervals();
