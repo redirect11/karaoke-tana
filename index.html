@@ -925,12 +925,9 @@
       const statusEl = document.getElementById('waiting-status');
       if (!statusEl) return;
       statusEl.classList.toggle('sr-only', screenReaderOnly);
-      if (screenReaderOnly) {
-        statusEl.textContent = message;
-        return;
-      }
-      if (html) statusEl.innerHTML = message;
-      else statusEl.textContent = message;
+      statusEl.textContent = message;
+      if (screenReaderOnly || !html) return;
+      statusEl.innerHTML = message;
     }
 
     function setWaitingTimer(message, { screenReaderOnly = false } = {}) {
