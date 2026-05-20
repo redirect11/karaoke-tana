@@ -69,7 +69,7 @@ function normalizeDateOrToday(value: unknown): string {
   return trimmed;
 }
 
-function getAdminClient() {
+function createAdminClient() {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -93,7 +93,7 @@ async function ensureAdminAuth(req: Request): Promise<void> {
     throw new ApiError(401, "unauthorized", "Credenziali admin non valide.");
   }
 
-  const client = getAdminClient();
+  const client = createAdminClient();
 
   // Verify the Supabase Auth JWT and retrieve the authenticated user.
   const { data: { user }, error: authError } = await client.auth.getUser(token);
@@ -416,7 +416,7 @@ serve(async (req) => {
       throw new ApiError(400, "invalid_payload", "Il campo action è obbligatorio.");
     }
 
-    const admin = getAdminClient();
+    const admin = createAdminClient();
     const result = await executeAction(admin, action, payload);
 
     return jsonResponse(req, result.status, {
