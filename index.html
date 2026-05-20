@@ -819,9 +819,7 @@
 
       if (!response.ok || !payload?.success || payload?.data?.id === undefined || payload?.data?.id === null) {
         const errorCode = payload?.error?.code;
-        const message =
-          payload?.error?.message
-          || (errorCode === 'bookings_closed' ? 'Le prenotazioni sono chiuse in questo momento.' : BOOKING_ERROR_MESSAGE);
+        const message = payload?.error?.message || BOOKING_ERROR_MESSAGE;
         const error = new Error(message);
         error.code = errorCode;
         throw error;
