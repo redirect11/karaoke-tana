@@ -235,15 +235,26 @@
       flex-direction: column;
       gap: 12px;
     }
-    .queue-section {
-      font-size: 0.8rem;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--gold-s);
-      margin-top: 6px;
+    .queue-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 4px;
     }
-
+    .queue-tab {
+      border: 1px solid rgba(255,255,255,0.14);
+      background: #1d1430;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .queue-tab.active {
+      background: var(--gold);
+      color: #12071f;
+      border-color: transparent;
+    }
     /* ── empty state ── */
     #empty-state {
       display: none;
@@ -324,6 +335,19 @@
       font-weight: 800;
       background: var(--gold-s);
       color: #12071f;
+      padding: 2px 7px;
+      border-radius: 50px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .badge-approved {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.62rem;
+      font-weight: 800;
+      background: rgba(47, 198, 108, 0.2);
+      color: #89f2b7;
       padding: 2px 7px;
       border-radius: 50px;
       letter-spacing: 0.05em;
@@ -429,9 +453,13 @@
     <div id="serata-wrap"></div>
 
     <div id="queue-wrap">
+      <div class="queue-tabs">
+        <button class="queue-tab active" id="tab-pending" type="button">Da approvare</button>
+        <button class="queue-tab" id="tab-approved" type="button">Approvate</button>
+      </div>
       <div id="empty-state">
         <div class="big">🎉</div>
-        <p>Nessuna prenotazione in coda.<br>La serata è libera!</p>
+        <p id="empty-state-text">Nessuna prenotazione in coda.<br>La serata è libera!</p>
       </div>
     </div>
   </div>
@@ -449,12 +477,16 @@
     const liveLabel  = document.getElementById('live-label');
     const queueWrap  = document.getElementById('queue-wrap');
     const emptyState = document.getElementById('empty-state');
+    const emptyStateText = document.getElementById('empty-state-text');
     const queueCount = document.getElementById('queue-count');
     const serataWrap = document.getElementById('serata-wrap');
+    const tabPending = document.getElementById('tab-pending');
+    const tabApproved = document.getElementById('tab-approved');
 
     let bookings          = [];
     let currentSerata     = null;
     let realtimeConnected = false;
+    let activeQueueTab    = 'pending';
 
     // ── Password gate ────────────────────────────────────────
     const overlay  = document.getElementById('pwd-overlay');
@@ -632,7 +664,7 @@
 
     // ── Render queue ──────────────────────────────────────────
     function renderQueue(list) {
-      queueWrap.querySelectorAll('.booking-card, .queue-section').forEach(el => el.remove());
+      queueWrap.querySelectorAll('.booking-card').forEach(el => el.remove());
 
       const toApprove = list.filter(b => !b.cantata && !b.approvata);
       const approved  = list.filter(b => !b.cantata && b.approvata);
@@ -641,33 +673,24 @@
       if (approved.length) countParts.push(`${approved.length} in coda`);
       if (toApprove.length) countParts.push(`${toApprove.length} da approvare`);
       queueCount.textContent = countParts.length ? countParts.join(' · ') : 'coda vuota';
+      tabPending.textContent = `Da approvare (${toApprove.length})`;
+      tabApproved.textContent = `Approvate (${approved.length})`;
+      tabPending.classList.toggle('active', activeQueueTab === 'pending');
+      tabApproved.classList.toggle('active', activeQueueTab === 'approved');
 
-      if (approved.length === 0 && toApprove.length === 0) {
+      const visibleList = activeQueueTab === 'pending' ? toApprove : approved;
+      if (!visibleList.length) {
+        emptyStateText.innerHTML = activeQueueTab === 'pending'
+          ? 'Nessuna prenotazione da approvare.<br>Ottimo lavoro!'
+          : 'Nessuna prenotazione approvata.<br>Appariranno qui dopo l’approvazione.';
         emptyState.style.display = 'flex';
         return;
       }
       emptyState.style.display = 'none';
 
-      if (toApprove.length) {
-        queueWrap.insertBefore(makeSectionTitle('Da approvare'), emptyState);
-        toApprove.forEach((b, i) => {
-          queueWrap.insertBefore(makeCard(b, i, 'pending'), emptyState);
-        });
-      }
-
-      if (approved.length) {
-        queueWrap.insertBefore(makeSectionTitle('Coda pubblica'), emptyState);
-        approved.forEach((b, i) => {
-          queueWrap.insertBefore(makeCard(b, i, 'approved'), emptyState);
-        });
-      }
-    }
-
-    function makeSectionTitle(label) {
-      const div = document.createElement('div');
-      div.className = 'queue-section';
-      div.textContent = label;
-      return div;
+      visibleList.forEach((b, i) => {
+        queueWrap.insertBefore(makeCard(b, i, activeQueueTab), emptyState);
+      });
     }
 
     function makeCard(b, index, kind) {
@@ -683,7 +706,7 @@
         <div class="card-body">
           <div class="card-header">
             <span class="card-name">${esc(b.nome)}</span>
-            ${isApproved ? '<span class="badge-next">Prossimo</span>' : '<span class="badge-pending">Da approvare</span>'}
+            ${isApproved ? '<span class="badge-approved">✅ Approvata</span>' : '<span class="badge-pending">Da approvare</span>'}
           </div>
           <div class="card-song">🎵 ${esc(b.canzone)}</div>
           <div class="card-meta">${esc(b.artista)}</div>
@@ -717,7 +740,10 @@
       if (error) {
         console.error(error);
         restoreCardAfterError(card, 'Non sono riuscito ad approvare la prenotazione.');
+        return;
       }
+      bookings = bookings.map(item => item.id === id ? { ...item, approvata: true } : item);
+      renderQueue(bookings);
     }
 
     async function markDone(id, card) {
@@ -772,6 +798,15 @@
         .replace(/&/g,'&amp;').replace(/</g,'&lt;')
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
+
+    tabPending.addEventListener('click', () => {
+      activeQueueTab = 'pending';
+      renderQueue(bookings);
+    });
+    tabApproved.addEventListener('click', () => {
+      activeQueueTab = 'approved';
+      renderQueue(bookings);
+    });
   </script>
 </body>
 </html>
