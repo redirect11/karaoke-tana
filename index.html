@@ -915,21 +915,7 @@
       const index = getCurrentBookingQueueIndex(safeQueueItems);
       if (!isApproved) {
         setWaitingTitle('pending');
-        if (songListAvailability === 'loading' && safeQueueItems.length === 0) {
-          setWaitingStatus('Sto calcolando quante canzoni mancano prima della tua.');
-          return;
-        }
-        if (songListAvailability === 'unavailable' || songListAvailability === 'error') {
-          setWaitingStatus('La tua prenotazione è in attesa di approvazione. Contatore coda non disponibile al momento.');
-          return;
-        }
-        const estimatedSongsBeforeUser = index >= 0 ? index : safeQueueItems.length;
-        setWaitingStatus(
-          estimatedSongsBeforeUser === 1
-            ? 'In attesa di approvazione: manca <span class="waiting-position-critical">1</span> canzone prima della tua.'
-            : `In attesa di approvazione: mancano ${estimatedSongsBeforeUser} canzoni prima della tua.`,
-          { html: estimatedSongsBeforeUser === 1 },
-        );
+        setWaitingStatus('La tua prenotazione è in attesa di approvazione.');
         return;
       }
       if (index === -1) {
@@ -1261,7 +1247,7 @@
       setWaitingTitle(approvata ? 'in-list' : 'pending');
       setWaitingStatus(approvata
         ? 'La tua prenotazione è stata approvata ed è visibile nella coda pubblica.'
-        : 'Sto calcolando quante canzoni mancano prima della tua.');
+        : 'La tua prenotazione è in attesa di approvazione.');
       updateWaitingTimer(pendingExpiryAt, approvata);
       updateWaitingPositionStatus(songListCache.toSing);
       clearWaitingIntervals();
@@ -1465,10 +1451,11 @@
       const booking = { nome, canzone, artista };
       if (currentSerataId) booking.serata_id = currentSerataId;
 
+      let pendingExpiresAt = null;
       try {
         const data = await submitBooking(booking);
         const createdAtMs = Date.parse(data.created_at || '');
-        const pendingExpiresAt = data.pending_expires_at
+        pendingExpiresAt = data.pending_expires_at
           ? Date.parse(data.pending_expires_at)
           : ((Number.isFinite(createdAtMs) ? createdAtMs : Date.now()) + PENDING_EXPIRY_MIN * 60 * 1000);
         setCookie('last_booking', JSON.stringify({
@@ -1491,9 +1478,7 @@
 
       loadSongList();
 
-      stepForm.style.display    = 'none';
-      stepSuccess.style.display = 'flex';
-      showSongListCard(true);
+      showWaitingScreen(canzone, artista, false, pendingExpiresAt);
       ind2.classList.remove('active');
       ind2.classList.add('done');
       requestNotificationPermissionAfterBookingSuccess();
