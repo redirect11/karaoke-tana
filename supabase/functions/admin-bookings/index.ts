@@ -112,6 +112,20 @@ async function getOpenSerata(admin: ReturnType<typeof createClient>) {
   return data;
 }
 
+async function getSerataById(admin: ReturnType<typeof createClient>, serataId: number) {
+  const { data, error } = await admin
+    .from("serate")
+    .select("*")
+    .eq("id", serataId)
+    .maybeSingle();
+
+  if (error) {
+    throw new ApiError(500, "query_failed", "Errore durante il caricamento della serata.");
+  }
+
+  return data;
+}
+
 async function getState(admin: ReturnType<typeof createClient>) {
   const serata = await getOpenSerata(admin);
 
@@ -211,7 +225,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         throw new ApiError(409, "already_open", "Esiste già una serata aperta.");
       }
 
-      const date = normalizeDateOrToday(body.data ?? body.date);
+      const date = normalizeDateOrToday(body.date);
       const { data, error } = await admin
         .from("serate")
         .insert({ data: date, aperta: true, voto_aperto: false })
@@ -254,10 +268,9 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
 
     case "set_voting":
     case "toggle_voting": {
-      const openSerata = await getOpenSerata(admin);
       const currentSerata = body.serataId != null
-        ? { id: toPositiveInt(body.serataId, "serataId"), voto_aperto: openSerata?.voto_aperto }
-        : openSerata;
+        ? await getSerataById(admin, toPositiveInt(body.serataId, "serataId"))
+        : await getOpenSerata(admin);
 
       if (!currentSerata?.id) {
         throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
