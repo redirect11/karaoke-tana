@@ -261,7 +261,7 @@
     /* ── song list ── */
     #song-list-card {
       display: none;
-      margin-top: 18px;
+      margin-top: 28px;
     }
     #song-list-card h3 {
       color: var(--gold-soft);
@@ -450,14 +450,6 @@
     <p>Aspetta il tuo turno e preparati a salire sul palco. 🎤</p>
   </div>
 
-  <!-- song list -->
-  <div class="card" id="song-list-card">
-    <h3>Lista canzoni</h3>
-    <p class="song-list-subtitle">Sotto la tua prenotazione puoi vedere la coda attuale. Lo staff può anche correggere nomi e titoli in caso di errori di battitura.</p>
-    <div id="song-list-status">Caricamento lista…</div>
-    <div class="song-list" id="song-list"></div>
-  </div>
-
   <!-- STEP waiting: già prenotato -->
   <div class="card" id="step-waiting">
     <div class="big-icon">🎤</div>
@@ -465,6 +457,14 @@
     <p id="waiting-song"></p>
     <p>Puoi prenotare di nuovo quando canterai la tua canzone.</p>
     <p id="waiting-timer"></p>
+  </div>
+
+  <!-- song list -->
+  <div class="card" id="song-list-card">
+    <h3>Lista canzoni</h3>
+    <p class="song-list-subtitle">Sotto la tua prenotazione puoi vedere la coda attuale. Lo staff può anche correggere nomi e titoli in caso di errori di battitura.</p>
+    <div id="song-list-status">Caricamento lista…</div>
+    <div class="song-list" id="song-list"></div>
   </div>
 
   <!-- STEP closed: nessuna serata aperta -->
