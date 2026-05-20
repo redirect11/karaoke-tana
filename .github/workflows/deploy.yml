@@ -39,8 +39,8 @@ jobs:
             SUPABASE_URL:          process.env.SUPABASE_URL          || '',
             SUPABASE_ANON_KEY:     process.env.SUPABASE_ANON_KEY     || '',
             BOOKING_COOLDOWN_MIN:  (() => {
-              const parsed = Number.parseInt(process.env.BOOKING_COOLDOWN_MIN || '', 10);
-              return Number.isFinite(parsed) ? parsed : 90;
+              const parsed = parseInt(process.env.BOOKING_COOLDOWN_MIN || '', 10);
+              return Number.isNaN(parsed) ? 90 : parsed;
             })(),
           };
           fs.writeFileSync('config.js', 'const CONFIG = ' + JSON.stringify(config, null, 2) + ';');
