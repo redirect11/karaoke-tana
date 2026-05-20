@@ -286,6 +286,18 @@
       color: var(--muted);
       margin-top: 2px;
     }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
 
     /* ── song list ── */
     #song-list-card {
@@ -909,11 +921,22 @@
       }
     }
 
-    function setWaitingStatus(message, { html = false } = {}) {
+    function setWaitingStatus(message, { html = false, screenReaderOnly = false } = {}) {
       const statusEl = document.getElementById('waiting-status');
       if (!statusEl) return;
-      if (html) statusEl.innerHTML = message;
-      else statusEl.textContent = message;
+      statusEl.classList.toggle('sr-only', screenReaderOnly);
+      if (html && !screenReaderOnly) {
+        statusEl.innerHTML = message;
+        return;
+      }
+      statusEl.textContent = message;
+    }
+
+    function setWaitingTimer(message, { screenReaderOnly = false } = {}) {
+      const timerEl = document.getElementById('waiting-timer');
+      if (!timerEl) return;
+      timerEl.classList.toggle('sr-only', screenReaderOnly);
+      timerEl.textContent = message;
     }
 
     function setWaitingTitle(state = 'in-list') {
@@ -979,7 +1002,7 @@
       if (index === 0) {
         setWaitingRemainingSongs(null);
         setWaitingTitle('turn');
-        setWaitingStatus('La tua canzone è in esecuzione ora.');
+        setWaitingStatus('');
         return;
       }
       setWaitingRemainingSongs(index);
@@ -1329,23 +1352,25 @@
     }
 
     function updateWaitingTimer(pendingExpiryAt, approvata) {
-      const timerEl = document.getElementById('waiting-timer');
       if (approvata) {
-        timerEl.textContent = getCurrentBookingQueueIndex() === 0
-          ? '🎤 Tocca a te: la tua canzone è in esecuzione.'
-          : 'Lo staff ti chiamerà quando arriva il tuo turno.';
+        const isCurrentTurn = getCurrentBookingQueueIndex() === 0;
+        if (isCurrentTurn) {
+          setWaitingTimer('Ora puoi cantare.', { screenReaderOnly: true });
+        } else {
+          setWaitingTimer('Lo staff ti chiamerà quando arriva il tuo turno.');
+        }
         return false;
       }
       if (!pendingExpiryAt) {
-        timerEl.textContent = `Attesa massima: ${PENDING_EXPIRY_MIN} minuti.`;
+        setWaitingTimer(`Attesa massima: ${PENDING_EXPIRY_MIN} minuti.`);
         return false;
       }
       const remainingMs = pendingExpiryAt - Date.now();
       if (remainingMs <= 0) {
-        timerEl.textContent = 'Timer scaduto: controllo lo stato e riapro il modulo…';
+        setWaitingTimer('Timer scaduto: controllo lo stato e riapro il modulo…');
         return true;
       }
-      timerEl.textContent = `Nuova prenotazione disponibile tra ${formatCountdown(remainingMs)}.`;
+      setWaitingTimer(`Nuova prenotazione disponibile tra ${formatCountdown(remainingMs)}.`);
       return false;
     }
 
