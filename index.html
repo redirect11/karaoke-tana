@@ -723,7 +723,9 @@
         return;
       }
 
-      songListStatus.textContent = `${items.length} ${items.length === 1 ? 'canzone in coda' : 'canzoni in coda'} · la prima è quella corrente`;
+      songListStatus.textContent = items.length === 1
+        ? 'Canzone corrente in esecuzione'
+        : `${items.length} canzoni in coda · la prima è quella corrente`;
       const currentSong = items[0];
       const queueItems = items.slice(1);
       const currentSongHtml = currentSong
@@ -812,10 +814,10 @@
         return;
       }
       if (index === 1) {
-        setWaitingStatus('⏳ Manca una canzone: sei il numero <span class="waiting-position-critical">1</span> in lista d’attesa.', { html: true });
+        setWaitingStatus('⏳ Manca una canzone: sei il numero <span class="waiting-position-critical">1</span> in lista di attesa.', { html: true });
         return;
       }
-      setWaitingStatus(`Sei il numero ${index} in lista d'attesa.`);
+      setWaitingStatus(`Sei il numero ${index} in lista di attesa.`);
     }
 
     function maybeNotifyTurn(queueItems) {
