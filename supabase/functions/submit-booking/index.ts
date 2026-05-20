@@ -205,10 +205,12 @@ serve(async (req) => {
     });
   }
 
+  const openSerataId = Number(openSerata.data.id);
+
   if (
     validated.data.serata_id !== null
     && validated.data.serata_id !== undefined
-    && validated.data.serata_id !== openSerata.data.id
+    && validated.data.serata_id !== openSerataId
   ) {
     return jsonResponse(req, 409, {
       success: false,
@@ -217,7 +219,7 @@ serve(async (req) => {
     });
   }
 
-  insertPayload.serata_id = openSerata.data.id;
+  insertPayload.serata_id = openSerataId;
 
   const { data, error } = await admin
     .from("prenotazioni")
