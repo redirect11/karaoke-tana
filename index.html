@@ -886,9 +886,8 @@
     function setWaitingTitle(state = 'in-list') {
       const titleEl = document.getElementById('waiting-title');
       if (!titleEl) return;
-      const normalizedState = state === 'pending' || state === 'turn' || state === 'in-list'
-        ? state
-        : 'in-list';
+      const validStates = new Set(['pending', 'turn', 'in-list']);
+      const normalizedState = validStates.has(state) ? state : 'in-list';
       if (normalizedState === 'pending') {
         titleEl.textContent = 'Richiesta in attesa di approvazione';
         return;
@@ -924,12 +923,12 @@
           setWaitingStatus('La tua prenotazione è in attesa di approvazione. Contatore coda non disponibile al momento.');
           return;
         }
-        const songsBeforeUser = index >= 0 ? index : safeQueueItems.length;
+        const estimatedSongsBeforeUser = index >= 0 ? index : safeQueueItems.length;
         setWaitingStatus(
-          songsBeforeUser === 1
+          estimatedSongsBeforeUser === 1
             ? 'In attesa di approvazione: manca <span class="waiting-position-critical">1</span> canzone prima della tua.'
-            : `In attesa di approvazione: mancano ${songsBeforeUser} canzoni prima della tua.`,
-          { html: songsBeforeUser === 1 },
+            : `In attesa di approvazione: mancano ${estimatedSongsBeforeUser} canzoni prima della tua.`,
+          { html: estimatedSongsBeforeUser === 1 },
         );
         return;
       }
