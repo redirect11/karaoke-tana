@@ -11,6 +11,9 @@ const CONFIG = {
   // Trovate in: supabase.com → tuo progetto → Settings → API
   SUPABASE_URL:      'https://TUO-PROGETTO.supabase.co',
   SUPABASE_ANON_KEY: 'eyJ...LA_TUA_ANON_KEY',
+  // Opzionale: URL completo della Edge Function booking.
+  // Se vuoto, il client usa `${SUPABASE_URL}/functions/v1/submit-booking`
+  SUBMIT_BOOKING_FUNCTION_URL: '',
 
   // ── Solo valori pubblici nel browser ─────────────────────
   // Non inserire qui password admin, token Telegram o altri

@@ -30,6 +30,7 @@ jobs:
           IG_USERNAME:        ${{ secrets.IG_USERNAME }}
           SUPABASE_URL:       ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY:  ${{ secrets.SUPABASE_ANON_KEY }}
+          SUBMIT_BOOKING_FUNCTION_URL: ${{ secrets.SUBMIT_BOOKING_FUNCTION_URL }}
           BOOKING_COOLDOWN_MIN:  ${{ secrets.BOOKING_COOLDOWN_MIN }}
         run: |
           node -e "
@@ -42,6 +43,7 @@ jobs:
             IG_USERNAME:           process.env.IG_USERNAME           || 'latanadelconiglio_nola',
             SUPABASE_URL:          process.env.SUPABASE_URL          || '',
             SUPABASE_ANON_KEY:     process.env.SUPABASE_ANON_KEY     || '',
+            SUBMIT_BOOKING_FUNCTION_URL: process.env.SUBMIT_BOOKING_FUNCTION_URL || '',
             BOOKING_COOLDOWN_MIN:  getCooldownMinutes(process.env.BOOKING_COOLDOWN_MIN),
           };
           fs.writeFileSync('config.js', 'const CONFIG = ' + JSON.stringify(config, null, 2) + ';');

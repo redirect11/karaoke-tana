@@ -501,6 +501,11 @@
     const db = supabaseReady
       ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY)
       : null;
+    const edgeBaseUrl = supabaseReady
+      ? `${config.SUPABASE_URL.replace(/\/+$/, '')}/functions/v1`
+      : '';
+    const submitBookingUrl =
+      (config.SUBMIT_BOOKING_FUNCTION_URL || '').trim() || `${edgeBaseUrl}/submit-booking`;
 
     let currentSerataId = null;
     let serataChannel   = null;
@@ -779,6 +784,41 @@
       if (!pending) showForm();
     }
 
+    function getEdgeHeaders() {
+      const headers = { 'Content-Type': 'application/json' };
+      if (config.SUPABASE_ANON_KEY) {
+        headers.apikey = config.SUPABASE_ANON_KEY;
+        headers.Authorization = `Bearer ${config.SUPABASE_ANON_KEY}`;
+      }
+      return headers;
+    }
+
+    async function submitBooking(booking) {
+      if (!supabaseReady || !submitBookingUrl) {
+        throw new Error('Configurazione Supabase non disponibile.');
+      }
+
+      const response = await fetch(submitBookingUrl, {
+        method: 'POST',
+        headers: getEdgeHeaders(),
+        body: JSON.stringify(booking),
+      });
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {
+        payload = null;
+      }
+
+      if (!response.ok || !payload?.success || !payload?.data?.id) {
+        const message = payload?.error?.message || 'Errore durante la prenotazione. Riprova tra qualche secondo!';
+        throw new Error(message);
+      }
+
+      return payload.data;
+    }
+
     // ── Init ─────────────────────────────────────────────────
     (async () => {
       const open = await checkSerataAperta();
@@ -804,21 +844,20 @@
       btn.disabled = true;
       btn.textContent = 'Invio in corso…';
 
-      const booking = { nome, canzone, artista, approvata: false };
+      const booking = { nome, canzone, artista };
       if (currentSerataId) booking.serata_id = currentSerataId;
 
-      if (db) {
-        const { data, error } = await db.from('prenotazioni').insert(booking).select('id').single();
-        if (error) {
-          console.error('Supabase error:', error);
-          btn.disabled = false;
-          btn.textContent = '🎙 Prenota';
-          alert('Errore durante la prenotazione. Riprova tra qualche secondo!');
-          return;
-        }
+      try {
+        const data = await submitBooking(booking);
         setCookie('last_booking', JSON.stringify({
           id: data.id, timestamp: Date.now(), canzone, artista
         }), COOLDOWN_MIN * 60);
+      } catch (error) {
+        console.error('Booking error:', error);
+        btn.disabled = false;
+        btn.textContent = '🎙 Prenota';
+        alert(error?.message || 'Errore durante la prenotazione. Riprova tra qualche secondo!');
+        return;
       }
 
       loadSongList();
