@@ -257,6 +257,7 @@
     #step-success p,  #step-waiting p,  #step-closed p  { font-size: 0.88rem; }
     #waiting-song  { font-size: 0.95rem !important; font-weight: 700; color: var(--text) !important; }
     #waiting-timer { font-size: 0.75rem !important; color: var(--muted) !important; }
+    #waiting-status, #success-status { margin-bottom: 0; }
 
     /* ── song list ── */
     #song-list-card {
@@ -446,8 +447,8 @@
   <!-- STEP 3: success -->
   <div class="card" id="step-success">
     <div class="big-icon">🎉</div>
-    <h2>Sei in lista!</h2>
-    <p>Aspetta il tuo turno e preparati a salire sul palco. 🎤</p>
+    <h2>Richiesta inviata!</h2>
+    <p id="success-status">Lo staff la controllerà e apparirà in lista appena viene approvata.</p>
   </div>
 
   <!-- STEP waiting: già prenotato -->
@@ -455,7 +456,7 @@
     <div class="big-icon">🎤</div>
     <h2>Sei già in lista!</h2>
     <p id="waiting-song"></p>
-    <p>Puoi prenotare di nuovo quando canterai la tua canzone.</p>
+    <p id="waiting-status">La tua prenotazione è in attesa di approvazione dallo staff.</p>
     <p id="waiting-timer"></p>
   </div>
 
@@ -555,16 +556,18 @@
 
       let { data, error } = await db
         .from('prenotazioni')
-        .select('id, nome, canzone, artista, created_at, cantata')
+        .select('id, nome, canzone, artista, created_at, cantata, approvata')
         .eq('serata_id', currentSerataId)
+        .eq('approvata', true)
         .eq('cantata', false)
         .order('created_at', { ascending: true });
 
       if (error || !data || data.length === 0) {
         const fallback = await db
           .from('prenotazioni')
-          .select('id, nome, canzone, artista, created_at, cantata')
+          .select('id, nome, canzone, artista, created_at, cantata, approvata')
           .is('serata_id', null)
+          .eq('approvata', true)
           .eq('cantata', false)
           .order('created_at', { ascending: true });
         if (!fallback.error && fallback.data?.length) {
@@ -750,21 +753,26 @@
         return false;
       }
       if (db) {
-        const { data } = await db.from('prenotazioni').select('cantata').eq('id', id).single();
+        const { data } = await db.from('prenotazioni').select('cantata, approvata').eq('id', id).single();
         if (!data || data.cantata) {
           deleteCookie('last_booking');
           return false;
         }
+        showWaitingScreen(timestamp, canzone, artista, Boolean(data.approvata));
+        return true;
       }
-      showWaitingScreen(timestamp, canzone, artista);
+      showWaitingScreen(timestamp, canzone, artista, false);
       return true;
     }
 
-    function showWaitingScreen(timestamp, canzone, artista) {
+    function showWaitingScreen(timestamp, canzone, artista, approvata) {
       [stepFollow, stepForm, stepSuccess].forEach(s => s.style.display = 'none');
       stepWaiting.style.display = 'flex';
       showSongListCard(true);
       document.getElementById('waiting-song').textContent = `${canzone} – ${artista}`;
+      document.getElementById('waiting-status').textContent = approvata
+        ? 'La tua prenotazione è stata approvata ed è visibile nella coda pubblica.'
+        : 'La tua prenotazione è in attesa di approvazione dallo staff.';
       updateWaitingTimer(timestamp);
       if (pollInterval) clearInterval(pollInterval);
       pollInterval = setInterval(async () => {
@@ -862,7 +870,7 @@
       btn.disabled = true;
       btn.textContent = 'Invio in corso…';
 
-      const booking = { nome, canzone, artista };
+      const booking = { nome, canzone, artista, approvata: false };
       if (currentSerataId) booking.serata_id = currentSerataId;
 
       if (db) {
@@ -884,6 +892,7 @@
 
       stepForm.style.display    = 'none';
       stepSuccess.style.display = 'flex';
+      document.getElementById('success-status').textContent = 'Lo staff la controllerà e apparirà nella coda pubblica appena viene approvata.';
       showSongListCard(true);
       ind2.classList.remove('active');
       ind2.classList.add('done');

@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS prenotazioni (
   artista    TEXT         NOT NULL,
   tavolo     INTEGER      NOT NULL,
   cantata    BOOLEAN      NOT NULL DEFAULT FALSE,
+  approvata  BOOLEAN      NOT NULL DEFAULT FALSE,
   serata_id  BIGINT       REFERENCES serate(id),
   created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
@@ -60,6 +61,9 @@ CREATE TABLE IF NOT EXISTS prenotazioni (
 -- Aggiunge serata_id se la tabella esisteva già senza la colonna
 ALTER TABLE prenotazioni
   ADD COLUMN IF NOT EXISTS serata_id BIGINT REFERENCES serate(id);
+
+ALTER TABLE prenotazioni
+  ADD COLUMN IF NOT EXISTS approvata BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- tavolo non è più raccolto dal form; rende la colonna opzionale
 ALTER TABLE prenotazioni ALTER COLUMN tavolo DROP NOT NULL;
@@ -77,6 +81,14 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
   CREATE POLICY "prenotazioni_update" ON prenotazioni FOR UPDATE TO anon USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "prenotazioni_delete" ON prenotazioni FOR DELETE TO anon USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "serate_delete" ON serate FOR DELETE TO anon USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 
