@@ -8,6 +8,13 @@ type BookingPayload = {
   serata_id?: number | null;
 };
 
+function getPendingExpiryMinutes(): number {
+  const raw = Deno.env.get("BOOKING_PENDING_EXPIRY_MIN") ?? "30";
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isInteger(parsed) || parsed <= 0) return 30;
+  return Math.min(parsed, 60);
+}
+
 function parseAllowedOrigins(): string[] {
   const raw = Deno.env.get("ALLOWED_ORIGINS") ?? "*";
   return raw
@@ -128,6 +135,28 @@ async function getOpenSerata(admin: ReturnType<typeof createClient>) {
   return { ok: true as const, data };
 }
 
+async function cleanupExpiredPendingBookings(admin: ReturnType<typeof createClient>) {
+  const expiryMinutes = getPendingExpiryMinutes();
+  const cutoff = new Date(Date.now() - expiryMinutes * 60 * 1000).toISOString();
+  const { error } = await admin
+    .from("prenotazioni")
+    .delete()
+    .eq("approvata", false)
+    .eq("cantata", false)
+    .lt("created_at", cutoff);
+  if (error) {
+    return { ok: false as const, error };
+  }
+  return { ok: true as const };
+}
+
+function computePendingExpiryIso(createdAt: string | null): string | null {
+  if (!createdAt) return null;
+  const createdAtMs = Date.parse(createdAt);
+  if (!Number.isFinite(createdAtMs)) return null;
+  return new Date(createdAtMs + getPendingExpiryMinutes() * 60 * 1000).toISOString();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: getCorsHeaders(req.headers.get("origin")) });
@@ -181,6 +210,15 @@ serve(async (req) => {
   }
 
   const admin = createClient(supabaseUrl, serviceRoleKey);
+  const cleanup = await cleanupExpiredPendingBookings(admin);
+  if (!cleanup.ok) {
+    return jsonResponse(req, 500, {
+      success: false,
+      data: null,
+      error: { code: "cleanup_failed", message: "Errore durante la pulizia delle prenotazioni scadute." },
+    });
+  }
+
   const insertPayload: Record<string, unknown> = {
     nome: validated.data.nome,
     canzone: validated.data.canzone,
@@ -244,7 +282,10 @@ serve(async (req) => {
 
   return jsonResponse(req, 201, {
     success: true,
-    data,
+    data: {
+      ...data,
+      pending_expires_at: computePendingExpiryIso(data?.created_at ?? null),
+    },
     error: null,
   });
 });

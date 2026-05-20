@@ -6,6 +6,10 @@ project_id = "replace-with-your-project-ref"
 enabled = true
 verify_jwt = false
 
+[functions.booking-status]
+enabled = true
+verify_jwt = false
+
 [functions.admin-bookings]
 enabled = true
 verify_jwt = false

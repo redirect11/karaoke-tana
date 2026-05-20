@@ -296,6 +296,10 @@
       gap: 8px;
       text-align: left;
     }
+    .song-item.mine {
+      border-color: var(--gold);
+      background: rgba(212,160,23,0.12);
+    }
     .song-item-top {
       display: flex;
       justify-content: space-between;
@@ -314,6 +318,19 @@
     .song-item-name {
       font-size: 0.8rem;
       color: var(--muted);
+    }
+    .song-item-badge {
+      margin-top: 6px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      border: 1px solid rgba(212,160,23,0.55);
+      color: var(--gold-soft);
+      background: rgba(212,160,23,0.12);
+      padding: 2px 8px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
     }
     .song-item-order {
       min-width: 28px;
@@ -510,8 +527,19 @@
     const customSubmitBookingUrl = (config.SUBMIT_BOOKING_FUNCTION_URL || '').trim();
     const submitBookingUrl =
       customSubmitBookingUrl || (supabaseReady ? `${edgeBaseUrl}/submit-booking` : '');
+    const customBookingStatusUrl = (config.BOOKING_STATUS_FUNCTION_URL || '').trim();
+    const bookingStatusUrl =
+      customBookingStatusUrl || (supabaseReady ? `${edgeBaseUrl}/booking-status` : '');
     const BOOKING_CONFIG_ERROR_MESSAGE = 'Configurazione prenotazioni non disponibile.';
     const BOOKING_ERROR_MESSAGE = 'Errore durante la prenotazione. Riprova tra qualche secondo!';
+    const PENDING_EXPIRY_MIN = (() => {
+      const parsed = parseInt(
+        config.BOOKING_PENDING_EXPIRY_MIN ?? config.BOOKING_COOLDOWN_MIN ?? 30,
+        10,
+      );
+      if (!Number.isInteger(parsed) || parsed <= 0) return 30;
+      return Math.min(parsed, 60);
+    })();
 
     let currentSerataId = null;
     let serataChannel   = null;
@@ -600,6 +628,8 @@
     }
 
     function renderSongList(items) {
+      const currentBookingId = getCurrentBookingId();
+      const currentBookingIdNum = Number(currentBookingId);
       if (!items.length) {
         songListStatus.textContent = 'Nessuna canzone in coda al momento.';
         songListEl.innerHTML = '<div class="song-empty">Appena arrivano nuove prenotazioni, le vedrai qui.</div>';
@@ -608,12 +638,13 @@
 
       songListStatus.textContent = `${items.length} ${items.length === 1 ? 'canzone in coda' : 'canzoni in coda'}`;
       songListEl.innerHTML = items.map((item, index) => `
-        <div class="song-item" data-id="${item.id}">
+        <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}" data-id="${item.id}">
           <div class="song-item-top">
             <div>
               <div class="song-item-title">${escapeHtml(item.canzone)}</div>
               <div class="song-item-artist">${escapeHtml(item.artista)}</div>
               <div class="song-item-name">Prenotata da ${escapeHtml(item.nome)}</div>
+              ${Number(item.id) === currentBookingIdNum ? '<div class="song-item-badge">La tua prenotazione</div>' : ''}
             </div>
             <div class="song-item-order">${index + 1}</div>
           </div>
@@ -694,51 +725,240 @@
     }
 
     // ── Pending booking check ────────────────────────────────
-    const COOLDOWN_MIN = config.BOOKING_COOLDOWN_MIN || 90;
     let pollInterval = null;
+    let waitTimerInterval = null;
+    let expirySyncInFlight = false;
+
+    function clearWaitingIntervals() {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+      if (waitTimerInterval) {
+        clearInterval(waitTimerInterval);
+        waitTimerInterval = null;
+      }
+    }
+
+    function safeParseBookingCookie(rawValue) {
+      if (!rawValue) return null;
+      try {
+        const parsed = JSON.parse(rawValue);
+        if (!parsed || typeof parsed !== 'object') return null;
+        return parsed;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function normalizePendingExpiryAt(storedBooking) {
+      const direct = Number(storedBooking.pendingExpiresAt);
+      if (Number.isFinite(direct) && direct > 0) return direct;
+      const timestamp = Number(storedBooking.timestamp);
+      if (!Number.isFinite(timestamp) || timestamp <= 0) return null;
+      return timestamp + (PENDING_EXPIRY_MIN * 60 * 1000);
+    }
+
+    function getCurrentBookingId() {
+      const stored = safeParseBookingCookie(getCookie('last_booking'));
+      if (!stored) return null;
+      const id = Number(stored.id);
+      if (!Number.isInteger(id) || id <= 0) return null;
+      return id;
+    }
+
+    function formatCountdown(ms) {
+      const totalSec = Math.max(0, Math.ceil(ms / 1000));
+      const min = Math.floor(totalSec / 60);
+      const sec = totalSec % 60;
+      return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    }
+
+    async function fetchBookingStatus(bookingId) {
+      if (!bookingStatusUrl) return null;
+      try {
+        const response = await fetch(bookingStatusUrl, {
+          method: 'POST',
+          headers: getEdgeHeaders(),
+          body: JSON.stringify({ bookingId }),
+        });
+        let payload = null;
+        try {
+          payload = await response.json();
+        } catch (_) {
+          payload = null;
+        }
+        if (!response.ok || !payload?.success || !payload?.data) return null;
+        return payload.data;
+      } catch (_) {
+        return null;
+      }
+    }
 
     async function checkPendingBooking() {
-      const stored = getCookie('last_booking');
-      if (!stored) return false;
-      const { id, timestamp, canzone, artista } = JSON.parse(stored);
-      if ((Date.now() - timestamp) / 60000 > COOLDOWN_MIN) {
-        deleteCookie('last_booking');
+      const stored = safeParseBookingCookie(getCookie('last_booking'));
+      if (!stored) {
+        clearWaitingIntervals();
         return false;
       }
-      if (db) {
-        const { data } = await db.from('prenotazioni').select('cantata, approvata').eq('id', id).single();
-        if (!data || data.cantata) {
+
+      const id = Number(stored.id);
+      const canzone = stored.canzone || '';
+      const artista = stored.artista || '';
+      if (!Number.isInteger(id) || id <= 0) {
+        deleteCookie('last_booking');
+        clearWaitingIntervals();
+        return false;
+      }
+
+      const pendingExpiryAt = normalizePendingExpiryAt(stored);
+      if (pendingExpiryAt && Date.now() >= pendingExpiryAt) {
+        const statusAtExpiry = await fetchBookingStatus(id);
+        if (statusAtExpiry) {
+          if (!statusAtExpiry.pending && !statusAtExpiry.approved) {
+            deleteCookie('last_booking');
+            clearWaitingIntervals();
+            return false;
+          }
+
+          if (statusAtExpiry.approved) {
+            const updated = { ...stored, pendingExpiresAt: null };
+            setCookie('last_booking', JSON.stringify(updated), 365 * 24 * 3600);
+            showWaitingScreen(updated.canzone || canzone, updated.artista || artista, true, null);
+            return true;
+          }
+        } else if (db) {
+          const { data } = await db
+            .from('prenotazioni')
+            .select('cantata, approvata')
+            .eq('id', id)
+            .maybeSingle();
+          if (data?.approvata && !data?.cantata) {
+            const updated = { ...stored, pendingExpiresAt: null };
+            setCookie('last_booking', JSON.stringify(updated), 365 * 24 * 3600);
+            showWaitingScreen(updated.canzone || canzone, updated.artista || artista, true, null);
+            return true;
+          }
+        }
+
+        deleteCookie('last_booking');
+        clearWaitingIntervals();
+        return false;
+      }
+
+      const status = await fetchBookingStatus(id);
+      if (status) {
+        if (!status.pending && !status.approved) {
           deleteCookie('last_booking');
+          clearWaitingIntervals();
           return false;
         }
-        showWaitingScreen(timestamp, canzone, artista, Boolean(data.approvata));
+        const createdAtMs = Date.parse(status.created_at || '');
+        const expiresAtMs = status.expires_at ? Date.parse(status.expires_at) : null;
+        const updated = {
+          ...stored,
+          id,
+          canzone: status.canzone || canzone,
+          artista: status.artista || artista,
+          pendingExpiresAt: status.approved ? null : expiresAtMs,
+          timestamp: Number.isFinite(createdAtMs) ? createdAtMs : (Number(stored.timestamp) || Date.now()),
+        };
+        setCookie(
+          'last_booking',
+          JSON.stringify(updated),
+          status.approved ? 365 * 24 * 3600 : Math.max(PENDING_EXPIRY_MIN * 60, 60),
+        );
+        showWaitingScreen(updated.canzone, updated.artista, Boolean(status.approved), updated.pendingExpiresAt);
+        return true;
+      }
+
+      if (db) {
+        const { data } = await db
+          .from('prenotazioni')
+          .select('cantata, approvata, created_at')
+          .eq('id', id)
+          .maybeSingle();
+        if (!data || data.cantata) {
+          deleteCookie('last_booking');
+          clearWaitingIntervals();
+          return false;
+        }
+
+        const createdAtMs = Date.parse(data.created_at || '');
+        const fallbackExpiryAt = Number.isFinite(createdAtMs)
+          ? createdAtMs + (PENDING_EXPIRY_MIN * 60 * 1000)
+          : pendingExpiryAt;
+        if (!data.approvata && fallbackExpiryAt && Date.now() >= fallbackExpiryAt) {
+          deleteCookie('last_booking');
+          clearWaitingIntervals();
+          return false;
+        }
+
+        const updated = {
+          ...stored,
+          id,
+          pendingExpiresAt: data.approvata ? null : fallbackExpiryAt,
+        };
+        setCookie(
+          'last_booking',
+          JSON.stringify(updated),
+          data.approvata ? 365 * 24 * 3600 : Math.max(PENDING_EXPIRY_MIN * 60, 60),
+        );
+        showWaitingScreen(canzone, artista, Boolean(data.approvata), updated.pendingExpiresAt);
       } else {
-        showWaitingScreen(timestamp, canzone, artista, false);
+        showWaitingScreen(canzone, artista, false, pendingExpiryAt);
       }
       return true;
     }
 
-    function showWaitingScreen(timestamp, canzone, artista, approvata) {
+    function showWaitingScreen(canzone, artista, approvata, pendingExpiryAt) {
       [stepFollow, stepForm, stepSuccess].forEach(s => s.style.display = 'none');
       stepWaiting.style.display = 'flex';
       showSongListCard(true);
       document.getElementById('waiting-song').textContent = `${canzone} – ${artista}`;
       document.getElementById('waiting-status').textContent = approvata
         ? 'La tua prenotazione è stata approvata ed è visibile nella coda pubblica.'
-        : 'La tua prenotazione è in attesa di approvazione dallo staff.';
-      updateWaitingTimer(timestamp);
-      if (pollInterval) clearInterval(pollInterval);
+        : 'La tua prenotazione è in attesa di approvazione. Il modulo si riaprirà allo scadere del timer.';
+      updateWaitingTimer(pendingExpiryAt, approvata);
+      clearWaitingIntervals();
       pollInterval = setInterval(async () => {
         const pending = await checkPendingBooking();
-        if (!pending) { clearInterval(pollInterval); showForm(); }
-      }, 30000);
-      setInterval(() => updateWaitingTimer(timestamp), 60000);
+        if (!pending) {
+          clearWaitingIntervals();
+          showForm();
+        }
+      }, 10000);
+      waitTimerInterval = setInterval(async () => {
+        const expired = updateWaitingTimer(pendingExpiryAt, approvata);
+        if (!approvata && expired && !expirySyncInFlight) {
+          expirySyncInFlight = true;
+          const pending = await checkPendingBooking();
+          expirySyncInFlight = false;
+          if (!pending) {
+            clearWaitingIntervals();
+            showForm();
+          }
+        }
+      }, 1000);
     }
 
-    function updateWaitingTimer(timestamp) {
-      const min = Math.floor((Date.now() - timestamp) / 60000);
-      document.getElementById('waiting-timer').textContent =
-        `Prenotata ${min === 0 ? 'pochi istanti' : min + (min === 1 ? ' minuto' : ' minuti')} fa`;
+    function updateWaitingTimer(pendingExpiryAt, approvata) {
+      const timerEl = document.getElementById('waiting-timer');
+      if (approvata) {
+        timerEl.textContent = 'Rimani in attesa: lo staff ti chiamerà quando arriva il tuo turno.';
+        return false;
+      }
+      if (!pendingExpiryAt) {
+        timerEl.textContent = `Attesa massima: ${PENDING_EXPIRY_MIN} minuti.`;
+        return false;
+      }
+      const remainingMs = pendingExpiryAt - Date.now();
+      if (remainingMs <= 0) {
+        timerEl.textContent = 'Timer scaduto: controllo lo stato e riapro il modulo…';
+        return true;
+      }
+      timerEl.textContent = `Nuova prenotazione disponibile tra ${formatCountdown(remainingMs)}.`;
+      return false;
     }
 
     function showForm() {
@@ -856,9 +1076,17 @@
 
       try {
         const data = await submitBooking(booking);
+        const createdAtMs = Date.parse(data.created_at || '');
+        const pendingExpiresAt = data.pending_expires_at
+          ? Date.parse(data.pending_expires_at)
+          : ((Number.isFinite(createdAtMs) ? createdAtMs : Date.now()) + PENDING_EXPIRY_MIN * 60 * 1000);
         setCookie('last_booking', JSON.stringify({
-          id: data.id, timestamp: Date.now(), canzone, artista
-        }), COOLDOWN_MIN * 60);
+          id: data.id,
+          timestamp: Number.isFinite(createdAtMs) ? createdAtMs : Date.now(),
+          pendingExpiresAt,
+          canzone,
+          artista,
+        }), Math.max(PENDING_EXPIRY_MIN * 60, 60));
       } catch (error) {
         console.error('Booking error:', error);
         btn.disabled = false;

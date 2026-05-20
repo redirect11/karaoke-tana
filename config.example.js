@@ -14,16 +14,21 @@ const CONFIG = {
   // Opzionale: URL completo della Edge Function booking.
   // Se vuoto, il client usa `${SUPABASE_URL}/functions/v1/submit-booking`
   SUBMIT_BOOKING_FUNCTION_URL: '',
+  // Opzionale: URL completo della Edge Function di stato booking.
+  // Se vuoto, il client usa `${SUPABASE_URL}/functions/v1/booking-status`
+  BOOKING_STATUS_FUNCTION_URL: '',
 
   // ── Solo valori pubblici nel browser ─────────────────────
   // Non inserire qui password admin, token Telegram o altri
   // segreti: config.js viene pubblicato su GitHub Pages ed è
   // leggibile da chiunque apra il sito.
 
-  // ── Cooldown prenotazione ──────────────────────────────────
-  // Minuti dopo i quali si può prenotare di nuovo anche senza
-  // che la canzone venga spuntata dallo staff (fallback)
-  BOOKING_COOLDOWN_MIN: 90,
+  // ── Scadenza prenotazione non approvata ────────────────────
+  // Dopo questi minuti, una prenotazione non approvata scade e
+  // il form si riapre automaticamente. Consigliato 30 (max 60).
+  BOOKING_PENDING_EXPIRY_MIN: 30,
+  // Legacy fallback (compatibilità config vecchie)
+  BOOKING_COOLDOWN_MIN: 30,
 
 };
 
