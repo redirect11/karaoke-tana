@@ -820,7 +820,7 @@
       if (!response.ok || !payload?.success || payload?.data?.id === undefined || payload?.data?.id === null) {
         const errorCode = payload?.error?.code;
         const message = payload?.error?.message || BOOKING_ERROR_MESSAGE;
-        throw { message, code: errorCode };
+        throw Object.assign(new Error(message), { code: errorCode });
       }
 
       return payload.data;
