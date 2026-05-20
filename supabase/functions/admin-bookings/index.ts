@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { getAdminClient, getAdminTokenSecret, verifyAdminToken } from "../_shared/admin-auth.ts";
 
 type ApiEnvelope = {
   success: boolean;
@@ -70,7 +69,20 @@ function normalizeDateOrToday(value: unknown): string {
   return trimmed;
 }
 
-async function ensureAdminToken(req: Request): Promise<void> {
+function getAdminClient() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new ApiError(500, "server_misconfigured", "Config server mancante.");
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function ensureAdminAuth(req: Request): Promise<void> {
   const authHeader = req.headers.get("authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) {
     throw new ApiError(401, "unauthorized", "Credenziali admin non valide.");
@@ -81,15 +93,27 @@ async function ensureAdminToken(req: Request): Promise<void> {
     throw new ApiError(401, "unauthorized", "Credenziali admin non valide.");
   }
 
-  let tokenSecret = "";
-  try {
-    tokenSecret = getAdminTokenSecret();
-  } catch {
-    throw new ApiError(500, "server_misconfigured", "Config server mancante.");
-  }
-  const isValid = await verifyAdminToken(token, tokenSecret);
-  if (!isValid) {
+  const client = getAdminClient();
+
+  // Verify the Supabase Auth JWT and retrieve the authenticated user.
+  const { data: { user }, error: authError } = await client.auth.getUser(token);
+  if (authError || !user) {
     throw new ApiError(401, "unauthorized", "Credenziali admin non valide.");
+  }
+
+  // Check the user is in the admin allowlist.
+  const { data: adminRow, error: adminError } = await client
+    .from("admin_users")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (adminError) {
+    throw new ApiError(500, "server_error", "Errore durante la verifica admin.");
+  }
+
+  if (!adminRow) {
+    throw new ApiError(403, "forbidden", "Accesso riservato agli amministratori.");
   }
 }
 
@@ -373,7 +397,7 @@ serve(async (req) => {
   }
 
   try {
-    await ensureAdminToken(req);
+    await ensureAdminAuth(req);
 
     let body: unknown;
     try {
