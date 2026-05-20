@@ -235,6 +235,7 @@
       let { data, error } = await db
         .from('prenotazioni')
         .select('id, nome, canzone, artista')
+        .eq('approvata', true)
         .eq('cantata', false)
         .eq('serata_id', serata.id)
         .order('created_at', { ascending: true });
@@ -243,6 +244,7 @@
         const fallback = await db
           .from('prenotazioni')
           .select('id, nome, canzone, artista')
+          .eq('approvata', true)
           .eq('cantata', false)
           .is('serata_id', null)
           .order('created_at', { ascending: true });

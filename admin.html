@@ -111,6 +111,12 @@
 
     .header-right { display: flex; align-items: center; gap: 14px; }
 
+    .header-tools {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
     #live-badge {
       display: flex; align-items: center; gap: 5px;
       font-size: 0.72rem; color: var(--muted);
@@ -128,6 +134,22 @@
       font-weight: 700;
       color: var(--gold-s);
     }
+    .settings-link {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid #3d2366;
+      color: var(--gold);
+      text-decoration: none;
+      font-size: 1rem;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .settings-link:hover { background: rgba(212,160,23,0.14); }
+    .settings-link:active { transform: scale(0.95); }
 
     /* ── serata management ── */
     #serata-wrap {
@@ -213,6 +235,14 @@
       flex-direction: column;
       gap: 12px;
     }
+    .queue-section {
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--gold-s);
+      margin-top: 6px;
+    }
 
     /* ── empty state ── */
     #empty-state {
@@ -286,29 +316,78 @@
 
     .card-song { font-size: 0.88rem; color: var(--gold-s); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .card-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .badge-pending {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.62rem;
+      font-weight: 800;
+      background: var(--gold-s);
+      color: #12071f;
+      padding: 2px 7px;
+      border-radius: 50px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
 
+    .card-side {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+    }
     .card-time {
       font-size: 0.72rem;
       color: var(--muted);
-      flex-shrink: 0;
       text-align: right;
     }
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
 
-    .btn-done {
-      flex-shrink: 0;
+    .btn-action {
       padding: 8px 14px;
-      background: var(--green);
       border: none;
       border-radius: 50px;
-      color: #12071f;
       font-weight: 700;
       font-size: 0.78rem;
       cursor: pointer;
       transition: background 0.15s, transform 0.1s;
       white-space: nowrap;
     }
+    .btn-approve { background: var(--gold); color: #12071f; }
+    .btn-approve:hover { background: var(--gold-s); }
+    .btn-done { background: var(--green); color: #12071f; }
     .btn-done:hover  { background: #27ae60; }
-    .btn-done:active { transform: scale(0.95); }
+    .btn-delete { background: var(--red); color: #fff; }
+    .btn-delete:hover { background: #c0233a; }
+    .btn-action:active { transform: scale(0.95); }
+
+    @media (max-width: 520px) {
+      header {
+        align-items: flex-start;
+      }
+      .header-right {
+        flex-direction: column;
+        align-items: flex-end;
+      }
+      .booking-card {
+        flex-wrap: wrap;
+      }
+      .card-side {
+        width: 100%;
+        align-items: stretch;
+      }
+      .card-time,
+      .card-actions {
+        text-align: left;
+        justify-content: flex-start;
+      }
+    }
   </style>
 </head>
 <body>
@@ -340,7 +419,10 @@
           <div id="live-dot"></div>
           <span id="live-label">—</span>
         </div>
-        <span id="queue-count"></span>
+        <div class="header-tools">
+          <span id="queue-count"></span>
+          <a class="settings-link" href="admin-tools.html" title="Strumenti nascosti" aria-label="Strumenti nascosti">⚙️</a>
+        </div>
       </div>
     </header>
 
@@ -550,27 +632,48 @@
 
     // ── Render queue ──────────────────────────────────────────
     function renderQueue(list) {
-      queueWrap.querySelectorAll('.booking-card').forEach(el => el.remove());
+      queueWrap.querySelectorAll('.booking-card, .queue-section').forEach(el => el.remove());
 
-      const pending = list.filter(b => !b.cantata);
-      queueCount.textContent = pending.length
-        ? `${pending.length} in coda`
-        : 'coda vuota';
+      const toApprove = list.filter(b => !b.cantata && !b.approvata);
+      const approved  = list.filter(b => !b.cantata && b.approvata);
+      const countParts = [];
 
-      if (pending.length === 0) {
+      if (approved.length) countParts.push(`${approved.length} in coda`);
+      if (toApprove.length) countParts.push(`${toApprove.length} da approvare`);
+      queueCount.textContent = countParts.length ? countParts.join(' · ') : 'coda vuota';
+
+      if (approved.length === 0 && toApprove.length === 0) {
         emptyState.style.display = 'flex';
         return;
       }
       emptyState.style.display = 'none';
 
-      pending.forEach((b, i) => {
-        queueWrap.insertBefore(makeCard(b, i), emptyState);
-      });
+      if (toApprove.length) {
+        queueWrap.insertBefore(makeSectionTitle('Da approvare'), emptyState);
+        toApprove.forEach((b, i) => {
+          queueWrap.insertBefore(makeCard(b, i, 'pending'), emptyState);
+        });
+      }
+
+      if (approved.length) {
+        queueWrap.insertBefore(makeSectionTitle('Coda pubblica'), emptyState);
+        approved.forEach((b, i) => {
+          queueWrap.insertBefore(makeCard(b, i, 'approved'), emptyState);
+        });
+      }
     }
 
-    function makeCard(b, index) {
+    function makeSectionTitle(label) {
+      const div = document.createElement('div');
+      div.className = 'queue-section';
+      div.textContent = label;
+      return div;
+    }
+
+    function makeCard(b, index, kind) {
       const card = document.createElement('div');
-      card.className = 'booking-card' + (index === 0 ? ' next' : '');
+      const isApproved = kind === 'approved';
+      card.className = 'booking-card' + (isApproved && index === 0 ? ' next' : '');
       card.dataset.id = b.id;
 
       const time = new Date(b.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
@@ -580,25 +683,88 @@
         <div class="card-body">
           <div class="card-header">
             <span class="card-name">${esc(b.nome)}</span>
-            <span class="badge-next">Prossimo</span>
+            ${isApproved ? '<span class="badge-next">Prossimo</span>' : '<span class="badge-pending">Da approvare</span>'}
           </div>
           <div class="card-song">🎵 ${esc(b.canzone)}</div>
           <div class="card-meta">${esc(b.artista)}</div>
         </div>
-        <div class="card-time">${time}</div>
-        <button class="btn-done" data-id="${b.id}">✓ Fatto</button>
+        <div class="card-side">
+          <div class="card-time">${time}</div>
+          <div class="card-actions">
+            ${isApproved ? `<button class="btn-action btn-done" data-action="done">✓ Fatto</button>` : `<button class="btn-action btn-approve" data-action="approve">Approva</button>`}
+            <button class="btn-action btn-delete" data-action="delete">Elimina</button>
+          </div>
+        </div>
       `;
 
-      card.querySelector('.btn-done').addEventListener('click', () => markDone(b.id, card));
+      const approveBtn = card.querySelector('[data-action="approve"]');
+      const doneBtn = card.querySelector('[data-action="done"]');
+      const deleteBtn = card.querySelector('[data-action="delete"]');
+
+      if (approveBtn) approveBtn.addEventListener('click', () => approveBooking(b.id, card));
+      if (doneBtn) doneBtn.addEventListener('click', () => markDone(b.id, card));
+      deleteBtn.addEventListener('click', () => deleteBooking(b, card));
       return card;
     }
 
+    async function approveBooking(id, card) {
+      if (!db) {
+        restoreCardAfterError(card, 'Supabase non configurato.');
+        return;
+      }
+      setCardBusy(card, true);
+      const { error } = await db.from('prenotazioni').update({ approvata: true }).eq('id', id);
+      if (error) {
+        console.error(error);
+        restoreCardAfterError(card, 'Non sono riuscito ad approvare la prenotazione.');
+      }
+    }
+
     async function markDone(id, card) {
-      card.querySelector('.btn-done').disabled = true;
+      if (!db) {
+        restoreCardAfterError(card, 'Supabase non configurato.');
+        return;
+      }
+      setCardBusy(card, true);
       card.classList.add('removing');
       setTimeout(async () => {
-        if (db) await db.from('prenotazioni').update({ cantata: true }).eq('id', id);
+        const { error } = await db.from('prenotazioni').update({ cantata: true }).eq('id', id);
+        if (error) {
+          console.error(error);
+          restoreCardAfterError(card, 'Non sono riuscito a segnare la prenotazione come completata.');
+        }
       }, 280);
+    }
+
+    async function deleteBooking(booking, card) {
+      if (!confirm(`Eliminare la prenotazione di ${booking.nome} per "${booking.canzone}"?`)) return;
+      if (!db) {
+        restoreCardAfterError(card, 'Supabase non configurato.');
+        return;
+      }
+      setCardBusy(card, true);
+      card.classList.add('removing');
+      setTimeout(async () => {
+        const { error } = await db.from('prenotazioni').delete().eq('id', booking.id);
+        if (error) {
+          console.error(error);
+          restoreCardAfterError(card, 'Non sono riuscito a eliminare la prenotazione.');
+        }
+      }, 280);
+    }
+
+    function setCardBusy(card, busy) {
+      card.querySelectorAll('.btn-action').forEach(btn => {
+        btn.disabled = busy;
+      });
+    }
+
+    function restoreCardAfterError(card, message) {
+      if (document.body.contains(card)) {
+        card.classList.remove('removing');
+        setCardBusy(card, false);
+      }
+      alert(message);
     }
 
     function esc(str) {
