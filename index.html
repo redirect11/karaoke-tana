@@ -258,6 +258,7 @@
     #waiting-song  { font-size: 0.95rem !important; font-weight: 700; color: var(--text) !important; }
     #waiting-timer { font-size: 0.75rem !important; color: var(--muted) !important; }
     #waiting-status, #success-status { margin-bottom: 0; }
+    .waiting-position-critical { color: #ff6b6b; font-weight: 800; }
 
     /* ── song list ── */
     #song-list-card {
@@ -320,6 +321,10 @@
       border-color: var(--gold);
       background: rgba(212,160,23,0.12);
     }
+    .song-item.current-song {
+      border-color: #ff6b6b;
+      background: rgba(155,28,46,0.22);
+    }
     .song-item-top {
       display: flex;
       justify-content: space-between;
@@ -364,6 +369,23 @@
       font-size: 0.8rem;
       font-weight: 700;
       flex-shrink: 0;
+    }
+    .song-item-order.alert {
+      background: rgba(255,107,107,0.28);
+      color: #ff8f8f;
+    }
+    .song-item.current-song .song-item-order {
+      background: rgba(255,107,107,0.24);
+      color: #ff9e9e;
+    }
+    .song-list-section {
+      margin-top: 4px;
+      margin-bottom: 2px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--muted);
     }
     .song-item-edit {
       display: flex;
@@ -649,6 +671,7 @@
         toSing: allItems.filter((item) => !item.cantata),
         completed: allItems.filter((item) => item.cantata),
       };
+      updateWaitingPositionStatus(songListCache.toSing);
       maybeNotifyTurn(songListCache.toSing);
       renderSongList();
     }
@@ -666,6 +689,7 @@
       const items = activeSongTab === 'completed' ? songListCache.completed : songListCache.toSing;
       const currentBookingId = getCurrentBookingId();
       const currentBookingIdNum = Number(currentBookingId);
+      const myQueueIndex = songListCache.toSing.findIndex((item) => Number(item.id) === currentBookingIdNum);
       tabToSing.classList.toggle('active', activeSongTab === 'to-sing');
       tabCompleted.classList.toggle('active', activeSongTab === 'completed');
       if (!items.length) {
@@ -678,55 +702,152 @@
         return;
       }
 
-      songListStatus.textContent = activeSongTab === 'completed'
-        ? `${items.length} ${items.length === 1 ? 'canzone già cantata' : 'canzoni già cantate'}`
-        : `${items.length} ${items.length === 1 ? 'canzone in coda' : 'canzoni in coda'}`;
-      songListEl.innerHTML = items.map((item, index) => `
-        <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}" data-id="${item.id}">
+      const renderSongItem = (item, orderLabel, { currentSong = false, alert = false } = {}) => `
+        <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}${currentSong ? ' current-song' : ''}" data-id="${item.id}">
           <div class="song-item-top">
             <div>
               <div class="song-item-title">${escapeHtml(item.canzone)}</div>
               <div class="song-item-artist">${escapeHtml(item.artista)}</div>
               <div class="song-item-name">Prenotata da ${escapeHtml(item.nome)}</div>
+              ${currentSong ? '<div class="song-item-badge">🎤 Canzone corrente</div>' : ''}
               ${Number(item.id) === currentBookingIdNum ? '<div class="song-item-badge">La tua prenotazione</div>' : ''}
             </div>
-            <div class="song-item-order">${index + 1}</div>
+            <div class="song-item-order${alert ? ' alert' : ''}">${orderLabel}</div>
           </div>
         </div>
-      `).join('');
+      `;
+
+      if (activeSongTab === 'completed') {
+        songListStatus.textContent = `${items.length} ${items.length === 1 ? 'canzone già cantata' : 'canzoni già cantate'}`;
+        songListEl.innerHTML = items.map((item, index) => renderSongItem(item, String(index + 1))).join('');
+        return;
+      }
+
+      songListStatus.textContent = items.length === 1
+        ? 'Canzone corrente in esecuzione'
+        : `${items.length} canzoni in coda - la prima è quella corrente`;
+      const currentSong = items[0];
+      const queueItems = items.slice(1);
+      const currentSongHtml = currentSong
+        ? `<div class="song-list-section">In esecuzione ora</div>${renderSongItem(currentSong, 'LIVE', { currentSong: true })}`
+        : '';
+      const queueHtml = queueItems.length
+        ? `<div class="song-list-section">In attesa</div>${queueItems.map((item, index) => renderSongItem(item, String(index + 1), {
+          alert: myQueueIndex === 1 && Number(item.id) === currentBookingIdNum,
+        })).join('')}`
+        : '';
+      songListEl.innerHTML = `${currentSongHtml}${queueHtml}`;
+    }
+
+    function getNotificationState(bookingId) {
+      if (!Number.isInteger(bookingId) || bookingId <= 0) return {};
+      const stateKey = `booking_notified_${bookingId}`;
+      try {
+        return JSON.parse(sessionStorage.getItem(stateKey) || '{}') || {};
+      } catch (error) {
+        console.warn('Impossibile leggere lo stato notifiche locale:', error);
+        return {};
+      }
+    }
+
+    function setNotificationState(bookingId, nextState) {
+      if (!Number.isInteger(bookingId) || bookingId <= 0) return;
+      const stateKey = `booking_notified_${bookingId}`;
+      sessionStorage.setItem(stateKey, JSON.stringify(nextState || {}));
+    }
+
+    function notifyBrowser(title, body) {
+      if (!('Notification' in window)) return false;
+      if (Notification.permission !== 'granted') return false;
+      try {
+        new Notification(title, { body });
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function maybeNotifyBookingApproved(bookingId) {
+      if (!Number.isInteger(bookingId) || bookingId <= 0) return;
+      const state = getNotificationState(bookingId);
+      if (state.approved) return;
+      if (notifyBrowser('✅ Canzone approvata', 'La tua prenotazione è stata approvata.')) {
+        state.approved = true;
+        setNotificationState(bookingId, state);
+      }
+    }
+
+    function maybeNotifyRebookAvailable(storedBooking) {
+      const bookingId = Number(storedBooking?.id);
+      if (!Number.isInteger(bookingId) || bookingId <= 0) return;
+      const state = getNotificationState(bookingId);
+      if (state.rebook) return;
+      const wasApproved = storedBooking?.pendingExpiresAt === null;
+      const body = wasApproved
+        ? 'La tua esibizione è conclusa. Ora puoi prenotare di nuovo.'
+        : 'Il tempo di attesa è terminato. Ora puoi prenotare di nuovo.';
+      if (notifyBrowser('🎵 Puoi prenotare di nuovo', body)) {
+        state.rebook = true;
+        setNotificationState(bookingId, state);
+      }
+    }
+
+    function setWaitingStatus(message, { html = false } = {}) {
+      const statusEl = document.getElementById('waiting-status');
+      if (!statusEl) return;
+      if (html) statusEl.innerHTML = message;
+      else statusEl.textContent = message;
+    }
+
+    function updateWaitingPositionStatus(queueItems) {
+      if (stepWaiting.style.display !== 'flex') return;
+      const stored = safeParseBookingCookie(getCookie('last_booking'));
+      if (!stored) return;
+      if (stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) return;
+      const bookingId = Number(stored.id);
+      if (!Number.isInteger(bookingId) || bookingId <= 0) return;
+
+      const index = queueItems.findIndex((item) => Number(item.id) === bookingId);
+      if (index === -1) {
+        setWaitingStatus('La tua prenotazione è stata approvata. Resta in ascolto: la coda si aggiorna in tempo reale.');
+        return;
+      }
+      if (index === 0) {
+        setWaitingStatus('🎤 È il tuo turno! Sei la canzone corrente.');
+        return;
+      }
+      if (index === 1) {
+        setWaitingStatus('⏳ Manca una canzone: sei il numero <span class="waiting-position-critical">1</span> in lista di attesa.', { html: true });
+        return;
+      }
+      setWaitingStatus(`Sei il numero ${index} in lista di attesa.`);
     }
 
     function maybeNotifyTurn(queueItems) {
-      if (!('Notification' in window)) return;
-      if (Notification.permission !== 'granted') return;
       const bookingId = getCurrentBookingId();
       const bookingIdNum = Number(bookingId);
       if (!Number.isInteger(bookingIdNum) || bookingIdNum <= 0) return;
       const index = queueItems.findIndex((item) => Number(item.id) === bookingIdNum);
-      const stateKey = `booking_notified_${bookingIdNum}`;
-      let state = {};
-      try {
-        state = JSON.parse(sessionStorage.getItem(stateKey) || '{}') || {};
-      } catch (_) {
-        state = {};
-      }
+      const state = getNotificationState(bookingIdNum);
 
       if (index === -1) {
-        sessionStorage.removeItem(stateKey);
+        sessionStorage.removeItem(`booking_notified_${bookingIdNum}`);
         return;
       }
 
       if (index === 1 && !state.almost) {
-        new Notification('⏳ Manca una canzone', { body: 'Preparati, stai per cantare.' });
-        state.almost = true;
+        if (notifyBrowser('⏳ Manca una canzone', 'Preparati, stai per cantare.')) {
+          state.almost = true;
+        }
       }
 
       if (index === 0 && !state.now) {
-        new Notification('🎤 È il tuo turno!', { body: 'La tua canzone è arrivata in cima alla lista.' });
-        state.now = true;
+        if (notifyBrowser('🎤 È il tuo turno!', 'La tua canzone è arrivata in cima alla lista.')) {
+          state.now = true;
+        }
       }
 
-      sessionStorage.setItem(stateKey, JSON.stringify(state));
+      setNotificationState(bookingIdNum, state);
     }
 
     function clearSongListPolling() {
@@ -899,9 +1020,13 @@
       const id = Number(stored.id);
       const canzone = stored.canzone || '';
       const artista = stored.artista || '';
-      if (!Number.isInteger(id) || id <= 0) {
+      const resetBookingState = (booking) => {
+        maybeNotifyRebookAvailable(booking);
         deleteCookie('last_booking');
         clearWaitingIntervals();
+      };
+      if (!Number.isInteger(id) || id <= 0) {
+        resetBookingState(stored);
         return false;
       }
 
@@ -910,13 +1035,13 @@
         const statusAtExpiry = await fetchBookingStatus(id);
         if (statusAtExpiry) {
           if (!statusAtExpiry.pending && !statusAtExpiry.approved) {
-            deleteCookie('last_booking');
-            clearWaitingIntervals();
+            resetBookingState(stored);
             return false;
           }
 
           if (statusAtExpiry.approved) {
             const updated = { ...stored, pendingExpiresAt: null };
+            if (stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) maybeNotifyBookingApproved(id);
             setCookie('last_booking', JSON.stringify(updated), 365 * 24 * 3600);
             showWaitingScreen(updated.canzone || canzone, updated.artista || artista, true, null);
             return true;
@@ -929,22 +1054,21 @@
             .maybeSingle();
           if (data?.approvata && !data?.cantata) {
             const updated = { ...stored, pendingExpiresAt: null };
+            if (stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) maybeNotifyBookingApproved(id);
             setCookie('last_booking', JSON.stringify(updated), 365 * 24 * 3600);
             showWaitingScreen(updated.canzone || canzone, updated.artista || artista, true, null);
             return true;
           }
         }
 
-        deleteCookie('last_booking');
-        clearWaitingIntervals();
+        resetBookingState(stored);
         return false;
       }
 
       const status = await fetchBookingStatus(id);
       if (status) {
         if (!status.pending && !status.approved) {
-          deleteCookie('last_booking');
-          clearWaitingIntervals();
+          resetBookingState(stored);
           return false;
         }
         const createdAtMs = Date.parse(status.created_at || '');
@@ -957,6 +1081,7 @@
           pendingExpiresAt: status.approved ? null : expiresAtMs,
           timestamp: Number.isFinite(createdAtMs) ? createdAtMs : (Number(stored.timestamp) || Date.now()),
         };
+        if (status.approved && stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) maybeNotifyBookingApproved(id);
         setCookie(
           'last_booking',
           JSON.stringify(updated),
@@ -973,8 +1098,7 @@
           .eq('id', id)
           .maybeSingle();
         if (!data || data.cantata) {
-          deleteCookie('last_booking');
-          clearWaitingIntervals();
+          resetBookingState(stored);
           return false;
         }
 
@@ -983,8 +1107,7 @@
           ? createdAtMs + (PENDING_EXPIRY_MIN * 60 * 1000)
           : pendingExpiryAt;
         if (!data.approvata && fallbackExpiryAt && Date.now() >= fallbackExpiryAt) {
-          deleteCookie('last_booking');
-          clearWaitingIntervals();
+          resetBookingState(stored);
           return false;
         }
 
@@ -998,6 +1121,7 @@
           JSON.stringify(updated),
           data.approvata ? 365 * 24 * 3600 : Math.max(PENDING_EXPIRY_MIN * 60, 60),
         );
+        if (data.approvata && stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) maybeNotifyBookingApproved(id);
         showWaitingScreen(canzone, artista, Boolean(data.approvata), updated.pendingExpiresAt);
       } else {
         showWaitingScreen(canzone, artista, false, pendingExpiryAt);
@@ -1010,10 +1134,11 @@
       stepWaiting.style.display = 'flex';
       showSongListCard(true);
       document.getElementById('waiting-song').textContent = `${canzone} – ${artista}`;
-      document.getElementById('waiting-status').textContent = approvata
+      setWaitingStatus(approvata
         ? 'La tua prenotazione è stata approvata ed è visibile nella coda pubblica.'
-        : 'La tua prenotazione è in attesa di approvazione. Il modulo si riaprirà allo scadere del timer.';
+        : 'La tua prenotazione è in attesa di approvazione. Il modulo si riaprirà allo scadere del timer.');
       updateWaitingTimer(pendingExpiryAt, approvata);
+      if (approvata) updateWaitingPositionStatus(songListCache.toSing);
       clearWaitingIntervals();
       pollInterval = setInterval(async () => {
         const pending = await checkPendingBooking();
