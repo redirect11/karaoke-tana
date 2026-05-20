@@ -603,7 +603,7 @@
       <div class="big-icon">🎤</div>
       <div class="waiting-remaining" id="waiting-remaining" hidden>
         <span class="waiting-remaining-number" id="waiting-remaining-number"></span>
-        <span class="waiting-remaining-label" id="waiting-remaining-label">canzoni mancanti</span>
+        <span class="waiting-remaining-label" id="waiting-remaining-label"></span>
       </div>
     </div>
     <h2 id="waiting-title" aria-live="polite">Stato della tua prenotazione</h2>
@@ -937,10 +937,10 @@
       const numberEl = document.getElementById('waiting-remaining-number');
       const labelEl = document.getElementById('waiting-remaining-label');
       if (!wrapEl || !numberEl || !labelEl) return;
-      if (!Number.isInteger(remainingSongs) || remainingSongs < 1) {
+      if (remainingSongs == null || !Number.isInteger(remainingSongs) || remainingSongs < 1) {
         wrapEl.hidden = true;
         numberEl.textContent = '';
-        labelEl.textContent = 'canzoni mancanti';
+        labelEl.textContent = '';
         numberEl.classList.remove('is-critical');
         return;
       }
