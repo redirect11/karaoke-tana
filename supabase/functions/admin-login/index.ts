@@ -131,7 +131,7 @@ serve(async (req) => {
     const code = message === "Credenziali admin non configurate." || message === "Config server mancante."
       ? "server_misconfigured"
       : "internal_error";
-    const status = code === "server_misconfigured" ? 500 : 500;
+    const status = 500;
 
     console.error(error);
     return jsonResponse(req, status, {
@@ -141,4 +141,3 @@ serve(async (req) => {
     });
   }
 });
-

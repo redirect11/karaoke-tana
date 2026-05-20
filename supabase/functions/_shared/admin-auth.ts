@@ -85,7 +85,7 @@ export async function getActiveAdminPasswordHash(admin: ReturnType<typeof create
 
 export async function verifyAdminPassword(password: string, passwordHash: string): Promise<boolean> {
   if (!password || !passwordHash) return false;
-  if (!passwordHash.startsWith("$2")) return false;
+  if (!/^\$2[aby]\$\d{2}\$/.test(passwordHash)) return false;
   return await compare(password, passwordHash);
 }
 
@@ -146,4 +146,3 @@ export async function verifyAdminToken(token: string, secret: string): Promise<b
   const providedSignature = fromBase64Url(signatureEncoded);
   return timingSafeEqual(expectedSignature, providedSignature);
 }
-
