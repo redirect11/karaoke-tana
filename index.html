@@ -1003,7 +1003,7 @@
     window.addEventListener('pageshow', handleReturn);
 
     async function goToForm() {
-      setCookie('ig_followed', 'true', 365 * 24 * 3600);
+      setCookie('ig_followed', 'true', 6 * 24 * 3600);
       stepFollow.style.display = 'none';
       showSongListCard(true);
       const pending = await checkPendingBooking();
@@ -1051,6 +1051,8 @@
       const open = await checkSerataAperta();
       if (!open) return;
       if (getCookie('ig_followed') === 'true') {
+        const stepsEl = document.querySelector('.steps');
+        if (stepsEl) stepsEl.style.display = 'none';
         goToForm();
       }
     })();
