@@ -172,7 +172,7 @@ serve(async (req) => {
     approvata: false,
   };
 
-  if (validated.data.serata_id !== null && validated.data.serata_id !== undefined) {
+  if (validated.data.serata_id != null) {
     insertPayload.serata_id = validated.data.serata_id;
   }
 

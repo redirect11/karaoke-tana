@@ -506,6 +506,7 @@
       : '';
     const submitBookingUrl =
       (config.SUBMIT_BOOKING_FUNCTION_URL || '').trim() || `${edgeBaseUrl}/submit-booking`;
+    const BOOKING_ERROR_MESSAGE = 'Errore durante la prenotazione. Riprova tra qualche secondo!';
 
     let currentSerataId = null;
     let serataChannel   = null;
@@ -811,8 +812,8 @@
         payload = null;
       }
 
-      if (!response.ok || !payload?.success || !payload?.data?.id) {
-        const message = payload?.error?.message || 'Errore durante la prenotazione. Riprova tra qualche secondo!';
+      if (!response.ok || !payload?.success || payload?.data?.id === undefined || payload?.data?.id === null) {
+        const message = payload?.error?.message || BOOKING_ERROR_MESSAGE;
         throw new Error(message);
       }
 
@@ -856,7 +857,7 @@
         console.error('Booking error:', error);
         btn.disabled = false;
         btn.textContent = '🎙 Prenota';
-        alert(error?.message || 'Errore durante la prenotazione. Riprova tra qualche secondo!');
+        alert(error?.message || BOOKING_ERROR_MESSAGE);
         return;
       }
 
