@@ -269,6 +269,26 @@
       font-size: 1rem;
       margin-bottom: 6px;
     }
+    .song-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .song-tab {
+      border: 1px solid rgba(255,255,255,0.14);
+      background: #1d1430;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .song-tab.active {
+      background: var(--gold);
+      color: #12071f;
+      border-color: transparent;
+    }
     #song-list-card .song-list-subtitle {
       font-size: 0.82rem;
       color: var(--muted);
@@ -481,6 +501,10 @@
   <div class="card" id="song-list-card">
     <h3>Lista canzoni</h3>
     <p class="song-list-subtitle">Sotto la tua prenotazione puoi vedere la coda attuale pubblica.</p>
+    <div class="song-tabs">
+      <button class="song-tab active" id="tab-to-sing" type="button">Da cantare</button>
+      <button class="song-tab" id="tab-completed" type="button">Già cantate</button>
+    </div>
     <div id="song-list-status">Caricamento lista…</div>
     <div class="song-list" id="song-list"></div>
   </div>
@@ -555,9 +579,15 @@
     const songListCard = document.getElementById('song-list-card');
     const songListEl   = document.getElementById('song-list');
     const songListStatus = document.getElementById('song-list-status');
+    const tabToSing = document.getElementById('tab-to-sing');
+    const tabCompleted = document.getElementById('tab-completed');
     const ind1         = document.getElementById('ind-1');
     const ind1num      = document.getElementById('ind-1-num');
     const ind2         = document.getElementById('ind-2');
+    let activeSongTab = 'to-sing';
+    let notificationPermissionRequested = false;
+    let songListPollInterval = null;
+    let songListCache = { toSing: [], completed: [] };
 
     // ── Vota banner ──────────────────────────────────────────
     const votaBanner = document.getElementById('vota-banner');
@@ -571,6 +601,7 @@
 
     async function loadSongList() {
       if (!db || !currentSerataId) {
+        songListCache = { toSing: [], completed: [] };
         songListStatus.textContent = 'Lista non disponibile.';
         songListEl.innerHTML = '';
         return;
@@ -583,7 +614,6 @@
         .select('id, nome, canzone, artista, created_at, cantata, approvata')
         .eq('serata_id', currentSerataId)
         .eq('approvata', true)
-        .eq('cantata', false)
         .order('created_at', { ascending: true });
 
       if (error || !data || data.length === 0) {
@@ -592,7 +622,6 @@
           .select('id, nome, canzone, artista, created_at, cantata, approvata')
           .is('serata_id', null)
           .eq('approvata', true)
-          .eq('cantata', false)
           .order('created_at', { ascending: true });
         if (!fallback.error && fallback.data?.length) {
           data = fallback.data;
@@ -615,7 +644,13 @@
         return;
       }
 
-      renderSongList(data || []);
+      const allItems = data || [];
+      songListCache = {
+        toSing: allItems.filter((item) => !item.cantata),
+        completed: allItems.filter((item) => item.cantata),
+      };
+      maybeNotifyTurn(songListCache.toSing);
+      renderSongList();
     }
 
     function escapeHtml(value) {
@@ -627,16 +662,25 @@
         .replaceAll("'", '&#39;');
     }
 
-    function renderSongList(items) {
+    function renderSongList() {
+      const items = activeSongTab === 'completed' ? songListCache.completed : songListCache.toSing;
       const currentBookingId = getCurrentBookingId();
       const currentBookingIdNum = Number(currentBookingId);
+      tabToSing.classList.toggle('active', activeSongTab === 'to-sing');
+      tabCompleted.classList.toggle('active', activeSongTab === 'completed');
       if (!items.length) {
-        songListStatus.textContent = 'Nessuna canzone in coda al momento.';
-        songListEl.innerHTML = '<div class="song-empty">Appena arrivano nuove prenotazioni, le vedrai qui.</div>';
+        songListStatus.textContent = activeSongTab === 'completed'
+          ? 'Nessuna canzone conclusa al momento.'
+          : 'Nessuna canzone in coda al momento.';
+        songListEl.innerHTML = activeSongTab === 'completed'
+          ? '<div class="song-empty">Le canzoni già cantate appariranno qui.</div>'
+          : '<div class="song-empty">Appena arrivano nuove prenotazioni, le vedrai qui.</div>';
         return;
       }
 
-      songListStatus.textContent = `${items.length} ${items.length === 1 ? 'canzone in coda' : 'canzoni in coda'}`;
+      songListStatus.textContent = activeSongTab === 'completed'
+        ? `${items.length} ${items.length === 1 ? 'canzone già cantata' : 'canzoni già cantate'}`
+        : `${items.length} ${items.length === 1 ? 'canzone in coda' : 'canzoni in coda'}`;
       songListEl.innerHTML = items.map((item, index) => `
         <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}" data-id="${item.id}">
           <div class="song-item-top">
@@ -650,6 +694,53 @@
           </div>
         </div>
       `).join('');
+    }
+
+    function maybeNotifyTurn(queueItems) {
+      if (!('Notification' in window)) return;
+      if (Notification.permission !== 'granted') return;
+      const bookingId = getCurrentBookingId();
+      const bookingIdNum = Number(bookingId);
+      if (!Number.isInteger(bookingIdNum) || bookingIdNum <= 0) return;
+      const index = queueItems.findIndex((item) => Number(item.id) === bookingIdNum);
+      const stateKey = `booking_notified_${bookingIdNum}`;
+      let state = {};
+      try {
+        state = JSON.parse(sessionStorage.getItem(stateKey) || '{}') || {};
+      } catch (_) {
+        state = {};
+      }
+
+      if (index === -1) {
+        sessionStorage.removeItem(stateKey);
+        return;
+      }
+
+      if (index === 1 && !state.almost) {
+        new Notification('⏳ Manca una canzone', { body: 'Preparati, stai per cantare.' });
+        state.almost = true;
+      }
+
+      if (index === 0 && !state.now) {
+        new Notification('🎤 È il tuo turno!', { body: 'La tua canzone è arrivata in cima alla lista.' });
+        state.now = true;
+      }
+
+      sessionStorage.setItem(stateKey, JSON.stringify(state));
+    }
+
+    function clearSongListPolling() {
+      if (songListPollInterval) {
+        clearInterval(songListPollInterval);
+        songListPollInterval = null;
+      }
+    }
+
+    function ensureSongListPolling() {
+      clearSongListPolling();
+      songListPollInterval = setInterval(() => {
+        if (currentSerataId) loadSongList();
+      }, 12000);
     }
 
     function subscribeSongList(serataId) {
@@ -691,6 +782,7 @@
         .maybeSingle();
       if (!data) {
         currentSerataId = null;
+        clearSongListPolling();
         [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
         showSongListCard(false);
         stepClosed.style.display = 'flex';
@@ -702,6 +794,7 @@
       setVotaBanner(data.voto_aperto);
       subscribeSerata(data.id);
       subscribeSongList(data.id);
+      ensureSongListPolling();
       showSongListCard(true);
       loadSongList();
       return true;
@@ -715,6 +808,7 @@
           setVotaBanner(payload.new.voto_aperto);
           if (!payload.new.aperta) {
             currentSerataId = null;
+            clearSongListPolling();
             [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
             showSongListCard(false);
             stepClosed.style.display = 'flex';
@@ -1006,8 +1100,19 @@
       setCookie('ig_followed', 'true', 365 * 24 * 3600);
       stepFollow.style.display = 'none';
       showSongListCard(true);
+      requestNotificationPermissionAfterSegui();
       const pending = await checkPendingBooking();
       if (!pending) showForm();
+    }
+
+    async function requestNotificationPermissionAfterSegui() {
+      if (notificationPermissionRequested) return;
+      notificationPermissionRequested = true;
+      if (!('Notification' in window)) return;
+      if (Notification.permission !== 'default') return;
+      try {
+        await Notification.requestPermission();
+      } catch (_) {}
     }
 
     function getEdgeHeaders() {
@@ -1106,6 +1211,15 @@
       ind2.classList.remove('active');
       ind2.classList.add('done');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    tabToSing.addEventListener('click', () => {
+      activeSongTab = 'to-sing';
+      renderSongList();
+    });
+    tabCompleted.addEventListener('click', () => {
+      activeSongTab = 'completed';
+      renderSongList();
     });
   </script>
 </body>

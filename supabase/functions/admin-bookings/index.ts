@@ -157,7 +157,6 @@ async function getState(admin: ReturnType<typeof createClient>) {
   const { data, error } = await admin
     .from("prenotazioni")
     .select("*")
-    .eq("cantata", false)
     .eq("serata_id", serata.id)
     .order("created_at", { ascending: true });
 

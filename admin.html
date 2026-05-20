@@ -136,6 +136,7 @@
       transition: background 0.3s;
     }
     #live-dot.green  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    #live-dot.gray   { background: #666; box-shadow: none; }
     #live-dot.red    { background: #e74c3c; }
 
     #queue-count {
@@ -362,6 +363,7 @@
       <div class="queue-tabs">
         <button class="queue-tab active" id="tab-pending" type="button">Da approvare</button>
         <button class="queue-tab" id="tab-approved" type="button">Approvate</button>
+        <button class="queue-tab" id="tab-completed" type="button">Concluse</button>
       </div>
       <div id="empty-state">
         <div class="big">🎉</div>
@@ -398,6 +400,7 @@
     const serataWrap = document.getElementById('serata-wrap');
     const tabPending = document.getElementById('tab-pending');
     const tabApproved = document.getElementById('tab-approved');
+    const tabCompleted = document.getElementById('tab-completed');
     const logoutBtn = document.getElementById('logout-btn');
 
     const overlay = document.getElementById('pwd-overlay');
@@ -425,6 +428,10 @@
     });
     tabApproved.addEventListener('click', () => {
       activeQueueTab = 'approved';
+      renderQueue(bookings);
+    });
+    tabCompleted.addEventListener('click', () => {
+      activeQueueTab = 'completed';
       renderQueue(bookings);
     });
 
@@ -559,14 +566,14 @@
 
     function updateLiveDot() {
       if (!currentSerata) {
-        liveDot.className = '';
-        liveLabel.textContent = 'chiuso';
+        liveDot.className = 'gray';
+        liveLabel.textContent = 'Offline';
       } else if (syncConnected) {
         liveDot.className = 'green';
-        liveLabel.textContent = 'sync';
+        liveLabel.textContent = 'Live';
       } else {
         liveDot.className = 'red';
-        liveLabel.textContent = 'disconnesso';
+        liveLabel.textContent = 'Offline';
       }
     }
 
@@ -686,22 +693,30 @@
 
       const toApprove = list.filter((b) => !b.cantata && !b.approvata);
       const approved = list.filter((b) => !b.cantata && b.approvata);
+      const completed = list.filter((b) => b.cantata);
       const countParts = [];
 
       if (approved.length) countParts.push(`${approved.length} in coda`);
       if (toApprove.length) countParts.push(`${toApprove.length} da approvare`);
+      if (completed.length) countParts.push(`${completed.length} concluse`);
       queueCount.textContent = countParts.length ? countParts.join(' · ') : 'coda vuota';
 
       tabPending.textContent = `Da approvare (${toApprove.length})`;
       tabApproved.textContent = `Approvate (${approved.length})`;
+      tabCompleted.textContent = `Concluse (${completed.length})`;
       tabPending.classList.toggle('active', activeQueueTab === 'pending');
       tabApproved.classList.toggle('active', activeQueueTab === 'approved');
+      tabCompleted.classList.toggle('active', activeQueueTab === 'completed');
 
-      const visibleList = activeQueueTab === 'pending' ? toApprove : approved;
+      const visibleList = activeQueueTab === 'pending'
+        ? toApprove
+        : (activeQueueTab === 'approved' ? approved : completed);
       if (!visibleList.length) {
         emptyStateText.innerHTML = activeQueueTab === 'pending'
           ? 'Nessuna prenotazione da approvare.<br>Ottimo lavoro!'
-          : 'Nessuna prenotazione approvata.<br>Appariranno qui dopo l’approvazione.';
+          : (activeQueueTab === 'approved'
+            ? 'Nessuna prenotazione approvata.<br>Appariranno qui dopo l’approvazione.'
+            : 'Nessuna canzone conclusa.<br>Le esibizioni completate appariranno qui.');
         emptyState.style.display = 'flex';
         return;
       }
@@ -715,6 +730,7 @@
     function makeCard(booking, index, kind) {
       const card = document.createElement('div');
       const isApproved = kind === 'approved';
+      const isCompleted = kind === 'completed';
       card.className = `booking-card${isApproved && index === 0 ? ' next' : ''}`;
       card.dataset.id = booking.id;
 
@@ -725,18 +741,20 @@
         <div class="card-body">
           <div class="card-header">
             <span class="card-name">${esc(booking.nome)}</span>
-            ${isApproved ? '<span class="badge-approved">✅ Approvata</span>' : '<span class="badge-pending">Da approvare</span>'}
+            ${isCompleted
+              ? '<span class="badge-approved">🎤 Conclusa</span>'
+              : (isApproved ? '<span class="badge-approved">✅ Approvata</span>' : '<span class="badge-pending">Da approvare</span>')}
           </div>
-          <div class="card-song">🎵 ${esc(booking.canzone)}</div>
-          <div class="card-meta">${esc(booking.artista)}</div>
-        </div>
-        <div class="card-side">
-          <div class="card-time">${time}</div>
-          <div class="card-actions">
-            ${isApproved ? '<button class="btn-action btn-done" data-action="done">✓ Fatto</button>' : '<button class="btn-action btn-approve" data-action="approve">Approva</button>'}
-            <button class="btn-action btn-delete" data-action="delete">Elimina</button>
-          </div>
-        </div>
+              <div class="card-song">🎵 ${esc(booking.canzone)}</div>
+              <div class="card-meta">${esc(booking.artista)}</div>
+            </div>
+            <div class="card-side">
+              <div class="card-time">${time}</div>
+              <div class="card-actions">
+                ${isCompleted ? '' : (isApproved ? '<button class="btn-action btn-done" data-action="done">✓ Fatto</button>' : '<button class="btn-action btn-approve" data-action="approve">Approva</button>')}
+                <button class="btn-action btn-delete" data-action="delete">Elimina</button>
+              </div>
+            </div>
       `;
 
       const approveBtn = card.querySelector('[data-action="approve"]');
@@ -767,7 +785,7 @@
       setTimeout(async () => {
         try {
           await callAdmin('mark_done', { bookingId: id });
-          bookings = bookings.filter((item) => item.id !== id);
+          bookings = bookings.map((item) => item.id === id ? { ...item, cantata: true } : item);
           renderQueue(bookings);
         } catch (error) {
           restoreCardAfterError(card, error?.message || 'Non sono riuscito a segnare la prenotazione come completata.');
