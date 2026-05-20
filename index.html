@@ -286,6 +286,17 @@
       color: var(--muted);
       margin-top: 2px;
     }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
 
     /* ── song list ── */
     #song-list-card {
@@ -979,7 +990,7 @@
       if (index === 0) {
         setWaitingRemainingSongs(null);
         setWaitingTitle('turn');
-        setWaitingStatus('');
+        setWaitingStatus('<span class="sr-only">Aggiornamento stato: è il tuo turno.</span>', { html: true });
         return;
       }
       setWaitingRemainingSongs(index);
@@ -1331,9 +1342,9 @@
     function updateWaitingTimer(pendingExpiryAt, approvata) {
       const timerEl = document.getElementById('waiting-timer');
       if (approvata) {
-        timerEl.textContent = getCurrentBookingQueueIndex() === 0
-          ? ''
-          : 'Lo staff ti chiamerà quando arriva il tuo turno.';
+        const isCurrentTurn = getCurrentBookingQueueIndex() === 0;
+        if (isCurrentTurn) timerEl.innerHTML = '<span class="sr-only">Ora puoi cantare.</span>';
+        else timerEl.textContent = 'Lo staff ti chiamerà quando arriva il tuo turno.';
         return false;
       }
       if (!pendingExpiryAt) {
