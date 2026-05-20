@@ -248,7 +248,7 @@
     function getLoginHeaders() {
       const headers = { 'Content-Type': 'application/json' };
       if (config.SUPABASE_ANON_KEY) {
-        headers.apikey = config.SUPABASE_ANON_KEY;
+        headers['apikey'] = config.SUPABASE_ANON_KEY;
       }
       return headers;
     }
@@ -256,7 +256,7 @@
     function getAdminHeaders(token) {
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
       if (config.SUPABASE_ANON_KEY) {
-        headers.apikey = config.SUPABASE_ANON_KEY;
+        headers['apikey'] = config.SUPABASE_ANON_KEY;
       }
       return headers;
     }
