@@ -258,6 +258,110 @@
     #waiting-song  { font-size: 0.95rem !important; font-weight: 700; color: var(--text) !important; }
     #waiting-timer { font-size: 0.75rem !important; color: var(--muted) !important; }
 
+    /* ── song list ── */
+    #song-list-card {
+      display: none;
+      margin-top: 18px;
+    }
+    #song-list-card h3 {
+      color: var(--gold-soft);
+      font-size: 1rem;
+      margin-bottom: 6px;
+    }
+    #song-list-card .song-list-subtitle {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 16px;
+      line-height: 1.45;
+    }
+    #song-list-status {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .song-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .song-item {
+      background: var(--bg2);
+      border: 1px solid #3d2366;
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: left;
+    }
+    .song-item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .song-item-title {
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.35;
+    }
+    .song-item-artist {
+      font-size: 0.84rem;
+      color: var(--gold-soft);
+    }
+    .song-item-name {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .song-item-order {
+      min-width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(212,160,23,0.18);
+      color: var(--gold-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .song-item-edit {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .song-item-edit input {
+      font-size: 0.88rem;
+      padding: 10px 12px;
+    }
+    .song-item-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-small {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+    .btn-small:hover { transform: scale(1.02); }
+    .btn-small:active { transform: scale(0.98); }
+    .btn-edit { background: var(--gold); color: #12071f; }
+    .btn-save { background: var(--green); color: #fff; }
+    .btn-cancel { background: #4b356f; color: var(--text); }
+    .song-empty {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+      padding: 8px 0 4px;
+    }
+
     footer {
       margin-top: 40px;
       font-size: 0.72rem;
@@ -346,6 +450,14 @@
     <p>Aspetta il tuo turno e preparati a salire sul palco. 🎤</p>
   </div>
 
+  <!-- song list -->
+  <div class="card" id="song-list-card">
+    <h3>Lista canzoni</h3>
+    <p class="song-list-subtitle">Sotto la tua prenotazione puoi vedere la coda attuale. Lo staff può anche correggere nomi e titoli in caso di errori di battitura.</p>
+    <div id="song-list-status">Caricamento lista…</div>
+    <div class="song-list" id="song-list"></div>
+  </div>
+
   <!-- STEP waiting: già prenotato -->
   <div class="card" id="step-waiting">
     <div class="big-icon">🎤</div>
@@ -389,6 +501,9 @@
 
     let currentSerataId = null;
     let serataChannel   = null;
+    let songListChannel = null;
+    let isStaffMode = false;
+    let usingLegacySongFallback = false;
 
     // ── Telegram ────────────────────────────────────────────
     async function notifyTelegram(booking) {
@@ -407,19 +522,174 @@
     }
 
     // ── UI refs ─────────────────────────────────────────────
-    const stepFollow  = document.getElementById('step-follow');
-    const stepForm    = document.getElementById('step-form');
-    const stepSuccess = document.getElementById('step-success');
-    const stepWaiting = document.getElementById('step-waiting');
-    const stepClosed  = document.getElementById('step-closed');
-    const ind1        = document.getElementById('ind-1');
-    const ind1num     = document.getElementById('ind-1-num');
-    const ind2        = document.getElementById('ind-2');
+    const stepFollow   = document.getElementById('step-follow');
+    const stepForm     = document.getElementById('step-form');
+    const stepSuccess  = document.getElementById('step-success');
+    const stepWaiting  = document.getElementById('step-waiting');
+    const stepClosed   = document.getElementById('step-closed');
+    const songListCard = document.getElementById('song-list-card');
+    const songListEl   = document.getElementById('song-list');
+    const songListStatus = document.getElementById('song-list-status');
+    const ind1         = document.getElementById('ind-1');
+    const ind1num      = document.getElementById('ind-1-num');
+    const ind2         = document.getElementById('ind-2');
 
     // ── Vota banner ──────────────────────────────────────────
     const votaBanner = document.getElementById('vota-banner');
     function setVotaBanner(open) {
       votaBanner.style.display = open ? 'flex' : 'none';
+    }
+
+    function showSongListCard(show) {
+      songListCard.style.display = show ? 'block' : 'none';
+    }
+
+    async function loadSongList() {
+      if (!db || !currentSerataId) {
+        songListStatus.textContent = 'Lista non disponibile.';
+        songListEl.innerHTML = '';
+        return;
+      }
+
+      songListStatus.textContent = 'Caricamento lista…';
+
+      let { data, error } = await db
+        .from('prenotazioni')
+        .select('id, nome, canzone, artista, created_at, cantata')
+        .eq('serata_id', currentSerataId)
+        .eq('cantata', false)
+        .order('created_at', { ascending: true });
+
+      if (error || !data || data.length === 0) {
+        const fallback = await db
+          .from('prenotazioni')
+          .select('id, nome, canzone, artista, created_at, cantata')
+          .is('serata_id', null)
+          .eq('cantata', false)
+          .order('created_at', { ascending: true });
+        if (!fallback.error && fallback.data?.length) {
+          data = fallback.data;
+          error = null;
+          usingLegacySongFallback = true;
+        } else if (fallback.error) {
+          error = fallback.error;
+          usingLegacySongFallback = false;
+        } else {
+          usingLegacySongFallback = false;
+        }
+      } else {
+        usingLegacySongFallback = false;
+      }
+
+      if (error) {
+        console.error('Errore caricamento lista:', error);
+        songListStatus.textContent = 'Impossibile caricare la lista canzoni.';
+        songListEl.innerHTML = '';
+        return;
+      }
+
+      renderSongList(data || []);
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function renderSongList(items) {
+      if (!items.length) {
+        songListStatus.textContent = 'Nessuna canzone in coda al momento.';
+        songListEl.innerHTML = '<div class="song-empty">Appena arrivano nuove prenotazioni, le vedrai qui.</div>';
+        return;
+      }
+
+      songListStatus.textContent = `${items.length} ${items.length === 1 ? 'canzone in coda' : 'canzoni in coda'}`;
+      songListEl.innerHTML = items.map((item, index) => `
+        <div class="song-item" data-id="${item.id}">
+          <div class="song-item-top">
+            <div>
+              <div class="song-item-title">${escapeHtml(item.canzone)}</div>
+              <div class="song-item-artist">${escapeHtml(item.artista)}</div>
+              <div class="song-item-name">Prenotata da ${escapeHtml(item.nome)}</div>
+            </div>
+            <div class="song-item-order">${index + 1}</div>
+          </div>
+          ${isStaffMode ? `
+            <div class="song-item-edit">
+              <input type="text" class="edit-nome" value="${escapeHtml(item.nome)}" placeholder="Nome" />
+              <input type="text" class="edit-canzone" value="${escapeHtml(item.canzone)}" placeholder="Canzone" />
+              <input type="text" class="edit-artista" value="${escapeHtml(item.artista)}" placeholder="Artista" />
+              <div class="song-item-actions">
+                <button type="button" class="btn-small btn-save" onclick="saveSongEdit('${item.id}', this)">Salva</button>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+
+    async function saveSongEdit(id, button) {
+      if (!db) return;
+      const item = button.closest('.song-item');
+      const nome = item.querySelector('.edit-nome').value.trim();
+      const canzone = item.querySelector('.edit-canzone').value.trim();
+      const artista = item.querySelector('.edit-artista').value.trim();
+
+      if (!nome || !canzone || !artista) {
+        alert('Compila tutti i campi prima di salvare.');
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'Salvataggio…';
+
+      const { error } = await db
+        .from('prenotazioni')
+        .update({ nome, canzone, artista })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Errore aggiornamento prenotazione:', error);
+        alert('Non sono riuscito a salvare le modifiche.');
+        button.disabled = false;
+        button.textContent = 'Salva';
+        return;
+      }
+
+      await loadSongList();
+    }
+
+    window.saveSongEdit = saveSongEdit;
+
+    function subscribeSongList(serataId) {
+      if (!db) return;
+      if (songListChannel) {
+        db.removeChannel(songListChannel);
+        songListChannel = null;
+      }
+
+      songListChannel = db.channel(`index-prenotazioni-${serataId}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'prenotazioni',
+          filter: `serata_id=eq.${serataId}`
+        }, () => {
+          loadSongList();
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'prenotazioni',
+          filter: 'serata_id=is.null'
+        }, () => {
+          if (usingLegacySongFallback) loadSongList();
+        })
+        .subscribe();
     }
 
     // ── Serata aperta ────────────────────────────────────────
@@ -433,7 +703,9 @@
         .limit(1)
         .maybeSingle();
       if (!data) {
+        currentSerataId = null;
         [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+        showSongListCard(false);
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
         setVotaBanner(false);
@@ -442,6 +714,9 @@
       currentSerataId = data.id;
       setVotaBanner(data.voto_aperto);
       subscribeSerata(data.id);
+      subscribeSongList(data.id);
+      showSongListCard(true);
+      loadSongList();
       return true;
     }
 
@@ -454,6 +729,7 @@
           if (!payload.new.aperta) {
             currentSerataId = null;
             [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+            showSongListCard(false);
             stepClosed.style.display = 'flex';
             document.querySelector('.steps').style.display = 'none';
           }
@@ -487,6 +763,7 @@
     function showWaitingScreen(timestamp, canzone, artista) {
       [stepFollow, stepForm, stepSuccess].forEach(s => s.style.display = 'none');
       stepWaiting.style.display = 'flex';
+      showSongListCard(true);
       document.getElementById('waiting-song').textContent = `${canzone} – ${artista}`;
       updateWaitingTimer(timestamp);
       if (pollInterval) clearInterval(pollInterval);
@@ -506,10 +783,18 @@
     function showForm() {
       [stepFollow, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
       stepForm.style.display = 'block';
+      showSongListCard(true);
       ind1.classList.remove('active'); ind1.classList.add('done');
       ind1num.textContent = '✓';
       ind2.classList.add('active');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ── Staff mode ───────────────────────────────────────────
+    function initStaffMode() {
+      const params = new URLSearchParams(window.location.search);
+      isStaffMode = params.get('staff') === '1';
+      if (isStaffMode) loadSongList();
     }
 
     // ── Instagram profile card ──────────────────────────────
@@ -546,12 +831,14 @@
     async function goToForm() {
       setCookie('ig_followed', 'true', 365 * 24 * 3600);
       stepFollow.style.display = 'none';
+      showSongListCard(true);
       const pending = await checkPendingBooking();
       if (!pending) showForm();
     }
 
     // ── Init ─────────────────────────────────────────────────
     (async () => {
+      initStaffMode();
       const open = await checkSerataAperta();
       if (!open) return;
       if (getCookie('ig_followed') === 'true') {
@@ -593,9 +880,11 @@
       }
 
       notifyTelegram(booking);
+      loadSongList();
 
       stepForm.style.display    = 'none';
       stepSuccess.style.display = 'flex';
+      showSongListCard(true);
       ind2.classList.remove('active');
       ind2.classList.add('done');
       window.scrollTo({ top: 0, behavior: 'smooth' });
