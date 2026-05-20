@@ -11,6 +11,8 @@ type AdminTokenPayload = {
   exp: number;
 };
 
+export class AdminAuthConfigError extends Error {}
+
 function toBase64Url(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes))
     .replace(/\+/g, "-")
@@ -58,7 +60,7 @@ export function getAdminClient() {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Config server mancante.");
+    throw new AdminAuthConfigError("Config server mancante.");
   }
 
   return createClient(supabaseUrl, serviceRoleKey);
@@ -75,10 +77,10 @@ export async function getActiveAdminPasswordHash(admin: ReturnType<typeof create
     .maybeSingle<AdminCredentialRow>();
 
   if (error) {
-    throw new Error("Errore durante il caricamento delle credenziali admin.");
+    throw new AdminAuthConfigError("Errore durante il caricamento delle credenziali admin.");
   }
   if (!data?.password_hash || typeof data.password_hash !== "string") {
-    throw new Error("Credenziali admin non configurate.");
+    throw new AdminAuthConfigError("Credenziali admin non configurate.");
   }
   return data.password_hash.trim();
 }
@@ -92,7 +94,7 @@ export async function verifyAdminPassword(password: string, passwordHash: string
 export function getAdminTokenSecret(): string {
   const secret = (Deno.env.get("ADMIN_TOKEN_SIGNING_SECRET") ?? "").trim();
   if (!secret) {
-    throw new Error("Config server mancante.");
+    throw new AdminAuthConfigError("Config server mancante.");
   }
   return secret;
 }

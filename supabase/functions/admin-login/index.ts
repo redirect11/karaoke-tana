@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import {
+  AdminAuthConfigError,
   createAdminToken,
   getActiveAdminPasswordHash,
   getAdminClient,
@@ -7,6 +8,8 @@ import {
   getAdminTokenTtlSeconds,
   verifyAdminPassword,
 } from "../_shared/admin-auth.ts";
+
+const MAX_PASSWORD_LENGTH = 256;
 
 type ApiEnvelope = {
   success: boolean;
@@ -68,7 +71,7 @@ function parsePassword(payload: unknown): string {
     throw new ApiError(400, "invalid_payload", "La password è obbligatoria.");
   }
 
-  if (password.length > 256) {
+  if (password.length > MAX_PASSWORD_LENGTH) {
     throw new ApiError(400, "invalid_payload", "Password non valida.");
   }
 
@@ -127,17 +130,19 @@ serve(async (req) => {
       });
     }
 
-    const message = error instanceof Error ? error.message : "Errore interno del server.";
-    const code = message === "Credenziali admin non configurate." || message === "Config server mancante."
-      ? "server_misconfigured"
-      : "internal_error";
-    const status = 500;
+    if (error instanceof AdminAuthConfigError) {
+      return jsonResponse(req, 500, {
+        success: false,
+        data: null,
+        error: { code: "server_misconfigured", message: error.message },
+      });
+    }
 
     console.error(error);
-    return jsonResponse(req, status, {
+    return jsonResponse(req, 500, {
       success: false,
       data: null,
-      error: { code, message: code === "server_misconfigured" ? message : "Errore interno del server." },
+      error: { code: "internal_error", message: "Errore interno del server." },
     });
   }
 });
