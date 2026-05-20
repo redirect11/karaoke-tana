@@ -573,7 +573,7 @@
   <!-- STEP waiting: già prenotato -->
   <div class="card" id="step-waiting">
     <div class="big-icon">🎤</div>
-    <h2 id="waiting-title" aria-live="polite">Stato prenotazione</h2>
+    <h2 id="waiting-title" aria-live="polite">Stato della tua prenotazione</h2>
     <p id="waiting-song"></p>
     <p id="waiting-status">Sto controllando lo stato della tua prenotazione…</p>
     <p id="waiting-timer"></p>
@@ -688,6 +688,7 @@
     let activeSongTab = 'to-sing';
     let notificationPermissionRequested = false;
     let songListPollInterval = null;
+    let songListAvailability = 'loading';
     let songListCache = { toSing: [], completed: [] };
 
     // ── Vota banner ──────────────────────────────────────────
@@ -702,12 +703,14 @@
 
     async function loadSongList() {
       if (!db || !currentSerataId) {
+        songListAvailability = 'unavailable';
         songListCache = { toSing: [], completed: [] };
         songListStatus.textContent = 'Lista non disponibile.';
         songListEl.innerHTML = '';
         return;
       }
 
+      songListAvailability = 'loading';
       songListStatus.textContent = 'Caricamento lista…';
 
       let { data, error } = await db
@@ -739,12 +742,14 @@
       }
 
       if (error) {
+        songListAvailability = 'error';
         console.error('Errore caricamento lista:', error);
         songListStatus.textContent = 'Impossibile caricare la lista canzoni.';
         songListEl.innerHTML = '';
         return;
       }
 
+      songListAvailability = 'available';
       const allItems = data || [];
       songListCache = {
         toSing: allItems.filter((item) => !item.cantata),
@@ -908,20 +913,15 @@
       const index = getCurrentBookingQueueIndex(safeQueueItems);
       if (!isApproved) {
         setWaitingTitle('pending');
-        const loadingQueue = safeQueueItems.length === 0 && songListStatus.textContent === 'Caricamento lista…';
-        if (loadingQueue) {
+        if (songListAvailability === 'loading' && safeQueueItems.length === 0) {
           setWaitingStatus('Sto calcolando quante canzoni mancano prima della tua.');
           return;
         }
-        if (songListStatus.textContent === 'Lista non disponibile.' || songListStatus.textContent === 'Impossibile caricare la lista canzoni.') {
+        if (songListAvailability === 'unavailable' || songListAvailability === 'error') {
           setWaitingStatus('La tua prenotazione è in attesa di approvazione. Contatore coda non disponibile al momento.');
           return;
         }
         const songsMissing = index >= 0 ? index : safeQueueItems.length;
-        if (!Number.isInteger(songsMissing) || songsMissing < 0) {
-          setWaitingStatus('La tua prenotazione è in attesa di approvazione. Sto aggiornando il contatore della coda.');
-          return;
-        }
         setWaitingStatus(
           songsMissing === 1
             ? 'In attesa di approvazione: manca <span class="waiting-position-critical">1</span> canzone prima della tua.'
