@@ -326,7 +326,9 @@
     <div class="pwd-box">
       <div class="logo">🐰</div>
       <h2>Staff Panel</h2>
-      <p>Inserisci la password admin per accedere al pannello staff.</p>
+      <p>Accedi con le tue credenziali admin per entrare nel pannello staff.</p>
+      <label class="sr-only" for="email-input">Email amministratore</label>
+      <input id="email-input" type="email" placeholder="email admin" autocomplete="username" />
       <label class="sr-only" for="pwd-input">Password amministratore</label>
       <input id="pwd-input" type="password" placeholder="password admin" autocomplete="current-password" />
       <button id="pwd-btn">Accedi</button>
@@ -370,15 +372,21 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="config.js"></script>
   <script>
     const config = typeof CONFIG === 'object' && CONFIG ? CONFIG : {};
     const supabaseUrl = `${config.SUPABASE_URL || ''}`;
     const supabaseReady = !!supabaseUrl && !supabaseUrl.includes('TUO-PROGETTO');
     const edgeBaseUrl = supabaseReady ? `${supabaseUrl.replace(/\/+$/, '')}/functions/v1` : '';
-    const adminLoginUrl = supabaseReady ? `${edgeBaseUrl}/admin-login` : '';
     const adminBookingsUrl = supabaseReady ? `${edgeBaseUrl}/admin-bookings` : '';
-    const ADMIN_SESSION_TOKEN_KEY = 'admin_session_token';
+
+    // Supabase Auth client – sessions persisted in sessionStorage (cleared when tab closes)
+    const supabaseClient = supabaseReady
+      ? window.supabase.createClient(supabaseUrl, config.SUPABASE_ANON_KEY || '', {
+          auth: { persistSession: true, storage: sessionStorage },
+        })
+      : null;
 
     const liveDot = document.getElementById('live-dot');
     const liveLabel = document.getElementById('live-label');
@@ -393,6 +401,7 @@
 
     const overlay = document.getElementById('pwd-overlay');
     const panel = document.getElementById('panel');
+    const emailInput = document.getElementById('email-input');
     const pwdInput = document.getElementById('pwd-input');
     const pwdError = document.getElementById('pwd-error');
     const pwdBtn = document.getElementById('pwd-btn');
@@ -405,6 +414,7 @@
     let pollingTimer = null;
 
     document.getElementById('pwd-btn').addEventListener('click', loginAdmin);
+    emailInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') pwdInput.focus(); });
     pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAdmin(); });
     logoutBtn.addEventListener('click', logoutAdmin);
 
@@ -417,17 +427,13 @@
       renderQueue(bookings);
     });
 
-    const restoredToken = (sessionStorage.getItem(ADMIN_SESSION_TOKEN_KEY) || '').trim();
-    if (restoredToken) {
-      restoreSession(restoredToken);
-    }
-
-    function getLoginHeaders() {
-      const headers = new Headers({ 'Content-Type': 'application/json' });
-      if (config.SUPABASE_ANON_KEY) {
-        headers.set('apikey', config.SUPABASE_ANON_KEY);
-      }
-      return headers;
+    if (supabaseClient) {
+      supabaseClient.auth.getSession().then(({ data }) => {
+        if (data.session?.access_token) {
+          adminToken = data.session.access_token;
+          unlockPanel();
+        }
+      }).catch(() => {});
     }
 
     function getAdminHeaders(token) {
@@ -472,9 +478,10 @@
     }
 
     async function loginAdmin() {
-      const candidate = pwdInput.value.trim();
-      if (!candidate) {
-        pwdError.textContent = 'Inserisci la password admin.';
+      const email = (emailInput.value || '').trim();
+      const password = pwdInput.value;
+      if (!email || !password) {
+        pwdError.textContent = 'Inserisci email e password admin.';
         return;
       }
 
@@ -483,29 +490,17 @@
       pwdError.textContent = '';
 
       try {
-        if (!adminLoginUrl) {
-          throw new Error('CONFIG.SUPABASE_URL non configurato.');
+        if (!supabaseClient) {
+          throw new Error('Configurazione Supabase mancante.');
         }
-        const response = await fetch(adminLoginUrl, {
-          method: 'POST',
-          headers: getLoginHeaders(),
-          body: JSON.stringify({ password: candidate }),
-        });
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
 
-        let result = null;
-        try {
-          result = await response.json();
-        } catch (_) {
-          result = null;
-        }
+        const token = data.session?.access_token;
+        if (!token) throw new Error('Sessione non ricevuta.');
 
-        if (!response.ok || !result?.success || !result?.data?.token) {
-          const message = result?.error?.message || 'Credenziali non valide.';
-          throw new Error(message);
-        }
-
-        adminToken = result.data.token;
-        sessionStorage.setItem(ADMIN_SESSION_TOKEN_KEY, adminToken);
+        adminToken = token;
+        emailInput.value = '';
         pwdInput.value = '';
         unlockPanel();
       } catch (error) {
@@ -516,19 +511,9 @@
       }
     }
 
-    async function restoreSession(token) {
-      try {
-        await callAdminRaw(token, 'ping');
-        adminToken = token;
-        unlockPanel();
-      } catch (_) {
-        sessionStorage.removeItem(ADMIN_SESSION_TOKEN_KEY);
-      }
-    }
-
     function logoutAdmin() {
+      if (supabaseClient) supabaseClient.auth.signOut().catch(() => {});
       adminToken = '';
-      sessionStorage.removeItem(ADMIN_SESSION_TOKEN_KEY);
       if (pollingTimer) {
         clearInterval(pollingTimer);
         pollingTimer = null;

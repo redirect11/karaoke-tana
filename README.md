@@ -39,62 +39,63 @@ Configura su Supabase Edge Functions:
 Questa repo include anche:
 
 - `supabase/functions/admin-bookings/index.ts`
-- `supabase/functions/admin-login/index.ts`
+- `supabase/functions/admin-login/index.ts` *(deprecato – non più utilizzato)*
 
 Scopo:
 
-- `admin-login`: verifica server-side la password admin con PBKDF2-SHA256 (Web Crypto, compatibile Supabase Edge Runtime) e rilascia un token sessione breve.
-- `admin-bookings`: esegue lato server le mutazioni admin (approva/elimina/completata, apertura/chiusura serata, toggle votazioni, cleanup strumenti nascosti) solo con `Authorization: Bearer <token>`.
+- `admin-bookings`: esegue lato server le mutazioni admin (approva/elimina/completata, apertura/chiusura serata, toggle votazioni, cleanup strumenti nascosti) solo con `Authorization: Bearer <supabase_access_token>`.
+- `admin-login`: **deprecato**. La funzione custom esiste ancora nel repo ma non è più utilizzata dal frontend. Il login avviene ora tramite Supabase Auth SDK.
 
-### Secrets richiesti nella funzione
+### Autenticazione admin: Supabase Auth
+
+L'accesso admin usa ora **Supabase Auth** (email + password) invece del vecchio sistema password/hash custom.
+
+#### Setup iniziale (una tantum)
+
+1. **Crea l'utente admin su Supabase**
+
+   Vai su: *Supabase Dashboard → Authentication → Users → Invite user* (oppure *Add user*).
+   Imposta email e password. Copia l'UUID dell'utente appena creato.
+
+2. **Crea la tabella `admin_users`** (se non l'hai già eseguita)
+
+   Incolla il file di migrazione in SQL Editor:
+   ```bash
+   # File: supabase/migrations/20260520160000_admin_users.sql
+   ```
+   oppure esegui direttamente:
+   ```sql
+   CREATE TABLE IF NOT EXISTS admin_users (
+     user_id    UUID         PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+     created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+   );
+   ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
+   ```
+
+3. **Aggiungi l'utente admin all'allowlist**
+
+   ```sql
+   INSERT INTO admin_users (user_id)
+   VALUES ('<UUID-UTENTE-ADMIN>');
+   ```
+
+4. **Verifica il login**
+
+   Apri `admin.html`, inserisci email e password dell'utente Supabase appena creato.
+
+### Secrets richiesti nell'Edge Function `admin-bookings`
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `ADMIN_TOKEN_SIGNING_SECRET`
 - `ALLOWED_ORIGINS` (es. `https://redirect11.github.io` oppure `*`)
-- `ADMIN_SESSION_TTL_SECONDS` (opzionale, default 14400)
 
-La password admin viene inserita in `admin.html`/`admin-tools.html` solo al login, inviata via HTTPS a `admin-login`, e non viene mai salvata nel client. Nel browser viene salvato solo il token sessione temporaneo in `sessionStorage`.
+### Come funziona il flusso
 
-### Migrazione password admin: bcrypt -> PBKDF2-SHA256
-
-`bcrypt@v0.4.1` è stato rimosso da `admin-login` perché in Supabase Edge Runtime può fallire con `ReferenceError: Worker is not defined`.
-La verifica password ora usa solo Web Crypto (`crypto.subtle`) con `PBKDF2` + `SHA-256`.
-
-1) Applica la migrazione DB:
-
-```sql
--- File: supabase/migrations/20260520150000_admin_credentials_pbkdf2.sql
-ALTER TABLE admin_credentials
-  ADD COLUMN IF NOT EXISTS password_salt TEXT,
-  ADD COLUMN IF NOT EXISTS password_iterations INTEGER,
-  ADD COLUMN IF NOT EXISTS password_hash_algo TEXT;
-
-UPDATE admin_credentials
-SET
-  password_iterations = COALESCE(password_iterations, 210000),
-  password_hash_algo = COALESCE(NULLIF(TRIM(password_hash_algo), ''), 'pbkdf2-sha256');
-```
-
-2) Genera i nuovi valori hash/salt:
-
-```bash
-node scripts/generate-admin-password.mjs
-```
-
-Oppure con password/iterazioni via argomento:
-
-```bash
-node scripts/generate-admin-password.mjs --password="NuovaPasswordSicura" --iterations=210000
-```
-
-Output generato:
-- `password_salt`
-- `password_hash`
-- `password_iterations`
-- `password_hash_algo`
-
-3) Aggiorna il record attivo in `admin_credentials` con i valori prodotti dallo script.
+1. Il browser chiama `supabase.auth.signInWithPassword({ email, password })` via SDK.
+2. Supabase Auth restituisce un `access_token` (JWT).
+3. Il `access_token` viene salvato in `sessionStorage` e inviato come `Authorization: Bearer` a ogni chiamata a `admin-bookings`.
+4. `admin-bookings` verifica il JWT via `supabase.auth.getUser(token)` e controlla che l'`user_id` sia presente in `admin_users`.
+5. Solo allora esegue l'azione richiesta.
 
 ## Supabase branch deploy (Git integration)
 
