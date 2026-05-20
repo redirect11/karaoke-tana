@@ -57,6 +57,7 @@ function validatePayload(payload: unknown): { ok: true; data: BookingPayload } |
   const canzone = normalizeText(body.canzone);
   const artista = normalizeText(body.artista);
   const serata_id = body.serata_id;
+  let parsedSerataId: number | null = null;
 
   if (!nome || !canzone || !artista) {
     return { ok: false, message: "I campi nome, canzone e artista sono obbligatori." };
@@ -66,12 +67,16 @@ function validatePayload(payload: unknown): { ok: true; data: BookingPayload } |
     return { ok: false, message: "Uno o più campi superano la lunghezza massima consentita." };
   }
 
-  if (
-    serata_id !== undefined &&
-    serata_id !== null &&
-    (!Number.isInteger(serata_id) || Number(serata_id) <= 0)
-  ) {
-    return { ok: false, message: "serata_id deve essere un intero positivo oppure null." };
+  if (serata_id !== undefined && serata_id !== null && serata_id !== "") {
+    const normalizedSerataId = typeof serata_id === "number"
+      ? serata_id
+      : Number(String(serata_id).trim());
+
+    if (!Number.isInteger(normalizedSerataId) || normalizedSerataId <= 0) {
+      return { ok: false, message: "serata_id deve essere un intero positivo oppure null." };
+    }
+
+    parsedSerataId = normalizedSerataId;
   }
 
   return {
@@ -80,7 +85,7 @@ function validatePayload(payload: unknown): { ok: true; data: BookingPayload } |
       nome,
       canzone,
       artista,
-      serata_id: (serata_id as number | null | undefined) ?? null,
+      serata_id: parsedSerataId,
     },
   };
 }

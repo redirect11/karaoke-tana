@@ -8,13 +8,13 @@ App web statica per prenotazioni karaoke e votazioni, con database Supabase.
 2. Inserisci almeno:
    - `SUPABASE_URL`
    - `SUPABASE_ANON_KEY`
-3. Esegui SQL iniziale da `/home/runner/work/karaoke-tana/karaoke-tana/supabase/init.sql`.
+3. Esegui SQL iniziale da `supabase/init.sql`.
 
 ## Edge Function: submit-booking
 
 Questa repo include la funzione:
 
-- `/home/runner/work/karaoke-tana/karaoke-tana/supabase/functions/submit-booking/index.ts`
+- `supabase/functions/submit-booking/index.ts`
 
 Scopo: creare una prenotazione lato server (no insert diretto dal browser), con:
 
@@ -61,7 +61,7 @@ curl -i \
 
 ## Integrazione frontend
 
-Il form in `/home/runner/work/karaoke-tana/karaoke-tana/index.html` ora chiama la Edge Function:
+Il form in `index.html` ora chiama la Edge Function:
 
 - URL custom: `CONFIG.SUBMIT_BOOKING_FUNCTION_URL` (opzionale)
 - fallback automatico: `${SUPABASE_URL}/functions/v1/submit-booking`
@@ -70,7 +70,7 @@ La UI gestisce loading/error sul bottone di submit.
 
 ## Deploy GitHub Pages
 
-La pipeline (`/home/runner/work/karaoke-tana/karaoke-tana/.github/workflows/deploy.yml`) genera `config.js` dai secrets:
+La pipeline (`.github/workflows/deploy.yml`) genera `config.js` dai secrets:
 
 - `IG_USERNAME`
 - `SUPABASE_URL`
