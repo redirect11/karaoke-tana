@@ -629,6 +629,7 @@
 
     function renderSongList(items) {
       const currentBookingId = getCurrentBookingId();
+      const currentBookingIdNum = Number(currentBookingId);
       if (!items.length) {
         songListStatus.textContent = 'Nessuna canzone in coda al momento.';
         songListEl.innerHTML = '<div class="song-empty">Appena arrivano nuove prenotazioni, le vedrai qui.</div>';
@@ -637,13 +638,13 @@
 
       songListStatus.textContent = `${items.length} ${items.length === 1 ? 'canzone in coda' : 'canzoni in coda'}`;
       songListEl.innerHTML = items.map((item, index) => `
-        <div class="song-item${Number(item.id) === Number(currentBookingId) ? ' mine' : ''}" data-id="${item.id}">
+        <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}" data-id="${item.id}">
           <div class="song-item-top">
             <div>
               <div class="song-item-title">${escapeHtml(item.canzone)}</div>
               <div class="song-item-artist">${escapeHtml(item.artista)}</div>
               <div class="song-item-name">Prenotata da ${escapeHtml(item.nome)}</div>
-              ${Number(item.id) === Number(currentBookingId) ? '<div class="song-item-badge">La tua prenotazione</div>' : ''}
+              ${Number(item.id) === currentBookingIdNum ? '<div class="song-item-badge">La tua prenotazione</div>' : ''}
             </div>
             <div class="song-item-order">${index + 1}</div>
           </div>
