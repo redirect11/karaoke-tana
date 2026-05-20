@@ -924,7 +924,17 @@
       const statusEl = document.getElementById('waiting-status');
       if (!statusEl) return;
       statusEl.classList.toggle('sr-only', screenReaderOnly);
-      if (html && !screenReaderOnly) statusEl.innerHTML = message;
+      if (screenReaderOnly) {
+        if (html) {
+          const textOnlyEl = document.createElement('div');
+          textOnlyEl.innerHTML = message;
+          statusEl.textContent = textOnlyEl.textContent || '';
+        } else {
+          statusEl.textContent = message;
+        }
+        return;
+      }
+      if (html) statusEl.innerHTML = message;
       else statusEl.textContent = message;
     }
 
