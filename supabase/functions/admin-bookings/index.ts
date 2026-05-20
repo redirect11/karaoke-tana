@@ -60,7 +60,7 @@ function toPositiveInt(value: unknown, fieldName: string): number {
   return parsed;
 }
 
-function validateDate(value: unknown): string {
+function normalizeDateOrToday(value: unknown): string {
   if (typeof value !== "string") return new Date().toISOString().slice(0, 10);
   const trimmed = value.trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
@@ -211,7 +211,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         throw new ApiError(409, "already_open", "Esiste già una serata aperta.");
       }
 
-      const date = validateDate(body.data ?? body.date);
+      const date = normalizeDateOrToday(body.data ?? body.date);
       const { data, error } = await admin
         .from("serate")
         .insert({ data: date, aperta: true, voto_aperto: false })
@@ -254,9 +254,10 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
 
     case "set_voting":
     case "toggle_voting": {
+      const openSerata = await getOpenSerata(admin);
       const currentSerata = body.serataId != null
-        ? { id: toPositiveInt(body.serataId, "serataId") }
-        : await getOpenSerata(admin);
+        ? { id: toPositiveInt(body.serataId, "serataId"), voto_aperto: openSerata?.voto_aperto }
+        : openSerata;
 
       if (!currentSerata?.id) {
         throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
@@ -264,7 +265,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
 
       const votoAperto = typeof body.votoAperto === "boolean"
         ? body.votoAperto
-        : !Boolean((await getOpenSerata(admin))?.voto_aperto);
+        : !Boolean(currentSerata?.voto_aperto);
 
       const { data, error } = await admin
         .from("serate")
