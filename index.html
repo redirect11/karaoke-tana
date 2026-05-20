@@ -750,10 +750,10 @@
       }
     }
 
-    function normalizePendingExpiryAt(stored) {
-      const direct = Number(stored.pendingExpiresAt);
+    function normalizePendingExpiryAt(storedBooking) {
+      const direct = Number(storedBooking.pendingExpiresAt);
       if (Number.isFinite(direct) && direct > 0) return direct;
-      const timestamp = Number(stored.timestamp);
+      const timestamp = Number(storedBooking.timestamp);
       if (!Number.isFinite(timestamp) || timestamp <= 0) return null;
       return timestamp + (PENDING_EXPIRY_MIN * 60 * 1000);
     }
@@ -770,11 +770,6 @@
       const totalSec = Math.max(0, Math.ceil(ms / 1000));
       const min = Math.floor(totalSec / 60);
       const sec = totalSec % 60;
-      if (min >= 60) {
-        const hours = Math.floor(min / 60);
-        const remainingMin = min % 60;
-        return `${hours}h ${String(remainingMin).padStart(2, '0')}m`;
-      }
       return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
     }
 
