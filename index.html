@@ -603,7 +603,7 @@
       <div class="big-icon">🎤</div>
       <div class="waiting-remaining" id="waiting-remaining" hidden>
         <span class="waiting-remaining-number" id="waiting-remaining-number"></span>
-        <span class="waiting-remaining-label">canzoni mancanti</span>
+        <span class="waiting-remaining-label" id="waiting-remaining-label">canzoni mancanti</span>
       </div>
     </div>
     <h2 id="waiting-title" aria-live="polite">Stato della tua prenotazione</h2>
@@ -935,15 +935,18 @@
     function setWaitingRemainingSongs(remainingSongs) {
       const wrapEl = document.getElementById('waiting-remaining');
       const numberEl = document.getElementById('waiting-remaining-number');
-      if (!wrapEl || !numberEl) return;
-      if (!Number.isInteger(remainingSongs) || remainingSongs <= 0) {
+      const labelEl = document.getElementById('waiting-remaining-label');
+      if (!wrapEl || !numberEl || !labelEl) return;
+      if (!Number.isInteger(remainingSongs) || remainingSongs < 1) {
         wrapEl.hidden = true;
         numberEl.textContent = '';
+        labelEl.textContent = 'canzoni mancanti';
         numberEl.classList.remove('is-critical');
         return;
       }
       wrapEl.hidden = false;
       numberEl.textContent = String(remainingSongs);
+      labelEl.textContent = remainingSongs === 1 ? 'canzone mancante' : 'canzoni mancanti';
       numberEl.classList.toggle('is-critical', remainingSongs === 1);
     }
 
