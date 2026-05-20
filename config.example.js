@@ -27,6 +27,10 @@ const CONFIG = {
 
 };
 
+if (typeof window !== 'undefined') {
+  window.CONFIG = CONFIG;
+}
+
 // =============================================================
 //  SQL DA ESEGUIRE SU SUPABASE UNA VOLTA SOLA
 //  (Supabase dashboard → SQL Editor → New query → Esegui)

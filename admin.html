@@ -373,7 +373,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="config.js"></script>
   <script>
-    const config = typeof CONFIG === 'object' && CONFIG ? CONFIG : {};
+    const config = ((typeof window !== 'undefined' && typeof window.CONFIG === 'object' && window.CONFIG) || (typeof CONFIG === 'object' && CONFIG) || {});
     const supabaseUrl = `${config.SUPABASE_URL || ''}`;
     const supabaseReady = !!supabaseUrl && !supabaseUrl.includes('TUO-PROGETTO');
     const edgeBaseUrl = supabaseReady ? `${supabaseUrl.replace(/\/+$/, '')}/functions/v1` : '';

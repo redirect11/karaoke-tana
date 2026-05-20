@@ -480,7 +480,10 @@
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
-    const config = window.CONFIG || {};
+    const config =
+      (typeof window !== 'undefined' && typeof window.CONFIG === 'object' && window.CONFIG)
+      || (typeof CONFIG === 'object' && CONFIG)
+      || {};
 
     // ── Cookie helpers ──────────────────────────────────────
     function getCookie(name) {
@@ -504,8 +507,10 @@
     const edgeBaseUrl = supabaseReady
       ? `${config.SUPABASE_URL.replace(/\/+$/, '')}/functions/v1`
       : '';
+    const customSubmitBookingUrl = (config.SUBMIT_BOOKING_FUNCTION_URL || '').trim();
     const submitBookingUrl =
-      (config.SUBMIT_BOOKING_FUNCTION_URL || '').trim() || `${edgeBaseUrl}/submit-booking`;
+      customSubmitBookingUrl || (supabaseReady ? `${edgeBaseUrl}/submit-booking` : '');
+    const BOOKING_CONFIG_ERROR_MESSAGE = 'Configurazione prenotazioni non disponibile.';
     const BOOKING_ERROR_MESSAGE = 'Errore durante la prenotazione. Riprova tra qualche secondo!';
 
     let currentSerataId = null;
@@ -795,8 +800,8 @@
     }
 
     async function submitBooking(booking) {
-      if (!supabaseReady || !submitBookingUrl) {
-        throw new Error('Configurazione Supabase non disponibile.');
+      if (!submitBookingUrl) {
+        throw new Error(BOOKING_CONFIG_ERROR_MESSAGE);
       }
 
       const response = await fetch(submitBookingUrl, {
@@ -813,8 +818,13 @@
       }
 
       if (!response.ok || !payload?.success || payload?.data?.id === undefined || payload?.data?.id === null) {
-        const message = payload?.error?.message || BOOKING_ERROR_MESSAGE;
-        throw new Error(message);
+        const errorCode = payload?.error?.code;
+        const message =
+          payload?.error?.message
+          || (errorCode === 'bookings_closed' ? 'Le prenotazioni sono chiuse in questo momento.' : BOOKING_ERROR_MESSAGE);
+        const error = new Error(message);
+        error.code = errorCode;
+        throw error;
       }
 
       return payload.data;
@@ -857,6 +867,9 @@
         console.error('Booking error:', error);
         btn.disabled = false;
         btn.textContent = '🎙 Prenota';
+        if (error?.code === 'bookings_closed') {
+          await checkSerataAperta();
+        }
         alert(error?.message || BOOKING_ERROR_MESSAGE);
         return;
       }
