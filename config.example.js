@@ -12,18 +12,10 @@ const CONFIG = {
   SUPABASE_URL:      'https://TUO-PROGETTO.supabase.co',
   SUPABASE_ANON_KEY: 'eyJ...LA_TUA_ANON_KEY',
 
-  // ── Telegram ──────────────────────────────────────────────
-  // 1. Cerca @BotFather su Telegram → /newbot → copia il token
-  // 2. Crea un gruppo con lo staff, aggiungi il bot come membro
-  // 3. Manda un messaggio nel gruppo, poi apri nel browser:
-  //    https://api.telegram.org/bot{TOKEN}/getUpdates
-  //    Il chat_id del gruppo è il numero negativo in "chat":{"id":...}
-  TELEGRAM_BOT_TOKEN: '',   // es. '7312456789:AAFxxxxxx'
-  TELEGRAM_CHAT_ID:   '',   // es. '-1001234567890'
-
-  // ── Admin ─────────────────────────────────────────────────
-  // Password per accedere a /admin.html
-  ADMIN_PASSWORD: 'tana2024',
+  // ── Solo valori pubblici nel browser ─────────────────────
+  // Non inserire qui password admin, token Telegram o altri
+  // segreti: config.js viene pubblicato su GitHub Pages ed è
+  // leggibile da chiunque apra il sito.
 
   // ── Cooldown prenotazione ──────────────────────────────────
   // Minuti dopo i quali si può prenotare di nuovo anche senza

@@ -177,9 +177,10 @@
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
-    const supabaseReady = CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes('TUO-PROGETTO');
+    const config = window.CONFIG || {};
+    const supabaseReady = config.SUPABASE_URL && !config.SUPABASE_URL.includes('TUO-PROGETTO');
     const db = supabaseReady
-      ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
+      ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY)
       : null;
 
     const content       = document.getElementById('content');
