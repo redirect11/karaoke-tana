@@ -586,8 +586,8 @@
         <li>Quando puoi prenotare di nuovo</li>
       </ul>
       <div class="notification-modal-actions">
-        <button type="button" class="btn-notification-skip" id="notification-skip-btn" aria-label="Non attivare le notifiche ora">Ora no</button>
-        <button type="button" class="btn-notification-accept" id="notification-accept-btn" aria-label="Attiva notifiche, nella schermata successiva si aprirà la richiesta del browser">Attiva notifiche</button>
+        <button type="button" class="btn-notification-skip" id="notification-skip-btn">Ora no</button>
+        <button type="button" class="btn-notification-accept" id="notification-accept-btn">Attiva notifiche</button>
       </div>
     </div>
   </div>
@@ -1218,9 +1218,9 @@
       if (notificationPermissionRequested) return;
       if (!('Notification' in window)) return;
       if (Notification.permission !== 'default') return;
-      notificationPermissionRequested = true;
       const shouldRequest = await showNotificationExplainer();
       if (!shouldRequest) return;
+      notificationPermissionRequested = true;
       try {
         await Notification.requestPermission();
       } catch (_) {}
