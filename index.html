@@ -729,10 +729,12 @@
       const currentSong = items[0];
       const queueItems = items.slice(1);
       const currentSongHtml = currentSong
-        ? `<div class="song-list-section">In esecuzione ora</div>${renderSongItem(currentSong, 'LIVE', { currentSong: true, alert: myQueueIndex === 1 })}`
+        ? `<div class="song-list-section">In esecuzione ora</div>${renderSongItem(currentSong, 'LIVE', { currentSong: true })}`
         : '';
       const queueHtml = queueItems.length
-        ? `<div class="song-list-section">In attesa</div>${queueItems.map((item, index) => renderSongItem(item, String(index + 1))).join('')}`
+        ? `<div class="song-list-section">In attesa</div>${queueItems.map((item, index) => renderSongItem(item, String(index + 1), {
+          alert: myQueueIndex === 1 && Number(item.id) === currentBookingIdNum,
+        })).join('')}`
         : '';
       songListEl.innerHTML = `${currentSongHtml}${queueHtml}`;
     }
@@ -1018,13 +1020,13 @@
       const id = Number(stored.id);
       const canzone = stored.canzone || '';
       const artista = stored.artista || '';
-      const resetBookingState = () => {
-        maybeNotifyRebookAvailable(stored);
+      const resetBookingState = (booking) => {
+        maybeNotifyRebookAvailable(booking);
         deleteCookie('last_booking');
         clearWaitingIntervals();
       };
       if (!Number.isInteger(id) || id <= 0) {
-        resetBookingState();
+        resetBookingState(stored);
         return false;
       }
 
@@ -1033,7 +1035,7 @@
         const statusAtExpiry = await fetchBookingStatus(id);
         if (statusAtExpiry) {
           if (!statusAtExpiry.pending && !statusAtExpiry.approved) {
-            resetBookingState();
+            resetBookingState(stored);
             return false;
           }
 
@@ -1059,14 +1061,14 @@
           }
         }
 
-        resetBookingState();
+        resetBookingState(stored);
         return false;
       }
 
       const status = await fetchBookingStatus(id);
       if (status) {
         if (!status.pending && !status.approved) {
-          resetBookingState();
+          resetBookingState(stored);
           return false;
         }
         const createdAtMs = Date.parse(status.created_at || '');
@@ -1096,7 +1098,7 @@
           .eq('id', id)
           .maybeSingle();
         if (!data || data.cantata) {
-          resetBookingState();
+          resetBookingState(stored);
           return false;
         }
 
@@ -1105,7 +1107,7 @@
           ? createdAtMs + (PENDING_EXPIRY_MIN * 60 * 1000)
           : pendingExpiryAt;
         if (!data.approvata && fallbackExpiryAt && Date.now() >= fallbackExpiryAt) {
-          resetBookingState();
+          resetBookingState(stored);
           return false;
         }
 
