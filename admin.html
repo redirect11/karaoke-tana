@@ -706,7 +706,7 @@
         <div class="card-body">
           <div class="card-header">
             <span class="card-name">${esc(b.nome)}</span>
-            ${isApproved ? '<span class="badge-approved">✅ Approvata</span><span class="badge-next">Prossimo</span>' : '<span class="badge-pending">Da approvare</span>'}
+            ${isApproved ? '<span class="badge-approved">✅ Approvata</span>' : '<span class="badge-pending">Da approvare</span>'}
           </div>
           <div class="card-song">🎵 ${esc(b.canzone)}</div>
           <div class="card-meta">${esc(b.artista)}</div>
@@ -742,7 +742,10 @@
         restoreCardAfterError(card, 'Non sono riuscito ad approvare la prenotazione.');
         return;
       }
-      bookings = bookings.map(item => item.id === id ? { ...item, approvata: true } : item);
+      bookings = bookings.map(item => {
+        if (item.id === id) item.approvata = true;
+        return item;
+      });
       renderQueue(bookings);
     }
 
