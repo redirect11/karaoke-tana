@@ -222,12 +222,11 @@
     const supabaseReady = !!supabaseUrl && !supabaseUrl.includes('TUO-PROGETTO');
     const edgeBaseUrl = supabaseReady ? `${supabaseUrl.replace(/\/+$/, '')}/functions/v1` : '';
     const adminBookingsUrl = supabaseReady ? `${edgeBaseUrl}/admin-bookings` : '';
-    const ADMIN_SESSION_TOKEN_KEY = 'admin_session_token';
 
-    // Supabase Auth client (session not persisted – we manage it via sessionStorage)
+    // Supabase Auth client – sessions persisted in sessionStorage (cleared when tab closes)
     const supabaseClient = supabaseReady
       ? window.supabase.createClient(supabaseUrl, config.SUPABASE_ANON_KEY || '', {
-          auth: { persistSession: false, autoRefreshToken: false },
+          auth: { persistSession: true, storage: sessionStorage },
         })
       : null;
 
@@ -251,9 +250,13 @@
     cleanSerataBtn.addEventListener('click', cleanupCurrentSerata);
     cleanAllBtn.addEventListener('click', cleanupAllData);
 
-    const restoredToken = (sessionStorage.getItem(ADMIN_SESSION_TOKEN_KEY) || '').trim();
-    if (restoredToken) {
-      restoreSession(restoredToken);
+    if (supabaseClient) {
+      supabaseClient.auth.getSession().then(({ data }) => {
+        if (data.session?.access_token) {
+          adminToken = data.session.access_token;
+          unlockPanel();
+        }
+      }).catch(() => {});
     }
 
     function getAdminHeaders(token) {
@@ -311,7 +314,7 @@
 
       try {
         if (!supabaseClient) {
-          throw new Error('CONFIG.SUPABASE_URL non configurato.');
+          throw new Error('Configurazione Supabase mancante.');
         }
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -320,7 +323,6 @@
         if (!token) throw new Error('Sessione non ricevuta.');
 
         adminToken = token;
-        sessionStorage.setItem(ADMIN_SESSION_TOKEN_KEY, token);
         emailInput.value = '';
         pwdInput.value = '';
         unlockPanel();
@@ -329,18 +331,6 @@
       } finally {
         pwdBtn.disabled = false;
         pwdBtn.textContent = 'Accedi';
-      }
-    }
-
-    async function restoreSession(token) {
-      try {
-        if (!supabaseClient) throw new Error('Config mancante.');
-        const { data: { user }, error } = await supabaseClient.auth.getUser(token);
-        if (error || !user) throw new Error('Sessione scaduta.');
-        adminToken = token;
-        unlockPanel();
-      } catch (_) {
-        sessionStorage.removeItem(ADMIN_SESSION_TOKEN_KEY);
       }
     }
 
