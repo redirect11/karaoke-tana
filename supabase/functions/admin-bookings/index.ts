@@ -73,6 +73,22 @@ function getAdminSecret(req: Request): string {
   return (req.headers.get("x-admin-secret") ?? "").trim();
 }
 
+function constantTimeEqual(a: string, b: string): boolean {
+  const encoder = new TextEncoder();
+  const aBytes = encoder.encode(a);
+  const bBytes = encoder.encode(b);
+  const maxLength = Math.max(aBytes.length, bBytes.length);
+  let diff = aBytes.length ^ bBytes.length;
+
+  for (let i = 0; i < maxLength; i += 1) {
+    const aValue = i < aBytes.length ? aBytes[i] : 0;
+    const bValue = i < bBytes.length ? bBytes[i] : 0;
+    diff |= aValue ^ bValue;
+  }
+
+  return diff === 0;
+}
+
 function ensureAdminSecret(req: Request): void {
   const expectedSecret = (Deno.env.get("ADMIN_SHARED_SECRET") ?? "").trim();
   if (!expectedSecret) {
@@ -80,7 +96,7 @@ function ensureAdminSecret(req: Request): void {
   }
 
   const providedSecret = getAdminSecret(req);
-  if (!providedSecret || providedSecret !== expectedSecret) {
+  if (!providedSecret || !constantTimeEqual(providedSecret, expectedSecret)) {
     throw new ApiError(401, "unauthorized", "Credenziali admin non valide.");
   }
 }

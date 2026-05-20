@@ -62,6 +62,8 @@ con almeno:
 - `[functions.submit-booking]`
 - `[functions.admin-bookings]`
 
+> Nota: aggiorna `project_id` in `supabase/config.toml` con il tuo project ref Supabase.
+
 ### Deploy funzione
 
 Esempio con Supabase CLI:
