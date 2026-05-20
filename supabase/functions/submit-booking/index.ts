@@ -206,6 +206,13 @@ serve(async (req) => {
   }
 
   const openSerataId = Number(openSerata.data.id);
+  if (!Number.isInteger(openSerataId) || openSerataId <= 0) {
+    return jsonResponse(req, 500, {
+      success: false,
+      data: null,
+      error: { code: "query_failed", message: "Errore durante il caricamento della serata." },
+    });
+  }
 
   if (
     validated.data.serata_id !== null
