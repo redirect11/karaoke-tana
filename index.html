@@ -920,11 +920,19 @@
       }
     }
 
-    function setWaitingStatus(message, { html = false } = {}) {
+    function setWaitingStatus(message, { html = false, screenReaderOnly = false } = {}) {
       const statusEl = document.getElementById('waiting-status');
       if (!statusEl) return;
-      if (html) statusEl.innerHTML = message;
+      statusEl.classList.toggle('sr-only', screenReaderOnly);
+      if (html && !screenReaderOnly) statusEl.innerHTML = message;
       else statusEl.textContent = message;
+    }
+
+    function setWaitingTimer(message, { screenReaderOnly = false } = {}) {
+      const timerEl = document.getElementById('waiting-timer');
+      if (!timerEl) return;
+      timerEl.classList.toggle('sr-only', screenReaderOnly);
+      timerEl.textContent = message;
     }
 
     function setWaitingTitle(state = 'in-list') {
@@ -990,7 +998,7 @@
       if (index === 0) {
         setWaitingRemainingSongs(null);
         setWaitingTitle('turn');
-        setWaitingStatus('<span class="sr-only">Aggiornamento stato: è il tuo turno.</span>', { html: true });
+        setWaitingStatus('Aggiornamento stato: è il tuo turno.', { screenReaderOnly: true });
         return;
       }
       setWaitingRemainingSongs(index);
@@ -1340,23 +1348,25 @@
     }
 
     function updateWaitingTimer(pendingExpiryAt, approvata) {
-      const timerEl = document.getElementById('waiting-timer');
       if (approvata) {
         const isCurrentTurn = getCurrentBookingQueueIndex() === 0;
-        if (isCurrentTurn) timerEl.innerHTML = '<span class="sr-only">Ora puoi cantare.</span>';
-        else timerEl.textContent = 'Lo staff ti chiamerà quando arriva il tuo turno.';
+        if (isCurrentTurn) {
+          setWaitingTimer('Ora puoi cantare.', { screenReaderOnly: true });
+        } else {
+          setWaitingTimer('Lo staff ti chiamerà quando arriva il tuo turno.');
+        }
         return false;
       }
       if (!pendingExpiryAt) {
-        timerEl.textContent = `Attesa massima: ${PENDING_EXPIRY_MIN} minuti.`;
+        setWaitingTimer(`Attesa massima: ${PENDING_EXPIRY_MIN} minuti.`);
         return false;
       }
       const remainingMs = pendingExpiryAt - Date.now();
       if (remainingMs <= 0) {
-        timerEl.textContent = 'Timer scaduto: controllo lo stato e riapro il modulo…';
+        setWaitingTimer('Timer scaduto: controllo lo stato e riapro il modulo…');
         return true;
       }
-      timerEl.textContent = `Nuova prenotazione disponibile tra ${formatCountdown(remainingMs)}.`;
+      setWaitingTimer(`Nuova prenotazione disponibile tra ${formatCountdown(remainingMs)}.`);
       return false;
     }
 
