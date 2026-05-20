@@ -1,8 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { compare } from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 
 type AdminCredentialRow = {
   password_hash: string;
+  password_salt: string | null;
+  password_iterations: number | null;
+  password_hash_algo: string | null;
 };
 
 type AdminTokenPayload = {
@@ -11,7 +13,16 @@ type AdminTokenPayload = {
   exp: number;
 };
 
+type AdminPasswordMaterial = {
+  passwordHash: string;
+  passwordSalt: string;
+  passwordIterations: number;
+  passwordHashAlgo: string;
+};
+
 export class AdminAuthConfigError extends Error {}
+
+const SUPPORTED_PASSWORD_HASH_ALGO = "pbkdf2-sha256";
 
 function toBase64Url(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes))
@@ -66,10 +77,10 @@ export function getAdminClient() {
   return createClient(supabaseUrl, serviceRoleKey);
 }
 
-export async function getActiveAdminPasswordHash(admin: ReturnType<typeof createClient>): Promise<string> {
+export async function getActiveAdminPasswordHash(admin: ReturnType<typeof createClient>): Promise<AdminPasswordMaterial> {
   const { data, error } = await admin
     .from("admin_credentials")
-    .select("password_hash")
+    .select("password_hash, password_salt, password_iterations, password_hash_algo")
     .eq("active", true)
     .order("updated_at", { ascending: false })
     .order("created_at", { ascending: false })
@@ -79,16 +90,77 @@ export async function getActiveAdminPasswordHash(admin: ReturnType<typeof create
   if (error) {
     throw new AdminAuthConfigError("Errore durante il caricamento delle credenziali admin.");
   }
-  if (!data?.password_hash || typeof data.password_hash !== "string") {
+  if (
+    !data?.password_hash || typeof data.password_hash !== "string" ||
+    !data.password_salt || typeof data.password_salt !== "string" ||
+    !Number.isInteger(data.password_iterations) || (data.password_iterations ?? 0) <= 0
+  ) {
     throw new AdminAuthConfigError("Credenziali admin non configurate.");
   }
-  return data.password_hash.trim();
+
+  const passwordHash = data.password_hash.trim();
+  const passwordSalt = data.password_salt.trim();
+  const passwordHashAlgo = (data.password_hash_algo ?? SUPPORTED_PASSWORD_HASH_ALGO).trim().toLowerCase();
+  if (!passwordHash || !passwordSalt || !passwordHashAlgo) {
+    throw new AdminAuthConfigError("Credenziali admin non configurate.");
+  }
+
+  return {
+    passwordHash,
+    passwordSalt,
+    passwordIterations: data.password_iterations,
+    passwordHashAlgo,
+  };
 }
 
-export async function verifyAdminPassword(password: string, passwordHash: string): Promise<boolean> {
-  if (!password || !passwordHash) return false;
-  if (!/^\$2[abxy]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(passwordHash)) return false;
-  return await compare(password, passwordHash);
+function fromBase64(value: string): Uint8Array {
+  const base64 = value
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .padEnd(value.length + (4 - value.length % 4) % 4, "=");
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function derivePasswordHash(password: string, salt: Uint8Array, iterations: number): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      hash: "SHA-256",
+      salt,
+      iterations,
+    },
+    key,
+    256,
+  );
+  return new Uint8Array(bits);
+}
+
+export async function verifyAdminPassword(password: string, material: AdminPasswordMaterial): Promise<boolean> {
+  if (!password) return false;
+  if (material.passwordHashAlgo !== SUPPORTED_PASSWORD_HASH_ALGO) {
+    throw new AdminAuthConfigError("Algoritmo hash password admin non supportato.");
+  }
+
+  let expectedHash: Uint8Array;
+  let salt: Uint8Array;
+  try {
+    expectedHash = fromBase64(material.passwordHash);
+    salt = fromBase64(material.passwordSalt);
+  } catch {
+    throw new AdminAuthConfigError("Credenziali admin non configurate.");
+  }
+  if (!expectedHash.length || !salt.length) {
+    throw new AdminAuthConfigError("Credenziali admin non configurate.");
+  }
+
+  const candidateHash = await derivePasswordHash(password, salt, material.passwordIterations);
+  return timingSafeEqual(candidateHash, expectedHash);
 }
 
 export function getAdminTokenSecret(): string {

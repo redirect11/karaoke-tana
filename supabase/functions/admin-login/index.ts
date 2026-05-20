@@ -101,8 +101,8 @@ serve(async (req) => {
 
     const password = parsePassword(body);
     const admin = getAdminClient();
-    const passwordHash = await getActiveAdminPasswordHash(admin);
-    const isValid = await verifyAdminPassword(password, passwordHash);
+    const passwordMaterial = await getActiveAdminPasswordHash(admin);
+    const isValid = await verifyAdminPassword(password, passwordMaterial);
 
     if (!isValid) {
       throw new ApiError(401, "unauthorized", "Credenziali non valide.");
