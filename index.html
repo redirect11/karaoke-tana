@@ -712,7 +712,7 @@
               ${currentSong ? '<div class="song-item-badge">🎤 Canzone corrente</div>' : ''}
               ${Number(item.id) === currentBookingIdNum ? '<div class="song-item-badge">La tua prenotazione</div>' : ''}
             </div>
-            <div class="song-item-order${alert ? ' alert' : ''}">${escapeHtml(orderLabel)}</div>
+            <div class="song-item-order${alert ? ' alert' : ''}">${orderLabel}</div>
           </div>
         </div>
       `;
@@ -744,7 +744,8 @@
       const stateKey = `booking_notified_${bookingId}`;
       try {
         return JSON.parse(sessionStorage.getItem(stateKey) || '{}') || {};
-      } catch (_) {
+      } catch (error) {
+        console.warn('Impossibile leggere lo stato notifiche locale:', error);
         return {};
       }
     }
@@ -781,7 +782,7 @@
       if (!Number.isInteger(bookingId) || bookingId <= 0) return;
       const state = getNotificationState(bookingId);
       if (state.rebook) return;
-      const wasApproved = storedBooking?.pendingExpiresAt == null;
+      const wasApproved = storedBooking?.pendingExpiresAt === null;
       const body = wasApproved
         ? 'La tua esibizione è conclusa. Ora puoi prenotare di nuovo.'
         : 'Il tempo di attesa è terminato. Ora puoi prenotare di nuovo.';
@@ -802,7 +803,7 @@
       if (stepWaiting.style.display !== 'flex') return;
       const stored = safeParseBookingCookie(getCookie('last_booking'));
       if (!stored) return;
-      if (stored.pendingExpiresAt != null) return;
+      if (stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) return;
       const bookingId = Number(stored.id);
       if (!Number.isInteger(bookingId) || bookingId <= 0) return;
 
@@ -1040,7 +1041,7 @@
 
           if (statusAtExpiry.approved) {
             const updated = { ...stored, pendingExpiresAt: null };
-            if (stored.pendingExpiresAt != null) maybeNotifyBookingApproved(id);
+            if (stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) maybeNotifyBookingApproved(id);
             setCookie('last_booking', JSON.stringify(updated), 365 * 24 * 3600);
             showWaitingScreen(updated.canzone || canzone, updated.artista || artista, true, null);
             return true;
@@ -1053,7 +1054,7 @@
             .maybeSingle();
           if (data?.approvata && !data?.cantata) {
             const updated = { ...stored, pendingExpiresAt: null };
-            if (stored.pendingExpiresAt != null) maybeNotifyBookingApproved(id);
+            if (stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) maybeNotifyBookingApproved(id);
             setCookie('last_booking', JSON.stringify(updated), 365 * 24 * 3600);
             showWaitingScreen(updated.canzone || canzone, updated.artista || artista, true, null);
             return true;
@@ -1080,7 +1081,7 @@
           pendingExpiresAt: status.approved ? null : expiresAtMs,
           timestamp: Number.isFinite(createdAtMs) ? createdAtMs : (Number(stored.timestamp) || Date.now()),
         };
-        if (status.approved && stored.pendingExpiresAt != null) maybeNotifyBookingApproved(id);
+        if (status.approved && stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) maybeNotifyBookingApproved(id);
         setCookie(
           'last_booking',
           JSON.stringify(updated),
@@ -1120,7 +1121,7 @@
           JSON.stringify(updated),
           data.approvata ? 365 * 24 * 3600 : Math.max(PENDING_EXPIRY_MIN * 60, 60),
         );
-        if (data.approvata && stored.pendingExpiresAt != null) maybeNotifyBookingApproved(id);
+        if (data.approvata && stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) maybeNotifyBookingApproved(id);
         showWaitingScreen(canzone, artista, Boolean(data.approvata), updated.pendingExpiresAt);
       } else {
         showWaitingScreen(canzone, artista, false, pendingExpiryAt);
