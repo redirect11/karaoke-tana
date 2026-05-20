@@ -87,7 +87,7 @@ export async function getActiveAdminPasswordHash(admin: ReturnType<typeof create
 
 export async function verifyAdminPassword(password: string, passwordHash: string): Promise<boolean> {
   if (!password || !passwordHash) return false;
-  if (!/^\$2[abxy]\$\d{2}\$/.test(passwordHash)) return false;
+  if (!/^\$2[abxy]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(passwordHash)) return false;
   return await compare(password, passwordHash);
 }
 
