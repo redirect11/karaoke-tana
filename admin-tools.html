@@ -7,9 +7,11 @@
   <style>
     :root {
       --bg:     #12071f;
+      --bg2:    #1e0f35;
       --card:   #2a1650;
       --gold:   #d4a017;
       --gold-s: #f0c94a;
+      --red:    #9b1c2e;
       --text:   #f0e6d3;
       --muted:  #a08ca0;
       --radius: 14px;
@@ -18,82 +20,364 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      min-height: 100vh;
       font-family: 'Segoe UI', system-ui, sans-serif;
-      background:
-        radial-gradient(circle at top, rgba(212,160,23,0.14), transparent 40%),
-        var(--bg);
+      background: var(--bg);
       color: var(--text);
+      min-height: 100vh;
+    }
+
+    #pwd-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 16px;
+      z-index: 10;
     }
+    #pwd-overlay.hidden { display: none; }
 
-    .notice-card {
-      width: 100%;
-      max-width: 520px;
+    .pwd-box,
+    .card {
       background: var(--card);
-      border: 1px solid rgba(212,160,23,0.18);
       border-radius: var(--radius);
-      padding: 32px 26px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.45);
+    }
+
+    .pwd-box {
+      width: 100%;
+      max-width: 380px;
+      padding: 36px 28px;
       text-align: center;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
     }
-
-    .logo {
-      font-size: 3rem;
+    .pwd-box .logo { font-size: 2.5rem; margin-bottom: 8px; }
+    .pwd-box h2 { color: var(--gold); margin-bottom: 4px; font-size: 1.2rem; }
+    .pwd-box p { color: var(--muted); font-size: 0.84rem; margin-bottom: 20px; }
+    .pwd-box input {
+      width: 100%;
+      background: var(--bg2);
+      border: 1.5px solid #3d2366;
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
+      padding: 11px 14px;
+      outline: none;
       margin-bottom: 12px;
     }
-
-    h1 {
-      color: var(--gold-s);
-      font-size: 1.45rem;
-      margin-bottom: 12px;
-    }
-
-    p {
-      color: var(--muted);
-      line-height: 1.55;
-      font-size: 0.96rem;
-      margin-bottom: 14px;
-    }
-
-    .notice-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border-radius: 999px;
-      background: rgba(212,160,23,0.12);
-      color: var(--gold-s);
-      padding: 8px 14px;
-      font-size: 0.8rem;
+    .pwd-box button {
+      width: 100%;
+      padding: 12px;
+      background: var(--gold);
+      border: none;
+      border-radius: 50px;
+      color: #12071f;
       font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    .pwd-error {
+      color: #e74c3c;
+      font-size: 0.8rem;
+      margin-top: 10px;
+      min-height: 18px;
+    }
+
+    #panel {
+      display: none;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 16px 48px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
       margin-bottom: 20px;
     }
-
+    .topbar h1 { font-size: 1.2rem; color: var(--gold); }
+    .topbar p { color: var(--muted); font-size: 0.82rem; margin-top: 3px; }
     .back-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-top: 8px;
-      padding: 12px 18px;
-      border-radius: 999px;
-      background: var(--gold);
-      color: #12071f;
+      color: var(--gold);
       text-decoration: none;
+      font-size: 0.82rem;
       font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .stack { display: flex; flex-direction: column; gap: 16px; }
+    .card { padding: 22px 20px; display: flex; flex-direction: column; gap: 14px; }
+    .card h2 { color: var(--gold-s); font-size: 1rem; }
+    .card p,
+    .card li { color: var(--muted); font-size: 0.88rem; line-height: 1.5; }
+
+    .status-box {
+      background: var(--bg2);
+      border: 1px solid #3d2366;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .status-box strong { display: block; color: var(--text); margin-bottom: 4px; }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+    button.action-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 11px 16px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    button.action-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-clean-serata { background: var(--gold); color: #12071f; }
+    .btn-clean-all { background: var(--red); color: #fff; }
+
+    #status-message {
+      min-height: 20px;
+      font-size: 0.84rem;
+      color: var(--gold-s);
+    }
+
+    .danger-note {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: rgba(155,28,46,0.16);
+      border: 1px solid rgba(155,28,46,0.45);
     }
   </style>
 </head>
 <body>
-  <main class="notice-card">
-    <div class="logo">⚙️</div>
-    <div class="notice-pill">Rafforzamento della sicurezza in corso</div>
-    <h1>Strumenti nascosti temporaneamente disattivati</h1>
-    <p>Le operazioni di pulizia e moderazione non possono essere protette in modo sicuro da una pagina statica pubblica.</p>
-    <p>Questi strumenti verranno ripristinati nel follow-up server-side con Supabase Edge Functions, senza esporre password o altri segreti nel browser.</p>
-    <a class="back-link" href="index.html">← Torna alle prenotazioni</a>
+
+  <div id="pwd-overlay">
+    <div class="pwd-box">
+      <div class="logo">⚙️</div>
+      <h2>Strumenti nascosti</h2>
+      <p>Inserisci l'admin secret per aprire la pagina di pulizia.</p>
+      <input id="pwd-input" type="password" placeholder="admin secret" autocomplete="off" />
+      <button id="pwd-btn">Accedi</button>
+      <p class="pwd-error" id="pwd-error"></p>
+    </div>
+  </div>
+
+  <main id="panel">
+    <div class="topbar">
+      <div>
+        <h1>Strumenti nascosti</h1>
+        <p>Pagina riservata allo sviluppo e ai test interni.</p>
+      </div>
+      <a class="back-link" href="admin.html">← Torna al pannello</a>
+    </div>
+
+    <div class="stack">
+      <section class="card">
+        <h2>Serata corrente</h2>
+        <div class="status-box" id="current-serata-box">
+          <strong>Caricamento…</strong>
+          <span>Sto controllando se c'è una serata aperta.</span>
+        </div>
+        <div class="actions">
+          <button class="action-btn btn-clean-serata" id="btn-clean-serata">Pulisci prenotazioni serata corrente</button>
+        </div>
+        <p>Questa azione elimina le prenotazioni della serata aperta e i relativi voti collegati.</p>
+      </section>
+
+      <section class="card">
+        <h2>Database di test</h2>
+        <div class="danger-note">
+          <p>Usa questa opzione solo per sviluppo: svuota prenotazioni e serate. I voti vengono rimossi automaticamente tramite cascade.</p>
+        </div>
+        <div class="actions">
+          <button class="action-btn btn-clean-all" id="btn-clean-all">Pulisci tutto il database di test</button>
+        </div>
+      </section>
+
+      <div id="status-message"></div>
+    </div>
   </main>
+
+  <script src="config.js"></script>
+  <script>
+    const config = typeof CONFIG === 'object' && CONFIG ? CONFIG : {};
+    const supabaseReady = Boolean(config.SUPABASE_URL) && !String(config.SUPABASE_URL).includes('TUO-PROGETTO');
+    const edgeBaseUrl = supabaseReady ? `${String(config.SUPABASE_URL).replace(/\/+$/, '')}/functions/v1` : '';
+    const adminBookingsUrl = `${edgeBaseUrl}/admin-bookings`;
+    const ADMIN_SECRET_KEY = 'admin_shared_secret';
+    const ADMIN_SECRET_SESSION_KEY = 'admin_shared_secret_session';
+
+    const overlay = document.getElementById('pwd-overlay');
+    const panel = document.getElementById('panel');
+    const pwdInput = document.getElementById('pwd-input');
+    const pwdError = document.getElementById('pwd-error');
+    const currentSerataBox = document.getElementById('current-serata-box');
+    const statusMessage = document.getElementById('status-message');
+    const cleanSerataBtn = document.getElementById('btn-clean-serata');
+    const cleanAllBtn = document.getElementById('btn-clean-all');
+
+    let currentSerata = null;
+    let adminSecret = '';
+
+    document.getElementById('pwd-btn').addEventListener('click', checkSecret);
+    pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkSecret(); });
+    cleanSerataBtn.addEventListener('click', cleanupCurrentSerata);
+    cleanAllBtn.addEventListener('click', cleanupAllData);
+
+    const restoredSessionSecret = sessionStorage.getItem(ADMIN_SECRET_SESSION_KEY) || '';
+    const restoredPersistentSecret = localStorage.getItem(ADMIN_SECRET_KEY) || '';
+    const initialSecret = (restoredSessionSecret || restoredPersistentSecret).trim();
+    if (initialSecret) {
+      pwdInput.value = initialSecret;
+      checkSecret();
+    }
+
+    function getEdgeHeaders(secret) {
+      const headers = { 'Content-Type': 'application/json', 'x-admin-secret': secret };
+      if (config.SUPABASE_ANON_KEY) {
+        headers.apikey = config.SUPABASE_ANON_KEY;
+        headers.Authorization = `Bearer ${config.SUPABASE_ANON_KEY}`;
+      }
+      return headers;
+    }
+
+    async function callAdminRaw(secret, action, payload = {}) {
+      if (!adminBookingsUrl) {
+        throw new Error('CONFIG.SUPABASE_URL non configurato.');
+      }
+
+      const response = await fetch(adminBookingsUrl, {
+        method: 'POST',
+        headers: getEdgeHeaders(secret),
+        body: JSON.stringify({ action, ...payload }),
+      });
+
+      let result = null;
+      try {
+        result = await response.json();
+      } catch (_) {
+        result = null;
+      }
+
+      if (!response.ok || !result?.success) {
+        const message = result?.error?.message || 'Errore durante la richiesta admin.';
+        throw new Error(message);
+      }
+
+      return result.data;
+    }
+
+    async function callAdmin(action, payload = {}) {
+      if (!adminSecret) {
+        throw new Error('Admin secret mancante.');
+      }
+      return await callAdminRaw(adminSecret, action, payload);
+    }
+
+    async function checkSecret() {
+      const candidate = pwdInput.value.trim();
+      if (!candidate) {
+        pwdError.textContent = 'Inserisci un admin secret valido.';
+        return;
+      }
+
+      try {
+        await callAdminRaw(candidate, 'ping');
+        adminSecret = candidate;
+        sessionStorage.setItem(ADMIN_SECRET_SESSION_KEY, candidate);
+        unlockPanel();
+      } catch (error) {
+        pwdError.textContent = error?.message || 'Admin secret non valido.';
+      }
+    }
+
+    function unlockPanel() {
+      overlay.classList.add('hidden');
+      panel.style.display = 'block';
+      initTools();
+    }
+
+    async function initTools() {
+      await loadCurrentSerata();
+    }
+
+    async function loadCurrentSerata() {
+      try {
+        const state = await callAdmin('get_state');
+        currentSerata = state?.serata || null;
+        renderCurrentSerata();
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito a leggere la serata corrente.', true);
+      }
+    }
+
+    function renderCurrentSerata() {
+      if (!currentSerata) {
+        currentSerataBox.innerHTML = `
+          <strong>Nessuna serata aperta</strong>
+          <span>Apri una serata da admin.html per usare la pulizia mirata.</span>
+        `;
+        cleanSerataBtn.disabled = true;
+        return;
+      }
+
+      const [year, month, day] = String(currentSerata.data).split('-').map(Number);
+      const dateStr = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('it-IT', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        timeZone: 'UTC',
+      });
+
+      currentSerataBox.innerHTML = `
+        <strong>${dateStr}</strong>
+        <span>ID serata: ${currentSerata.id}</span>
+      `;
+      cleanSerataBtn.disabled = false;
+    }
+
+    async function cleanupCurrentSerata() {
+      if (!currentSerata) return;
+      if (!confirm('Eliminare tutte le prenotazioni della serata corrente?')) return;
+
+      setBusy(cleanSerataBtn, true, 'Pulizia in corso…');
+      try {
+        const result = await callAdmin('cleanup_current_serata', { serataId: currentSerata.id });
+        setStatus(`Prenotazioni della serata corrente eliminate (${result.deletedBookings || 0}).`);
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito a pulire la serata corrente.', true);
+      } finally {
+        setBusy(cleanSerataBtn, false, 'Pulisci prenotazioni serata corrente');
+        await loadCurrentSerata();
+      }
+    }
+
+    async function cleanupAllData() {
+      if (!confirm('Questa operazione svuota prenotazioni e serate usate nei test. Continuare?')) return;
+      if (!confirm('Conferma finale: vuoi davvero pulire tutto il database di test?')) return;
+
+      setBusy(cleanAllBtn, true, 'Pulizia totale…');
+      try {
+        const result = await callAdmin('cleanup_all_test_data');
+        setStatus(`Database pulito: ${result.deletedBookings || 0} prenotazioni e ${result.deletedSerate || 0} serate eliminate.`);
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito a pulire il database di test.', true);
+      } finally {
+        setBusy(cleanAllBtn, false, 'Pulisci tutto il database di test');
+        await loadCurrentSerata();
+      }
+    }
+
+    function setBusy(button, busy, label) {
+      button.disabled = busy;
+      button.textContent = label;
+    }
+
+    function setStatus(message, isError = false) {
+      statusMessage.textContent = message;
+      statusMessage.style.color = isError ? '#ff7b7b' : 'var(--gold-s)';
+    }
+  </script>
 </body>
 </html>

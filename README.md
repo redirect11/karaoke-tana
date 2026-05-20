@@ -34,6 +34,34 @@ Configura su Supabase Edge Functions:
 - `ALLOWED_ORIGINS` (es. `https://redirect11.github.io` oppure `*`)
 - `REQUIRE_AUTH` (`false` per flusso anonimo attuale)
 
+## Edge Function: admin-bookings
+
+Questa repo include anche:
+
+- `supabase/functions/admin-bookings/index.ts`
+
+Scopo: eseguire lato server le mutazioni admin (approva/elimina/completata, apertura/chiusura serata, toggle votazioni, cleanup strumenti nascosti).
+
+### Secrets richiesti nella funzione
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ADMIN_SHARED_SECRET`
+- `ALLOWED_ORIGINS` (es. `https://redirect11.github.io` oppure `*`)
+
+La pagina `admin.html` non contiene password hardcoded: richiede l'`ADMIN_SHARED_SECRET` a runtime e lo invia alla funzione via header `x-admin-secret`.
+
+## Supabase branch deploy (Git integration)
+
+Per l'auto-deploy delle Edge Functions nei branch preview, questa repo dichiara le funzioni in:
+
+- `supabase/config.toml`
+
+con almeno:
+
+- `[functions.submit-booking]`
+- `[functions.admin-bookings]`
+
 ### Deploy funzione
 
 Esempio con Supabase CLI:

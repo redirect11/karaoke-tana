@@ -1,0 +1,11 @@
+# Supabase CLI/Git integration config.
+# Functions listed here are auto-discovered for branch deployments.
+project_id = "replace-with-your-project-ref"
+
+[functions.submit-booking]
+enabled = true
+verify_jwt = false
+
+[functions.admin-bookings]
+enabled = true
+verify_jwt = false
