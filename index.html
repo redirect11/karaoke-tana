@@ -896,10 +896,7 @@
       const stored = safeParseBookingCookie(getCookie('last_booking'));
       if (!stored) return;
       if (stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) return;
-      const bookingId = Number(stored.id);
-      if (!Number.isInteger(bookingId) || bookingId <= 0) return;
-
-      const index = queueItems.findIndex((item) => Number(item.id) === bookingId);
+      const index = getCurrentBookingQueueIndex(queueItems);
       if (index === -1) {
         setWaitingTitle(false);
         setWaitingStatus('La tua prenotazione è stata approvata. Resta in ascolto: la coda si aggiorna in tempo reale.');
@@ -924,7 +921,7 @@
       if (!Number.isInteger(bookingIdNum) || bookingIdNum <= 0) return;
       const index = queueItems.findIndex((item) => Number(item.id) === bookingIdNum);
       const state = getNotificationState(bookingIdNum);
-      const previousIndex = Number.isInteger(state.queueIndex) ? state.queueIndex : null;
+      const previousIndex = Number.isInteger(state.queueIndex) ? state.queueIndex : -1;
 
       if (index === 1 && previousIndex !== 1 && !state.almost) {
         if (notifyBrowser('⏳ Manca una canzone', 'Preparati, stai per cantare.')) {
