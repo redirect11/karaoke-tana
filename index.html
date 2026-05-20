@@ -293,7 +293,7 @@
       padding: 0;
       margin: -1px;
       overflow: hidden;
-      clip: rect(0, 0, 0, 0);
+      clip-path: inset(50%);
       white-space: nowrap;
       border: 0;
     }
@@ -925,12 +925,7 @@
       if (!statusEl) return;
       statusEl.classList.toggle('sr-only', screenReaderOnly);
       if (screenReaderOnly) {
-        if (html) {
-          const parsedHtml = new DOMParser().parseFromString(message, 'text/html');
-          statusEl.textContent = parsedHtml.body.textContent || '';
-        } else {
-          statusEl.textContent = message;
-        }
+        statusEl.textContent = message;
         return;
       }
       if (html) statusEl.innerHTML = message;
