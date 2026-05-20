@@ -454,8 +454,8 @@
 
     <div id="queue-wrap">
       <div class="queue-tabs">
-        <button class="queue-tab active" id="tab-pending" type="button">Da approvare (0)</button>
-        <button class="queue-tab" id="tab-approved" type="button">Approvate (0)</button>
+        <button class="queue-tab active" id="tab-pending" type="button">Da approvare</button>
+        <button class="queue-tab" id="tab-approved" type="button">Approvate</button>
       </div>
       <div id="empty-state">
         <div class="big">🎉</div>
@@ -742,10 +742,7 @@
         restoreCardAfterError(card, 'Non sono riuscito ad approvare la prenotazione.');
         return;
       }
-      bookings = bookings.map(item => {
-        if (item.id === id) item.approvata = true;
-        return item;
-      });
+      bookings = bookings.map(item => item.id === id ? { ...item, approvata: true } : item);
       renderQueue(bookings);
     }
 
