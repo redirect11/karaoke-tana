@@ -422,6 +422,66 @@
       padding: 8px 0 4px;
     }
 
+    .notification-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 3, 15, 0.78);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 50;
+    }
+    .notification-modal.open { display: flex; }
+    .notification-modal-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border: 1px solid #3d2366;
+      border-radius: 14px;
+      padding: 20px 18px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+    }
+    .notification-modal-card h3 {
+      color: var(--gold-soft);
+      font-size: 1.02rem;
+      margin-bottom: 10px;
+    }
+    .notification-modal-card p {
+      margin-bottom: 12px;
+      font-size: 0.86rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .notification-modal-list {
+      margin: 0 0 16px 18px;
+      color: var(--text);
+      font-size: 0.83rem;
+      line-height: 1.5;
+    }
+    .notification-modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    .notification-modal-actions button {
+      border: none;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-notification-skip {
+      background: #4b356f;
+      color: var(--text);
+    }
+    .btn-notification-accept {
+      background: var(--gold);
+      color: #12071f;
+    }
+
     footer {
       margin-top: 40px;
       font-size: 0.72rem;
@@ -538,6 +598,22 @@
     <p>Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!</p>
   </div>
 
+  <div class="notification-modal" id="notification-modal" role="dialog" aria-modal="true" aria-labelledby="notification-modal-title">
+    <div class="notification-modal-card">
+      <h3 id="notification-modal-title">Attiva le notifiche</h3>
+      <p>Nel prossimo passaggio puoi abilitare le notifiche per non perdere il tuo turno.</p>
+      <ul class="notification-modal-list">
+        <li>Quando la tua canzone viene approvata</li>
+        <li>Quando il tuo turno si sta avvicinando</li>
+        <li>Quando puoi prenotare di nuovo</li>
+      </ul>
+      <div class="notification-modal-actions">
+        <button type="button" class="btn-notification-skip" id="notification-skip-btn">Ora no</button>
+        <button type="button" class="btn-notification-accept" id="notification-accept-btn">Attiva notifiche</button>
+      </div>
+    </div>
+  </div>
+
   <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.2</footer>
 
   <script src="config.js"></script>
@@ -606,6 +682,9 @@
     const ind1         = document.getElementById('ind-1');
     const ind1num      = document.getElementById('ind-1-num');
     const ind2         = document.getElementById('ind-2');
+    const notificationModalEl = document.getElementById('notification-modal');
+    const notificationSkipBtnEl = document.getElementById('notification-skip-btn');
+    const notificationAcceptBtnEl = document.getElementById('notification-accept-btn');
     let activeSongTab = 'to-sing';
     let notificationPermissionRequested = false;
     let songListPollInterval = null;
@@ -1225,16 +1304,48 @@
       setCookie('ig_followed', 'true', 6 * 24 * 3600);
       stepFollow.style.display = 'none';
       showSongListCard(true);
-      requestNotificationPermissionAfterSegui();
       const pending = await checkPendingBooking();
       if (!pending) showForm();
     }
 
-    async function requestNotificationPermissionAfterSegui() {
+    function showNotificationExplainer() {
+      if (!notificationModalEl || !notificationSkipBtnEl || !notificationAcceptBtnEl) {
+        console.warn('Notification explainer is unavailable: missing modal elements.');
+        return Promise.resolve(false);
+      }
+      return new Promise((resolve) => {
+        const cleanup = () => {
+          notificationModalEl.classList.remove('open');
+          notificationSkipBtnEl.removeEventListener('click', onSkip);
+          notificationAcceptBtnEl.removeEventListener('click', onAccept);
+          notificationModalEl.removeEventListener('click', onBackdropClick);
+        };
+        const onSkip = () => {
+          cleanup();
+          resolve(false);
+        };
+        const onAccept = () => {
+          cleanup();
+          resolve(true);
+        };
+        const onBackdropClick = (event) => {
+          if (event.target === notificationModalEl) onSkip();
+        };
+
+        notificationModalEl.classList.add('open');
+        notificationSkipBtnEl.addEventListener('click', onSkip);
+        notificationAcceptBtnEl.addEventListener('click', onAccept);
+        notificationModalEl.addEventListener('click', onBackdropClick);
+      });
+    }
+
+    async function requestNotificationPermissionAfterBookingSuccess() {
       if (notificationPermissionRequested) return;
-      notificationPermissionRequested = true;
       if (!('Notification' in window)) return;
       if (Notification.permission !== 'default') return;
+      const shouldRequest = await showNotificationExplainer();
+      if (!shouldRequest) return;
+      notificationPermissionRequested = true;
       try {
         await Notification.requestPermission();
       } catch (_) {}
@@ -1337,6 +1448,7 @@
       showSongListCard(true);
       ind2.classList.remove('active');
       ind2.classList.add('done');
+      requestNotificationPermissionAfterBookingSuccess();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
