@@ -926,9 +926,8 @@
       statusEl.classList.toggle('sr-only', screenReaderOnly);
       if (screenReaderOnly) {
         if (html) {
-          const textOnlyEl = document.createElement('div');
-          textOnlyEl.innerHTML = message;
-          statusEl.textContent = textOnlyEl.textContent || '';
+          const parsedHtml = new DOMParser().parseFromString(message, 'text/html');
+          statusEl.textContent = parsedHtml.body.textContent || '';
         } else {
           statusEl.textContent = message;
         }
