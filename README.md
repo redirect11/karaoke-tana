@@ -39,17 +39,22 @@ Configura su Supabase Edge Functions:
 Questa repo include anche:
 
 - `supabase/functions/admin-bookings/index.ts`
+- `supabase/functions/admin-login/index.ts`
 
-Scopo: eseguire lato server le mutazioni admin (approva/elimina/completata, apertura/chiusura serata, toggle votazioni, cleanup strumenti nascosti).
+Scopo:
+
+- `admin-login`: verifica server-side la password admin confrontandola con `admin_credentials.password_hash` (bcrypt) e rilascia un token sessione breve.
+- `admin-bookings`: esegue lato server le mutazioni admin (approva/elimina/completata, apertura/chiusura serata, toggle votazioni, cleanup strumenti nascosti) solo con `Authorization: Bearer <token>`.
 
 ### Secrets richiesti nella funzione
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `ADMIN_SHARED_SECRET`
+- `ADMIN_TOKEN_SIGNING_SECRET`
 - `ALLOWED_ORIGINS` (es. `https://redirect11.github.io` oppure `*`)
+- `ADMIN_SESSION_TTL_SECONDS` (opzionale, default 14400)
 
-La pagina `admin.html` non contiene password hardcoded: richiede l'`ADMIN_SHARED_SECRET` a runtime e lo invia alla funzione via header `x-admin-secret`.
+La password admin viene inserita in `admin.html`/`admin-tools.html` solo al login, inviata via HTTPS a `admin-login`, e non viene mai salvata nel client. Nel browser viene salvato solo il token sessione temporaneo in `sessionStorage`.
 
 ## Supabase branch deploy (Git integration)
 
@@ -61,6 +66,7 @@ con almeno:
 
 - `[functions.submit-booking]`
 - `[functions.admin-bookings]`
+- `[functions.admin-login]`
 
 > Nota: aggiorna `project_id` in `supabase/config.toml` con il tuo project ref Supabase.
 

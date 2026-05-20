@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { getAdminClient, getAdminTokenSecret, verifyAdminToken } from "../_shared/admin-auth.ts";
 
 type ApiEnvelope = {
   success: boolean;
@@ -34,7 +35,7 @@ function getCorsHeaders(origin: string | null): HeadersInit {
 
   return {
     "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-secret",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Content-Type": "application/json",
     "Vary": "Origin",
@@ -69,47 +70,27 @@ function normalizeDateOrToday(value: unknown): string {
   return trimmed;
 }
 
-function getAdminSecret(req: Request): string {
-  return (req.headers.get("x-admin-secret") ?? "").trim();
-}
-
-function constantTimeEqual(a: string, b: string): boolean {
-  const encoder = new TextEncoder();
-  const aBytes = encoder.encode(a);
-  const bBytes = encoder.encode(b);
-  const maxLength = Math.max(aBytes.length, bBytes.length);
-  let diff = aBytes.length ^ bBytes.length;
-
-  for (let i = 0; i < maxLength; i += 1) {
-    const aValue = i < aBytes.length ? aBytes[i] : 0;
-    const bValue = i < bBytes.length ? bBytes[i] : 0;
-    diff |= aValue ^ bValue;
-  }
-
-  return diff === 0;
-}
-
-function ensureAdminSecret(req: Request): void {
-  const expectedSecret = (Deno.env.get("ADMIN_SHARED_SECRET") ?? "").trim();
-  if (!expectedSecret) {
-    throw new ApiError(500, "server_misconfigured", "Config server mancante.");
-  }
-
-  const providedSecret = getAdminSecret(req);
-  if (!providedSecret || !constantTimeEqual(providedSecret, expectedSecret)) {
+async function ensureAdminToken(req: Request): Promise<void> {
+  const authHeader = req.headers.get("authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) {
     throw new ApiError(401, "unauthorized", "Credenziali admin non valide.");
   }
-}
 
-function getAdminClient() {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new ApiError(500, "server_misconfigured", "Config server mancante.");
+  const token = authHeader.slice("Bearer ".length).trim();
+  if (!token) {
+    throw new ApiError(401, "unauthorized", "Credenziali admin non valide.");
   }
 
-  return createClient(supabaseUrl, serviceRoleKey);
+  let tokenSecret = "";
+  try {
+    tokenSecret = getAdminTokenSecret();
+  } catch {
+    throw new ApiError(500, "server_misconfigured", "Config server mancante.");
+  }
+  const isValid = await verifyAdminToken(token, tokenSecret);
+  if (!isValid) {
+    throw new ApiError(401, "unauthorized", "Credenziali admin non valide.");
+  }
 }
 
 async function getOpenSerata(admin: ReturnType<typeof createClient>) {
@@ -392,7 +373,7 @@ serve(async (req) => {
   }
 
   try {
-    ensureAdminSecret(req);
+    await ensureAdminToken(req);
 
     let body: unknown;
     try {

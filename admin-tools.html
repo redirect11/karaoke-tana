@@ -156,8 +156,8 @@
     <div class="pwd-box">
       <div class="logo">⚙️</div>
       <h2>Strumenti nascosti</h2>
-      <p>Inserisci l'admin secret per aprire la pagina di pulizia.</p>
-      <input id="pwd-input" type="password" placeholder="admin secret" autocomplete="off" />
+      <p>Inserisci la password admin per aprire la pagina di pulizia.</p>
+      <input id="pwd-input" type="password" placeholder="password admin" autocomplete="current-password" />
       <button id="pwd-btn">Accedi</button>
       <p class="pwd-error" id="pwd-error"></p>
     </div>
@@ -205,9 +205,9 @@
     const supabaseUrl = `${config.SUPABASE_URL || ''}`;
     const supabaseReady = !!supabaseUrl && !supabaseUrl.includes('TUO-PROGETTO');
     const edgeBaseUrl = supabaseReady ? `${supabaseUrl.replace(/\/+$/, '')}/functions/v1` : '';
-    const adminBookingsUrl = `${edgeBaseUrl}/admin-bookings`;
-    const ADMIN_SECRET_KEY = 'admin_shared_secret';
-    const ADMIN_SECRET_SESSION_KEY = 'admin_shared_secret_session';
+    const adminLoginUrl = supabaseReady ? `${edgeBaseUrl}/admin-login` : '';
+    const adminBookingsUrl = supabaseReady ? `${edgeBaseUrl}/admin-bookings` : '';
+    const ADMIN_SESSION_TOKEN_KEY = 'admin_session_token';
 
     const overlay = document.getElementById('pwd-overlay');
     const panel = document.getElementById('panel');
@@ -217,40 +217,45 @@
     const statusMessage = document.getElementById('status-message');
     const cleanSerataBtn = document.getElementById('btn-clean-serata');
     const cleanAllBtn = document.getElementById('btn-clean-all');
+    const pwdBtn = document.getElementById('pwd-btn');
 
     let currentSerata = null;
-    let adminSecret = '';
+    let adminToken = '';
 
-    document.getElementById('pwd-btn').addEventListener('click', checkSecret);
-    pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkSecret(); });
+    document.getElementById('pwd-btn').addEventListener('click', loginAdmin);
+    pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAdmin(); });
     cleanSerataBtn.addEventListener('click', cleanupCurrentSerata);
     cleanAllBtn.addEventListener('click', cleanupAllData);
 
-    const restoredSessionSecret = sessionStorage.getItem(ADMIN_SECRET_SESSION_KEY) || '';
-    const restoredPersistentSecret = localStorage.getItem(ADMIN_SECRET_KEY) || '';
-    const initialSecret = (restoredSessionSecret || restoredPersistentSecret).trim();
-    if (initialSecret) {
-      pwdInput.value = initialSecret;
-      checkSecret();
+    const restoredToken = (sessionStorage.getItem(ADMIN_SESSION_TOKEN_KEY) || '').trim();
+    if (restoredToken) {
+      restoreSession(restoredToken);
     }
 
-    function getEdgeHeaders(secret) {
-      const headers = { 'Content-Type': 'application/json', 'x-admin-secret': secret };
+    function getLoginHeaders() {
+      const headers = { 'Content-Type': 'application/json' };
       if (config.SUPABASE_ANON_KEY) {
         headers.apikey = config.SUPABASE_ANON_KEY;
-        headers.Authorization = `Bearer ${config.SUPABASE_ANON_KEY}`;
       }
       return headers;
     }
 
-    async function callAdminRaw(secret, action, payload = {}) {
+    function getAdminHeaders(token) {
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+      if (config.SUPABASE_ANON_KEY) {
+        headers.apikey = config.SUPABASE_ANON_KEY;
+      }
+      return headers;
+    }
+
+    async function callAdminRaw(token, action, payload = {}) {
       if (!adminBookingsUrl) {
         throw new Error('CONFIG.SUPABASE_URL non configurato.');
       }
 
       const response = await fetch(adminBookingsUrl, {
         method: 'POST',
-        headers: getEdgeHeaders(secret),
+        headers: getAdminHeaders(token),
         body: JSON.stringify({ action, ...payload }),
       });
 
@@ -270,26 +275,64 @@
     }
 
     async function callAdmin(action, payload = {}) {
-      if (!adminSecret) {
-        throw new Error('Admin secret mancante.');
+      if (!adminToken) {
+        throw new Error('Sessione admin mancante.');
       }
-      return await callAdminRaw(adminSecret, action, payload);
+      return await callAdminRaw(adminToken, action, payload);
     }
 
-    async function checkSecret() {
+    async function loginAdmin() {
       const candidate = pwdInput.value.trim();
       if (!candidate) {
-        pwdError.textContent = 'Inserisci un admin secret valido.';
+        pwdError.textContent = 'Inserisci la password admin.';
         return;
       }
 
+      pwdBtn.disabled = true;
+      pwdBtn.textContent = 'Verifica in corso…';
+      pwdError.textContent = '';
+
       try {
-        await callAdminRaw(candidate, 'ping');
-        adminSecret = candidate;
-        sessionStorage.setItem(ADMIN_SECRET_SESSION_KEY, candidate);
+        if (!adminLoginUrl) {
+          throw new Error('CONFIG.SUPABASE_URL non configurato.');
+        }
+        const response = await fetch(adminLoginUrl, {
+          method: 'POST',
+          headers: getLoginHeaders(),
+          body: JSON.stringify({ password: candidate }),
+        });
+
+        let result = null;
+        try {
+          result = await response.json();
+        } catch (_) {
+          result = null;
+        }
+
+        if (!response.ok || !result?.success || !result?.data?.token) {
+          const message = result?.error?.message || 'Credenziali non valide.';
+          throw new Error(message);
+        }
+
+        adminToken = result.data.token;
+        sessionStorage.setItem(ADMIN_SESSION_TOKEN_KEY, adminToken);
+        pwdInput.value = '';
         unlockPanel();
       } catch (error) {
-        pwdError.textContent = error?.message || 'Admin secret non valido.';
+        pwdError.textContent = error?.message || 'Credenziali non valide.';
+      } finally {
+        pwdBtn.disabled = false;
+        pwdBtn.textContent = 'Accedi';
+      }
+    }
+
+    async function restoreSession(token) {
+      try {
+        await callAdminRaw(token, 'ping');
+        adminToken = token;
+        unlockPanel();
+      } catch (_) {
+        sessionStorage.removeItem(ADMIN_SESSION_TOKEN_KEY);
       }
     }
 

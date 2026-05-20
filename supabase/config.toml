@@ -9,3 +9,7 @@ verify_jwt = false
 [functions.admin-bookings]
 enabled = true
 verify_jwt = false
+
+[functions.admin-login]
+enabled = true
+verify_jwt = false
