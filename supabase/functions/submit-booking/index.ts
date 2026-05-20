@@ -112,6 +112,22 @@ async function validateUserToken(req: Request): Promise<{ ok: true } | { ok: fal
   return { ok: true };
 }
 
+async function getOpenSerata(admin: ReturnType<typeof createClient>) {
+  const { data, error } = await admin
+    .from("serate")
+    .select("id")
+    .eq("aperta", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false as const, error };
+  }
+
+  return { ok: true as const, data };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: getCorsHeaders(req.headers.get("origin")) });
@@ -172,9 +188,45 @@ serve(async (req) => {
     approvata: false,
   };
 
-  if (validated.data.serata_id != null) {
-    insertPayload.serata_id = validated.data.serata_id;
+  const openSerata = await getOpenSerata(admin);
+  if (!openSerata.ok) {
+    return jsonResponse(req, 500, {
+      success: false,
+      data: null,
+      error: { code: "query_failed", message: "Errore durante il caricamento della serata." },
+    });
   }
+
+  if (!openSerata.data) {
+    return jsonResponse(req, 409, {
+      success: false,
+      data: null,
+      error: { code: "bookings_closed", message: "Le prenotazioni sono chiuse: nessuna serata aperta." },
+    });
+  }
+
+  const openSerataId = Number(openSerata.data.id);
+  if (!Number.isInteger(openSerataId) || openSerataId <= 0) {
+    return jsonResponse(req, 500, {
+      success: false,
+      data: null,
+      error: { code: "query_failed", message: "Errore durante il caricamento della serata." },
+    });
+  }
+
+  if (
+    validated.data.serata_id !== null
+    && validated.data.serata_id !== undefined
+    && validated.data.serata_id !== openSerataId
+  ) {
+    return jsonResponse(req, 409, {
+      success: false,
+      data: null,
+      error: { code: "invalid_serata_id", message: "La serata selezionata non è più aperta. Aggiorna la pagina e riprova." },
+    });
+  }
+
+  insertPayload.serata_id = openSerataId;
 
   const { data, error } = await admin
     .from("prenotazioni")
