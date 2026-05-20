@@ -246,17 +246,17 @@
     }
 
     function getLoginHeaders() {
-      const headers = { 'Content-Type': 'application/json' };
+      const headers = new Headers({ 'Content-Type': 'application/json' });
       if (config.SUPABASE_ANON_KEY) {
-        headers['apikey'] = config.SUPABASE_ANON_KEY;
+        headers.set('apikey', config.SUPABASE_ANON_KEY);
       }
       return headers;
     }
 
     function getAdminHeaders(token) {
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+      const headers = new Headers({ 'Content-Type': 'application/json', Authorization: `Bearer ${token}` });
       if (config.SUPABASE_ANON_KEY) {
-        headers['apikey'] = config.SUPABASE_ANON_KEY;
+        headers.set('apikey', config.SUPABASE_ANON_KEY);
       }
       return headers;
     }
