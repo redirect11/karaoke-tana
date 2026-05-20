@@ -1507,10 +1507,11 @@
       const booking = { nome, canzone, artista };
       if (currentSerataId) booking.serata_id = currentSerataId;
 
+      let pendingExpiresAt = null;
       try {
         const data = await submitBooking(booking);
         const createdAtMs = Date.parse(data.created_at || '');
-        const pendingExpiresAt = data.pending_expires_at
+        pendingExpiresAt = data.pending_expires_at
           ? Date.parse(data.pending_expires_at)
           : ((Number.isFinite(createdAtMs) ? createdAtMs : Date.now()) + PENDING_EXPIRY_MIN * 60 * 1000);
         setCookie('last_booking', JSON.stringify({
@@ -1533,9 +1534,7 @@
 
       loadSongList();
 
-      stepForm.style.display    = 'none';
-      stepSuccess.style.display = 'flex';
-      showSongListCard(true);
+      showWaitingScreen(canzone, artista, false, pendingExpiresAt);
       ind2.classList.remove('active');
       ind2.classList.add('done');
       requestNotificationPermissionAfterBookingSuccess();
