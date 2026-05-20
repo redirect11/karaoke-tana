@@ -725,7 +725,7 @@
 
       songListStatus.textContent = items.length === 1
         ? 'Canzone corrente in esecuzione'
-        : `${items.length} canzoni in coda · la prima è quella corrente`;
+        : `${items.length} canzoni in coda - la prima è quella corrente`;
       const currentSong = items[0];
       const queueItems = items.slice(1);
       const currentSongHtml = currentSong
@@ -827,11 +827,10 @@
       const bookingIdNum = Number(bookingId);
       if (!Number.isInteger(bookingIdNum) || bookingIdNum <= 0) return;
       const index = queueItems.findIndex((item) => Number(item.id) === bookingIdNum);
-      const stateKey = `booking_notified_${bookingIdNum}`;
       const state = getNotificationState(bookingIdNum);
 
       if (index === -1) {
-        sessionStorage.removeItem(stateKey);
+        sessionStorage.removeItem(`booking_notified_${bookingIdNum}`);
         return;
       }
 
