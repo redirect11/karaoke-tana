@@ -168,9 +168,7 @@
     <div class="pwd-box">
       <div class="logo">⚙️</div>
       <h2>Strumenti nascosti</h2>
-      <p>Accedi con le tue credenziali admin per aprire la pagina di pulizia.</p>
-      <label class="sr-only" for="email-input">Email amministratore</label>
-      <input id="email-input" type="email" placeholder="email admin" autocomplete="username" />
+      <p>Inserisci la password admin per aprire la pagina di pulizia.</p>
       <label class="sr-only" for="pwd-input">Password amministratore</label>
       <input id="pwd-input" type="password" placeholder="password admin" autocomplete="current-password" />
       <button id="pwd-btn">Accedi</button>
@@ -232,7 +230,6 @@
 
     const overlay = document.getElementById('pwd-overlay');
     const panel = document.getElementById('panel');
-    const emailInput = document.getElementById('email-input');
     const pwdInput = document.getElementById('pwd-input');
     const pwdError = document.getElementById('pwd-error');
     const currentSerataBox = document.getElementById('current-serata-box');
@@ -241,11 +238,12 @@
     const cleanAllBtn = document.getElementById('btn-clean-all');
     const pwdBtn = document.getElementById('pwd-btn');
 
+    const ADMIN_EMAIL = 'admin@tana.it';
+
     let currentSerata = null;
     let adminToken = '';
 
     document.getElementById('pwd-btn').addEventListener('click', loginAdmin);
-    emailInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') pwdInput.focus(); });
     pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAdmin(); });
     cleanSerataBtn.addEventListener('click', cleanupCurrentSerata);
     cleanAllBtn.addEventListener('click', cleanupAllData);
@@ -301,10 +299,9 @@
     }
 
     async function loginAdmin() {
-      const email = (emailInput.value || '').trim();
       const password = pwdInput.value;
-      if (!email || !password) {
-        pwdError.textContent = 'Inserisci email e password admin.';
+      if (!password) {
+        pwdError.textContent = 'Inserisci la password admin.';
         return;
       }
 
@@ -316,14 +313,13 @@
         if (!supabaseClient) {
           throw new Error('Configurazione Supabase mancante.');
         }
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password });
         if (error) throw error;
 
         const token = data.session?.access_token;
         if (!token) throw new Error('Sessione non ricevuta.');
 
         adminToken = token;
-        emailInput.value = '';
         pwdInput.value = '';
         unlockPanel();
       } catch (error) {
