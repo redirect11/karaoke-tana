@@ -979,7 +979,7 @@
       if (index === 0) {
         setWaitingRemainingSongs(null);
         setWaitingTitle('turn');
-        setWaitingStatus('La tua canzone è in esecuzione ora.');
+        setWaitingStatus('');
         return;
       }
       setWaitingRemainingSongs(index);
@@ -1332,7 +1332,7 @@
       const timerEl = document.getElementById('waiting-timer');
       if (approvata) {
         timerEl.textContent = getCurrentBookingQueueIndex() === 0
-          ? '🎤 Tocca a te: la tua canzone è in esecuzione.'
+          ? ''
           : 'Lo staff ti chiamerà quando arriva il tuo turno.';
         return false;
       }
