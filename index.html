@@ -925,9 +925,11 @@
       const statusEl = document.getElementById('waiting-status');
       if (!statusEl) return;
       statusEl.classList.toggle('sr-only', screenReaderOnly);
+      if (html && !screenReaderOnly) {
+        statusEl.innerHTML = message;
+        return;
+      }
       statusEl.textContent = message;
-      if (screenReaderOnly || !html) return;
-      statusEl.innerHTML = message;
     }
 
     function setWaitingTimer(message, { screenReaderOnly = false } = {}) {
@@ -1000,7 +1002,7 @@
       if (index === 0) {
         setWaitingRemainingSongs(null);
         setWaitingTitle('turn');
-        setWaitingStatus('Aggiornamento stato: è il tuo turno.', { screenReaderOnly: true });
+        setWaitingStatus('');
         return;
       }
       setWaitingRemainingSongs(index);
