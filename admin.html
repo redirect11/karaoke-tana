@@ -322,8 +322,8 @@
       gap: 4px;
       font-size: 0.62rem;
       font-weight: 800;
-      background: rgba(212,160,23,0.16);
-      color: var(--gold-s);
+      background: var(--gold-s);
+      color: #12071f;
       padding: 2px 7px;
       border-radius: 50px;
       letter-spacing: 0.05em;
@@ -707,42 +707,47 @@
     }
 
     async function approveBooking(id, card) {
+      if (!db) {
+        restoreCardAfterError(card, 'Supabase non configurato.');
+        return;
+      }
       setCardBusy(card, true);
       const { error } = await db.from('prenotazioni').update({ approvata: true }).eq('id', id);
       if (error) {
         console.error(error);
-        alert('Non sono riuscito ad approvare la prenotazione.');
-        setCardBusy(card, false);
+        restoreCardAfterError(card, 'Non sono riuscito ad approvare la prenotazione.');
       }
     }
 
     async function markDone(id, card) {
+      if (!db) {
+        restoreCardAfterError(card, 'Supabase non configurato.');
+        return;
+      }
       setCardBusy(card, true);
       card.classList.add('removing');
       setTimeout(async () => {
-        if (!db) return;
         const { error } = await db.from('prenotazioni').update({ cantata: true }).eq('id', id);
         if (error) {
           console.error(error);
-          alert('Non sono riuscito a segnare la prenotazione come completata.');
-          card.classList.remove('removing');
-          setCardBusy(card, false);
+          restoreCardAfterError(card, 'Non sono riuscito a segnare la prenotazione come completata.');
         }
       }, 280);
     }
 
     async function deleteBooking(booking, card) {
       if (!confirm(`Eliminare la prenotazione di ${booking.nome} per "${booking.canzone}"?`)) return;
+      if (!db) {
+        restoreCardAfterError(card, 'Supabase non configurato.');
+        return;
+      }
       setCardBusy(card, true);
       card.classList.add('removing');
       setTimeout(async () => {
-        if (!db) return;
         const { error } = await db.from('prenotazioni').delete().eq('id', booking.id);
         if (error) {
           console.error(error);
-          alert('Non sono riuscito a eliminare la prenotazione.');
-          card.classList.remove('removing');
-          setCardBusy(card, false);
+          restoreCardAfterError(card, 'Non sono riuscito a eliminare la prenotazione.');
         }
       }, 280);
     }
@@ -751,6 +756,12 @@
       card.querySelectorAll('.btn-action').forEach(btn => {
         btn.disabled = busy;
       });
+    }
+
+    function restoreCardAfterError(card, message) {
+      card.classList.remove('removing');
+      setCardBusy(card, false);
+      alert(message);
     }
 
     function esc(str) {

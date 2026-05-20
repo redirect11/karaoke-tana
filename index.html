@@ -456,7 +456,7 @@
     <div class="big-icon">🎤</div>
     <h2>Sei già in lista!</h2>
     <p id="waiting-song"></p>
-    <p id="waiting-status">La tua prenotazione è in attesa di approvazione dallo staff.</p>
+    <p id="waiting-status">Sto controllando lo stato della tua prenotazione…</p>
     <p id="waiting-timer"></p>
   </div>
 
@@ -892,7 +892,6 @@
 
       stepForm.style.display    = 'none';
       stepSuccess.style.display = 'flex';
-      document.getElementById('success-status').textContent = 'Lo staff la controllerà e apparirà nella coda pubblica appena viene approvata.';
       showSongListCard(true);
       ind2.classList.remove('active');
       ind2.classList.add('done');
