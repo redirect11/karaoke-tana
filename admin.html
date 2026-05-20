@@ -599,6 +599,7 @@
       const { data, error } = await db
         .from('prenotazioni')
         .select('*')
+        .eq('cantata', false)
         .eq('serata_id', currentSerata.id)
         .order('created_at', { ascending: true });
       if (error) { console.error(error); return; }
@@ -759,8 +760,10 @@
     }
 
     function restoreCardAfterError(card, message) {
-      card.classList.remove('removing');
-      setCardBusy(card, false);
+      if (document.body.contains(card)) {
+        card.classList.remove('removing');
+        setCardBusy(card, false);
+      }
       alert(message);
     }
 

@@ -314,10 +314,11 @@
       }
 
       const [year, month, day] = String(currentSerata.data).split('-').map(Number);
-      const dateStr = new Date(year, month - 1, day).toLocaleDateString('it-IT', {
+      const dateStr = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('it-IT', {
         weekday: 'long',
         day: 'numeric',
-        month: 'long'
+        month: 'long',
+        timeZone: 'UTC'
       });
       currentSerataBox.innerHTML = `
         <strong>${dateStr}</strong>
