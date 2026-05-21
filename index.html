@@ -669,6 +669,12 @@
       || (typeof CONFIG === 'object' && CONFIG)
       || {};
 
+    // ── Service Worker (required for notifications on Chrome Android) ──
+    let swRegistrationPromise = null;
+    if ('serviceWorker' in navigator) {
+      swRegistrationPromise = navigator.serviceWorker.register('./sw.js').catch(() => null);
+    }
+
     // ── Cookie helpers ──────────────────────────────────────
     function getCookie(name) {
       return document.cookie.split('; ').reduce((r, c) => {
@@ -888,12 +894,22 @@
     function notifyBrowser(title, body) {
       if (!('Notification' in window)) return false;
       if (Notification.permission !== 'granted') return false;
+      // Try direct constructor (desktop browsers)
       try {
         new Notification(title, { body });
         return true;
       } catch (_) {
-        return false;
+        // Chrome Android forbids new Notification() from page context;
+        // must use ServiceWorkerRegistration.showNotification() instead.
       }
+      // Fallback: show via Service Worker (required on Chrome Android)
+      if (swRegistrationPromise) {
+        swRegistrationPromise.then((reg) => {
+          if (reg) reg.showNotification(title, { body }).catch(() => {});
+        }).catch(() => {});
+        return true;
+      }
+      return false;
     }
 
     function maybeNotifyBookingApproved(bookingId) {
