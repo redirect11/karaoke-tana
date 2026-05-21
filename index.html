@@ -867,10 +867,10 @@
         songListEl.innerHTML = '';
         return;
       }
-      const hasCachedSongs = hasCachedSongListItems();
+      const hasSongListItemsCached = hasCachedSongListItems();
 
       songListAvailability = 'loading';
-      if (!hasCachedSongs) {
+      if (!hasSongListItemsCached) {
         songListStatus.textContent = 'Caricamento lista…';
       }
 
@@ -905,7 +905,7 @@
       if (error) {
         songListAvailability = 'error';
         console.error('Errore caricamento lista:', error);
-        if (!hasCachedSongs) {
+        if (!hasSongListItemsCached) {
           songListStatus.textContent = 'Impossibile caricare la lista canzoni.';
           songListEl.innerHTML = '';
         } else {
