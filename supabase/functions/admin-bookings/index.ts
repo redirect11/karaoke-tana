@@ -148,31 +148,31 @@ async function getSerataById(admin: ReturnType<typeof createClient>, serataId: n
 }
 
 function computeScoreMap(votes: Array<{ prenotazione_id: number; voto: number }>) {
-  const byBooking = new Map<number, { total: number; count: number; average: number }>();
+  const byBooking = new Map<number, { total: number; count: number }>();
   for (const vote of votes) {
     const bookingId = Number(vote.prenotazione_id);
     if (!Number.isInteger(bookingId) || bookingId <= 0) continue;
     const value = Number(vote.voto);
     if (!Number.isFinite(value)) continue;
-    const current = byBooking.get(bookingId) ?? { total: 0, count: 0, average: 0 };
+    const current = byBooking.get(bookingId) ?? { total: 0, count: 0 };
     current.total += value;
     current.count += 1;
-    current.average = current.total / current.count;
     byBooking.set(bookingId, current);
   }
   return byBooking;
 }
 
-function buildRanking(bookings: Array<Record<string, unknown>>, scoreMap: Map<number, { total: number; count: number; average: number }>) {
+function buildRanking(bookings: Array<Record<string, unknown>>, scoreMap: Map<number, { total: number; count: number }>) {
   return bookings
     .map((booking) => {
       const bookingId = Number(booking.id);
-      const score = scoreMap.get(bookingId) ?? { total: 0, count: 0, average: 0 };
+      const score = scoreMap.get(bookingId) ?? { total: 0, count: 0 };
+      const scoreAverage = score.count > 0 ? score.total / score.count : 0;
       return {
         ...booking,
         score_total: score.total,
         score_count: score.count,
-        score_average: score.count > 0 ? Number(score.average.toFixed(2)) : 0,
+        score_average: Number(scoreAverage.toFixed(2)),
       };
     })
     .sort((a, b) => {
@@ -192,7 +192,7 @@ async function getBookingScores(
     .filter((id) => Number.isInteger(id) && id > 0);
 
   if (bookingIds.length === 0) {
-    return new Map<number, { total: number; count: number; average: number }>();
+    return new Map<number, { total: number; count: number }>();
   }
 
   const { data, error } = await admin
@@ -242,12 +242,13 @@ async function getState(admin: ReturnType<typeof createClient>) {
   const scoreMap = await getBookingScores(admin, bookings);
   const bookingsWithScores = bookings.map((booking) => {
     const bookingId = Number(booking.id);
-    const score = scoreMap.get(bookingId) ?? { total: 0, count: 0, average: 0 };
+    const score = scoreMap.get(bookingId) ?? { total: 0, count: 0 };
+    const scoreAverage = score.count > 0 ? score.total / score.count : 0;
     return {
       ...booking,
       score_total: score.total,
       score_count: score.count,
-      score_average: score.count > 0 ? Number(score.average.toFixed(2)) : 0,
+      score_average: Number(scoreAverage.toFixed(2)),
     };
   });
   const approved = bookingsWithScores.filter((booking) => Boolean(booking.approvata));

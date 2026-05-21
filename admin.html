@@ -726,7 +726,7 @@
 
     async function decreeWinner() {
       if (!currentSerata) return;
-      if (!confirm('Confermi il decreto del vincitore? Dopo questa azione non sarà più possibile prenotare o modificare la coda.')) return;
+      if (!confirm('Conferma il decreto del vincitore. Dopo questa azione non sarà più possibile prenotare o modificare la coda.')) return;
       const btn = document.getElementById('btn-decree-winner');
       if (btn) btn.disabled = true;
       try {
