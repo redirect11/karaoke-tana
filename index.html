@@ -852,7 +852,12 @@
       songListCard.style.display = show ? 'block' : 'none';
     }
 
+    function hasCachedSongListItems() {
+      return songListCache.toSing.length > 0 || songListCache.completed.length > 0;
+    }
+
     async function loadSongList() {
+      const hasVisibleList = hasCachedSongListItems();
       if (!db || !currentSerataId) {
         songListAvailability = 'unavailable';
         songListCache = { toSing: [], completed: [] };
@@ -862,7 +867,9 @@
       }
 
       songListAvailability = 'loading';
-      songListStatus.textContent = 'Caricamento lista…';
+      if (!hasVisibleList) {
+        songListStatus.textContent = 'Caricamento lista…';
+      }
 
       let { data, error } = await db
         .from('prenotazioni')
@@ -895,8 +902,12 @@
       if (error) {
         songListAvailability = 'error';
         console.error('Errore caricamento lista:', error);
-        songListStatus.textContent = 'Impossibile caricare la lista canzoni.';
-        songListEl.innerHTML = '';
+        if (!hasVisibleList) {
+          songListStatus.textContent = 'Impossibile caricare la lista canzoni.';
+          songListEl.innerHTML = '';
+        } else {
+          songListStatus.textContent = 'Aggiornamento lista non riuscito.';
+        }
         return;
       }
 
@@ -955,9 +966,12 @@
 
     async function loadFinalLeaderboard(serataId, winnerBookingId = null) {
       if (!db || !leaderboardStatus || !leaderboardList) return;
-      leaderboardStatus.style.display = 'block';
-      leaderboardStatus.textContent = 'Caricamento classifica finale…';
-      leaderboardList.innerHTML = '';
+      const hasVisibleLeaderboard = leaderboardList.children.length > 0;
+      if (!hasVisibleLeaderboard) {
+        leaderboardStatus.style.display = 'block';
+        leaderboardStatus.textContent = 'Caricamento classifica finale…';
+        leaderboardList.innerHTML = '';
+      }
       const { data: rows, error } = await db
         .from('prenotazioni')
         .select('id, nome, canzone, artista, created_at, approvata')
@@ -966,7 +980,10 @@
         .order('created_at', { ascending: true });
 
       if (error) {
-        leaderboardStatus.textContent = 'Impossibile caricare la classifica.';
+        leaderboardStatus.style.display = 'block';
+        leaderboardStatus.textContent = hasVisibleLeaderboard
+          ? 'Aggiornamento classifica non riuscito.'
+          : 'Impossibile caricare la classifica.';
         return;
       }
 
