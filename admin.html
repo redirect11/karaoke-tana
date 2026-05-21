@@ -647,8 +647,6 @@
       });
       const votoOpen = Boolean(currentSerata.voto_aperto);
       const showTotals = Boolean(currentSerata.mostra_voti_totali);
-      const telegramNotificationsEnabled = currentSerata.notifiche_telegram_abilitate !== false;
-      const browserNotificationsEnabled = currentSerata.notifiche_browser_abilitate !== false;
       const winnerDecreed = Boolean(currentSerata.vincitore_decretato);
 
       serataWrap.innerHTML = `
@@ -665,16 +663,8 @@
               <div class="voto-label">Votazioni: ${winnerDecreed ? '🏁 concluse con vincitore' : (votoOpen ? '🟢 aperte' : '⭕ chiuse')}</div>
               <a class="vota-link" href="vota.html" target="_blank">Apri pagina voti ↗</a>
               <div class="voto-label">Totali pubblici: ${showTotals ? '👁️ visibili' : '🙈 nascosti'}</div>
-              <div class="voto-label">Notifiche Telegram: ${telegramNotificationsEnabled ? '🟢 abilitate' : '⭕ disabilitate'}</div>
-              <div class="voto-label">Notifiche browser: ${browserNotificationsEnabled ? '🟢 abilitate' : '⭕ disabilitate'}</div>
             </div>
             <div class="serata-actions">
-              <button class="btn-serata btn-secondary" id="btn-toggle-telegram-notifications">
-                ${telegramNotificationsEnabled ? 'Disabilita notifiche Telegram' : 'Abilita notifiche Telegram'}
-              </button>
-              <button class="btn-serata btn-secondary" id="btn-toggle-browser-notifications">
-                ${browserNotificationsEnabled ? 'Disabilita notifiche browser' : 'Abilita notifiche browser'}
-              </button>
               ${winnerDecreed ? '' : `
                 <button class="btn-serata ${votoOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-voto">
                   ${votoOpen ? 'Chiudi votazioni' : 'Apri votazioni'}
@@ -690,8 +680,6 @@
       `;
 
       document.getElementById('btn-close-serata').addEventListener('click', closeSerata);
-      document.getElementById('btn-toggle-telegram-notifications').addEventListener('click', toggleTelegramNotifications);
-      document.getElementById('btn-toggle-browser-notifications').addEventListener('click', toggleBrowserNotifications);
       if (!winnerDecreed) {
         document.getElementById('btn-toggle-voto').addEventListener('click', toggleVoto);
         document.getElementById('btn-toggle-show-totals').addEventListener('click', toggleShowVoteTotals);
@@ -773,46 +761,6 @@
         updateLiveDot();
       } catch (error) {
         alert(error?.message || 'Non sono riuscito ad aggiornare la visibilità dei voti.');
-        if (btn) btn.disabled = false;
-      }
-    }
-
-    async function toggleTelegramNotifications() {
-      if (!currentSerata) return;
-      const btn = document.getElementById('btn-toggle-telegram-notifications');
-      if (btn) btn.disabled = true;
-      const nextValue = !(currentSerata.notifiche_telegram_abilitate !== false);
-      try {
-        const updated = await callAdmin('set_telegram_notifications', {
-          serataId: currentSerata.id,
-          notificheTelegramAbilitate: nextValue,
-        });
-        currentSerata = updated;
-        syncConnected = true;
-        renderSerata();
-        updateLiveDot();
-      } catch (error) {
-        alert(error?.message || 'Non sono riuscito ad aggiornare le notifiche Telegram.');
-        if (btn) btn.disabled = false;
-      }
-    }
-
-    async function toggleBrowserNotifications() {
-      if (!currentSerata) return;
-      const btn = document.getElementById('btn-toggle-browser-notifications');
-      if (btn) btn.disabled = true;
-      const nextValue = !(currentSerata.notifiche_browser_abilitate !== false);
-      try {
-        const updated = await callAdmin('set_browser_notifications', {
-          serataId: currentSerata.id,
-          notificheBrowserAbilitate: nextValue,
-        });
-        currentSerata = updated;
-        syncConnected = true;
-        renderSerata();
-        updateLiveDot();
-      } catch (error) {
-        alert(error?.message || 'Non sono riuscito ad aggiornare le notifiche browser.');
         if (btn) btn.disabled = false;
       }
     }
