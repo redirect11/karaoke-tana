@@ -782,9 +782,28 @@
       }
     }
 
+    function getProgressiveIndexMap(list) {
+      const normalizedList = Array.isArray(list) ? [...list] : [];
+      normalizedList.sort((a, b) => {
+        const aTime = Date.parse(String(a?.created_at || ''));
+        const bTime = Date.parse(String(b?.created_at || ''));
+        if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
+          return aTime - bTime;
+        }
+        return Number(a?.id || 0) - Number(b?.id || 0);
+      });
+      const progressiveIndexMap = new Map();
+      normalizedList.forEach((booking, index) => {
+        const id = Number(booking?.id);
+        if (Number.isInteger(id) && id > 0) progressiveIndexMap.set(id, index + 1);
+      });
+      return progressiveIndexMap;
+    }
+
     function renderQueue(list) {
       queueWrap.querySelectorAll('.booking-card').forEach((el) => el.remove());
       const winnerDecreed = Boolean(currentSerata?.vincitore_decretato);
+      const progressiveIndexMap = getProgressiveIndexMap(list);
 
       const toApprove = list.filter((b) => !b.cantata && !b.approvata);
       const approved = list.filter((b) => !b.cantata && b.approvata);
@@ -818,14 +837,15 @@
 
       emptyState.style.display = 'none';
       visibleList.forEach((booking, index) => {
-        queueWrap.insertBefore(makeCard(booking, index, activeQueueTab, winnerDecreed), emptyState);
+        queueWrap.insertBefore(makeCard(booking, index, activeQueueTab, winnerDecreed, progressiveIndexMap), emptyState);
       });
     }
 
-    function makeCard(booking, index, kind, lockedAfterWinner = false) {
+    function makeCard(booking, index, kind, lockedAfterWinner = false, progressiveIndexMap = new Map()) {
       const card = document.createElement('div');
       const isApproved = kind === 'approved';
       const isCompleted = kind === 'completed';
+      const progressiveIndex = progressiveIndexMap.get(Number(booking.id)) || (index + 1);
       card.className = `booking-card${isApproved && index === 0 ? ' next' : ''}`;
       card.dataset.id = booking.id;
 
@@ -837,10 +857,10 @@
       const scoreText = count > 0 ? `${total} pt · media ${avg.toFixed(2)} · ${count} vot${count === 1 ? 'o' : 'i'}` : 'Nessun voto';
 
       card.innerHTML = `
-        <div class="card-pos">${index + 1}</div>
+        <div class="card-pos">${progressiveIndex}</div>
         <div class="card-body">
           <div class="card-header">
-            <span class="card-name">${esc(booking.nome)}</span>
+            <span class="card-name">${esc(booking.nome)} (${progressiveIndex})</span>
             ${isCompleted
               ? '<span class="badge-approved">🎤 Conclusa</span>'
               : (isApproved ? '<span class="badge-approved">✅ Approvata</span>' : '<span class="badge-pending">Da approvare</span>')}
