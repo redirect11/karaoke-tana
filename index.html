@@ -1223,7 +1223,7 @@
         titleEl.textContent = 'Manca 1 canzone';
         return;
       }
-      titleEl.textContent = 'Sei già in lista!';
+      titleEl.textContent = '';
     }
 
     function setWaitingRemainingSongs(remainingSongs) {
@@ -1694,7 +1694,7 @@
       setWaitingRemainingSongs(null);
       setWaitingTitle(approvata ? 'in-list' : 'pending');
       setWaitingStatus(approvata
-        ? 'La tua prenotazione è stata approvata ed è visibile nella coda pubblica.'
+        ? ''
         : 'La tua prenotazione è in attesa di approvazione.');
       updateWaitingTimer(pendingExpiryAt, approvata);
       updateWaitingPositionStatus(songListCache.toSing);
