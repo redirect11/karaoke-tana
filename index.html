@@ -1081,7 +1081,7 @@
         return;
       }
 
-      const renderSongItem = (item, orderLabel, { currentSong = false, alert = false } = {}) => {
+      const renderSongItem = (item, orderLabel, { currentSong = false, alert = false, showOrder = true } = {}) => {
         const progressiveIndex = Number(item.progressive_index);
         const progressiveLabel = Number.isInteger(progressiveIndex) && progressiveIndex > 0
           ? String(progressiveIndex)
@@ -1097,7 +1097,7 @@
               ${currentSong ? '<div class="song-item-badge">🎤 Canzone corrente</div>' : ''}
               ${Number(item.id) === currentBookingIdNum ? '<div class="song-item-badge">La tua prenotazione</div>' : ''}
             </div>
-            <div class="song-item-order${alert ? ' alert' : ''}">${orderLabel}</div>
+            ${showOrder ? `<div class="song-item-order${alert ? ' alert' : ''}">${orderLabel}</div>` : ''}
           </div>
         </div>
       `;
@@ -1105,7 +1105,7 @@
 
       if (activeSongTab === 'completed') {
         songListStatus.textContent = `${items.length} ${items.length === 1 ? 'canzone già cantata' : 'canzoni già cantate'}`;
-        songListEl.innerHTML = items.map((item, index) => renderSongItem(item, String(index + 1))).join('');
+        songListEl.innerHTML = items.map((item, index) => renderSongItem(item, String(index + 1), { showOrder: false })).join('');
         return;
       }
 
