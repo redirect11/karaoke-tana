@@ -54,7 +54,7 @@ jobs:
              BOOKING_PENDING_EXPIRY_MIN: pendingExpiryMinutes,
              BOOKING_COOLDOWN_MIN:  pendingExpiryMinutes,
           };
-          fs.writeFileSync('config.js', 'const CONFIG = ' + JSON.stringify(config, null, 2) + ';');
+          fs.writeFileSync('config.js', 'const CONFIG = ' + JSON.stringify(config, null, 2) + ';\nif (typeof window !== \'undefined\') { window.CONFIG = CONFIG; }');
           console.log('config.js generato.');
           "
 
