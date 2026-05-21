@@ -239,7 +239,7 @@
       const key = String(songId);
       const previousDbId = localVotes[key]?.db_id;
       localVotes[key] = { voto };
-      if (dbId) localVotes[key].db_id = dbId;
+      if (dbId != null) localVotes[key].db_id = dbId;
       else if (previousDbId) localVotes[key].db_id = previousDbId;
     }
 
@@ -363,7 +363,7 @@
           if (v === myVote) classes.push('range-end');
         }
         const dis   = !votingOpen ? ' disabled' : '';
-        return `<button class="${classes.join(' ')}"${dis} data-v="${v}" aria-label="Vota ${v} su 5" aria-pressed="${myVote >= v ? 'true' : 'false'}">👏</button>`;
+        return `<button class="${classes.join(' ')}"${dis} data-v="${v}" role="radio" aria-label="Vota ${v} su 5" aria-checked="${myVote === v ? 'true' : 'false'}">👏</button>`;
       }).join('');
 
       div.innerHTML = `
@@ -375,7 +375,7 @@
           <div class="song-singer">👤 ${esc(s.nome)}</div>
         </div>
         <div class="rating-row">
-          <div class="rating-hands">${btns}</div>
+          <div class="rating-hands" role="radiogroup" aria-label="Voto per ${esc(s.canzone)}">${btns}</div>
           <div class="vote-score">
             <span>${avg}</span>
             ${sc.count} vot${sc.count === 1 ? 'o' : 'i'}
