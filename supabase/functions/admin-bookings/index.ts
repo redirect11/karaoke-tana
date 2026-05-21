@@ -60,6 +60,41 @@ function toPositiveInt(value: unknown, fieldName: string): number {
   return parsed;
 }
 
+function normalizeBookingText(value: unknown, fieldName: string, maxLength: number): string {
+  if (typeof value !== "string") {
+    throw new ApiError(400, "invalid_payload", `${fieldName} deve essere una stringa.`);
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new ApiError(400, "invalid_payload", `${fieldName} è obbligatorio.`);
+  }
+  if (trimmed.length > maxLength) {
+    throw new ApiError(400, "invalid_payload", `${fieldName} supera la lunghezza massima consentita.`);
+  }
+  return trimmed;
+}
+
+function parseBookingUpdatePayload(body: Record<string, unknown>) {
+  const updates: Record<string, string> = {};
+  const hasOwn = (field: string) => Object.prototype.hasOwnProperty.call(body, field);
+
+  if (hasOwn("nome")) {
+    updates.nome = normalizeBookingText(body.nome, "nome", 80);
+  }
+  if (hasOwn("canzone")) {
+    updates.canzone = normalizeBookingText(body.canzone, "canzone", 140);
+  }
+  if (hasOwn("artista")) {
+    updates.artista = normalizeBookingText(body.artista, "artista", 140);
+  }
+
+  if (Object.keys(updates).length === 0) {
+    throw new ApiError(400, "invalid_payload", "Specifica almeno un campo da aggiornare: nome, canzone o artista.");
+  }
+
+  return updates;
+}
+
 function normalizeDateOrToday(value: unknown): string {
   if (typeof value !== "string") return new Date().toISOString().slice(0, 10);
   const trimmed = value.trim();
@@ -302,6 +337,45 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
 
       if (error) {
         throw new ApiError(500, "update_failed", "Non sono riuscito ad approvare la prenotazione.");
+      }
+      if (!data) {
+        throw new ApiError(404, "not_found", "Prenotazione non trovata.");
+      }
+
+      return { status: 200, data };
+    }
+
+    case "update_booking":
+    case "update": {
+      const bookingId = toPositiveInt(body.bookingId ?? body.id, "bookingId");
+      const updates = parseBookingUpdatePayload(body);
+
+      const { data: bookingToUpdate, error: bookingLoadError } = await admin
+        .from("prenotazioni")
+        .select("id, serata_id")
+        .eq("id", bookingId)
+        .maybeSingle();
+
+      if (bookingLoadError) {
+        throw new ApiError(500, "query_failed", "Errore durante il caricamento della prenotazione.");
+      }
+      if (!bookingToUpdate) {
+        throw new ApiError(404, "not_found", "Prenotazione non trovata.");
+      }
+      const updateSerataId = Number(bookingToUpdate.serata_id);
+      if (Number.isInteger(updateSerataId) && updateSerataId > 0) {
+        await ensureSerataAllowsMutations(admin, updateSerataId);
+      }
+
+      const { data, error } = await admin
+        .from("prenotazioni")
+        .update(updates)
+        .eq("id", bookingId)
+        .select("id, nome, canzone, artista, approvata, cantata")
+        .maybeSingle();
+
+      if (error) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito a modificare la prenotazione.");
       }
       if (!data) {
         throw new ApiError(404, "not_found", "Prenotazione non trovata.");

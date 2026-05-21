@@ -319,6 +319,7 @@
     }
     .btn-approve { background: var(--gold); color: #12071f; }
     .btn-done { background: var(--green); color: #12071f; }
+    .btn-edit { background: #4b356f; color: #fff; }
     .btn-delete { background: var(--red); color: #fff; }
 
     @media (max-width: 620px) {
@@ -856,6 +857,7 @@
                   : (isCompleted
                     ? ''
                     : (isApproved ? '<button class="btn-action btn-done" data-action="done">✓ Fatto</button>' : '<button class="btn-action btn-approve" data-action="approve">Approva</button>'))}
+                ${lockedAfterWinner ? '' : '<button class="btn-action btn-edit" data-action="edit">Modifica</button>'}
                 ${lockedAfterWinner ? '' : '<button class="btn-action btn-delete" data-action="delete">Elimina</button>'}
               </div>
             </div>
@@ -863,13 +865,38 @@
 
       const approveBtn = card.querySelector('[data-action="approve"]');
       const doneBtn = card.querySelector('[data-action="done"]');
+      const editBtn = card.querySelector('[data-action="edit"]');
       const deleteBtn = card.querySelector('[data-action="delete"]');
 
       if (approveBtn) approveBtn.addEventListener('click', () => approveBooking(booking.id, card));
       if (doneBtn) doneBtn.addEventListener('click', () => markDone(booking.id, card));
+      if (editBtn) editBtn.addEventListener('click', () => editBooking(booking, card));
       if (deleteBtn) deleteBtn.addEventListener('click', () => deleteBooking(booking, card));
 
       return card;
+    }
+
+    function askBookingUpdate(booking) {
+      const nomeInput = prompt('Modifica nome', booking.nome ?? '');
+      if (nomeInput === null) return null;
+      const canzoneInput = prompt('Modifica canzone', booking.canzone ?? '');
+      if (canzoneInput === null) return null;
+      const artistaInput = prompt('Modifica artista', booking.artista ?? '');
+      if (artistaInput === null) return null;
+
+      const nome = String(nomeInput).trim();
+      const canzone = String(canzoneInput).trim();
+      const artista = String(artistaInput).trim();
+      if (!nome || !canzone || !artista) {
+        alert('Nome, canzone e artista sono obbligatori.');
+        return null;
+      }
+      if (nome.length > 80 || canzone.length > 140 || artista.length > 140) {
+        alert('Uno o più campi superano la lunghezza massima consentita.');
+        return null;
+      }
+
+      return { nome, canzone, artista };
     }
 
     async function approveBooking(id, card) {
@@ -895,6 +922,19 @@
           restoreCardAfterError(card, error?.message || 'Non sono riuscito a segnare la prenotazione come completata.');
         }
       }, 280);
+    }
+
+    async function editBooking(booking, card) {
+      const updatePayload = askBookingUpdate(booking);
+      if (!updatePayload) return;
+      setCardBusy(card, true);
+      try {
+        const updated = await callAdmin('update_booking', { bookingId: booking.id, ...updatePayload });
+        bookings = bookings.map((item) => item.id === booking.id ? { ...item, ...updated } : item);
+        renderQueue(bookings);
+      } catch (error) {
+        restoreCardAfterError(card, error?.message || 'Non sono riuscito a modificare la prenotazione.');
+      }
     }
 
     async function deleteBooking(booking, card) {
