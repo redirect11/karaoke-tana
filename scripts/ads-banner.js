@@ -45,7 +45,8 @@
     container.appendChild(slot);
     try {
       (global.adsbygoogle = global.adsbygoogle || []).push({});
-    } catch (_) {
+    } catch (error) {
+      console.warn('AdSense slot push failed, using placeholder fallback.', error);
       renderPlaceholder(container, 'Spazio sponsor');
     }
   }
