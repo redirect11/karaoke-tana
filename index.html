@@ -1017,9 +1017,7 @@
         return;
       }
 
-      songListStatus.textContent = items.length === 1
-        ? 'Canzone corrente in esecuzione'
-        : `${items.length} canzoni in coda - la prima è quella corrente`;
+      songListStatus.textContent = 'Canzone corrente in esecuzione';
       const currentSong = items[0];
       const queueItems = items.slice(1);
       const currentSongHtml = currentSong
