@@ -16,6 +16,8 @@
       --green:  #2ecc71;
       --text:   #f0e6d3;
       --muted:  #a08ca0;
+      --vote-border: 2px;
+      --vote-border-overlap: -2px;
       --radius: 14px;
     }
 
@@ -121,30 +123,54 @@
     .rating-hands {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 0;
+      padding: 4px;
+      border-radius: 14px;
+      background: rgba(18,7,31,0.28);
     }
 
     .btn-vote {
-      width: 34px;
-      height: 34px;
-      border: 1.5px solid #3d2366;
-      border-radius: 10px;
+      width: 36px;
+      height: 36px;
+      border: var(--vote-border) solid transparent;
+      border-radius: 0;
       background: transparent;
-      color: #6d5a88;
+      color: inherit;
       font-size: 1.1rem;
       line-height: 1;
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, transform 0.1s, color 0.15s;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s, filter 0.15s, opacity 0.15s;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      filter: grayscale(1) opacity(0.55);
     }
-    .btn-vote:hover { border-color: var(--gold); background: rgba(212,160,23,0.12); color: var(--gold-s); }
+    /* Overlap adjacent button borders so the selected range looks like a single box. */
+    .btn-vote + .btn-vote { margin-left: var(--vote-border-overlap); }
+    .btn-vote:hover {
+      background: rgba(212,160,23,0.12);
+      filter: grayscale(0.45) opacity(0.9);
+    }
     .btn-vote:active { transform: scale(0.93); }
     .btn-vote.selected {
+      filter: none;
+      opacity: 1;
+    }
+    .btn-vote.selected-range {
       background: rgba(212,160,23,0.22);
-      border-color: var(--gold);
-      color: var(--gold-s);
+      border-top-color: var(--gold);
+      border-bottom-color: var(--gold);
+      box-shadow: 0 0 12px rgba(212,160,23,0.15);
+    }
+    .btn-vote.range-start {
+      border-left-color: var(--gold);
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
+    }
+    .btn-vote.range-end {
+      border-right-color: var(--gold);
+      border-top-right-radius: 12px;
+      border-bottom-right-radius: 12px;
     }
     .btn-vote:disabled {
       opacity: 0.5;
@@ -203,6 +229,18 @@
 
     function saveLocalVotes() {
       localStorage.setItem('local_votes', JSON.stringify(localVotes));
+    }
+
+    function getLocalVote(songId) {
+      return localVotes[String(songId)] || null;
+    }
+
+    function setLocalVote(songId, voto, dbId) {
+      const key = String(songId);
+      const previousDbId = localVotes[key]?.db_id;
+      localVotes[key] = { voto };
+      if (dbId !== null && dbId !== undefined) localVotes[key].db_id = dbId;
+      else if (previousDbId) localVotes[key].db_id = previousDbId;
     }
 
     // ── Load serata ────────────────────────────────────────────
@@ -313,14 +351,20 @@
       div.className  = 'song-card';
       div.dataset.id = s.id;
 
-      const myVote   = localVotes[s.id]?.voto || 0;
+      const myVote   = getLocalVote(s.id)?.voto || 0;
       const sc       = s._scores || { sum: 0, count: 0 };
       const avg      = sc.count > 0 ? (sc.sum / sc.count).toFixed(1) : '—';
 
       const btns = [1,2,3,4,5].map(v => {
-        const sel   = myVote > 0 && myVote >= v ? ' selected' : '';
+        const classes = ['btn-vote'];
+        const tabIndex = myVote > 0 ? (myVote === v ? '0' : '-1') : (v === 1 ? '0' : '-1');
+        if (myVote > 0 && myVote >= v) {
+          classes.push('selected', 'selected-range');
+          if (v === 1) classes.push('range-start');
+          if (v === myVote) classes.push('range-end');
+        }
         const dis   = !votingOpen ? ' disabled' : '';
-        return `<button class="btn-vote${sel}"${dis} data-v="${v}" aria-label="Vota ${v} su 5">👏</button>`;
+        return `<button class="${classes.join(' ')}"${dis} data-v="${v}" role="radio" aria-label="Vota ${v} su 5" aria-checked="${myVote === v ? 'true' : 'false'}" tabindex="${tabIndex}">👏</button>`;
       }).join('');
 
       div.innerHTML = `
@@ -332,7 +376,7 @@
           <div class="song-singer">👤 ${esc(s.nome)}</div>
         </div>
         <div class="rating-row">
-          <div class="rating-hands">${btns}</div>
+          <div class="rating-hands" role="radiogroup" aria-label="Voto per ${esc(s.canzone)}">${btns}</div>
           <div class="vote-score">
             <span>${avg}</span>
             ${sc.count} vot${sc.count === 1 ? 'o' : 'i'}
@@ -351,7 +395,7 @@
     async function castVote(songId, voto, card) {
       card.querySelectorAll('.btn-vote').forEach(b => b.disabled = true);
 
-      const existing = localVotes[songId];
+      const existing = getLocalVote(songId);
       let error;
 
       if (existing?.db_id) {
@@ -360,7 +404,7 @@
       } else {
         const res = await db.from('voti').insert({ prenotazione_id: songId, voto }).select('id').single();
         error = res.error;
-        if (!error) localVotes[songId] = { voto, db_id: res.data.id };
+        if (!error) setLocalVote(songId, voto, res.data.id);
       }
 
       if (error) {
@@ -369,7 +413,7 @@
         return;
       }
 
-      if (existing?.db_id) localVotes[songId].voto = voto;
+      if (existing?.db_id) setLocalVote(songId, voto, existing.db_id);
       saveLocalVotes();
 
       // refresh scores for this card
