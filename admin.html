@@ -845,7 +845,9 @@
       const card = document.createElement('div');
       const isApproved = kind === 'approved';
       const isCompleted = kind === 'completed';
-      const progressiveIndex = progressiveIndexMap.get(Number(booking.id)) || (index + 1);
+      const progressiveIndex = progressiveIndexMap.get(Number(booking.id));
+      const hasProgressiveIndex = Number.isInteger(progressiveIndex) && progressiveIndex > 0;
+      const progressiveIndexText = hasProgressiveIndex ? String(progressiveIndex) : '?';
       card.className = `booking-card${isApproved && index === 0 ? ' next' : ''}`;
       card.dataset.id = booking.id;
 
@@ -857,10 +859,10 @@
       const scoreText = count > 0 ? `${total} pt · media ${avg.toFixed(2)} · ${count} vot${count === 1 ? 'o' : 'i'}` : 'Nessun voto';
 
       card.innerHTML = `
-        <div class="card-pos">${progressiveIndex}</div>
+        <div class="card-pos">${progressiveIndexText}</div>
         <div class="card-body">
           <div class="card-header">
-            <span class="card-name">${esc(booking.nome)} (${progressiveIndex})</span>
+            <span class="card-name">${esc(booking.nome)} (${progressiveIndexText})</span>
             ${isCompleted
               ? '<span class="badge-approved">🎤 Conclusa</span>'
               : (isApproved ? '<span class="badge-approved">✅ Approvata</span>' : '<span class="badge-pending">Da approvare</span>')}
