@@ -957,8 +957,8 @@
           <div class="leaderboard-item${isWinner ? ' winner' : ''}">
             <div class="leaderboard-rank">${index + 1}</div>
             <div class="leaderboard-song">
-              <div class="leaderboard-song-title">${escapeHtml(item.canzone)} ${isWinner ? '👑' : ''}</div>
-              <div class="leaderboard-song-meta">${escapeHtml(item.artista)} · ${escapeHtml(item.nome)}</div>
+              <div class="leaderboard-song-title">${escapeHtml(item.nome)} ${isWinner ? '👑' : ''}</div>
+              <div class="leaderboard-song-meta">${escapeHtml(item.canzone)} · ${escapeHtml(item.artista)}</div>
             </div>
             <div class="leaderboard-points">${item.scoreTotal} pt</div>
           </div>
