@@ -544,7 +544,6 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         .update({
           vincitore_decretato: true,
           vincitore_prenotazione_id: winnerBookingId,
-          vincitore_decretato_at: new Date().toISOString(),
           voto_aperto: false,
         })
         .eq("id", currentSerata.id)
