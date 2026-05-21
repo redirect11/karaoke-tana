@@ -317,14 +317,28 @@
     #waiting-song  { font-size: 0.95rem !important; font-weight: 700; color: var(--text) !important; }
     #waiting-timer { font-size: 0.75rem !important; color: var(--muted) !important; }
     #waiting-status, #success-status { margin-bottom: 0; }
+    #waiting-main-message {
+      margin-bottom: 0;
+      color: var(--gold-soft) !important;
+      font-size: 1.1rem !important;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    #waiting-main-message.is-prominent { font-size: 1.35rem !important; }
+    #waiting-booking-number {
+      margin-bottom: 0;
+      font-size: 1.1rem !important;
+      font-weight: 800;
+      color: var(--text) !important;
+    }
     .waiting-position-critical { color: #ff6b6b; font-weight: 800; }
     .waiting-status-hero {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 14px;
+      gap: 0;
     }
-    #step-waiting .waiting-status-hero .big-icon { margin: 0; }
+    #step-waiting .waiting-status-hero .big-icon { margin: 0; font-size: 4rem; }
     .waiting-remaining {
       display: flex;
       flex-direction: column;
@@ -678,12 +692,9 @@
   <div class="card" id="step-waiting">
     <div class="waiting-status-hero">
       <div class="big-icon">🎤</div>
-      <div class="waiting-remaining" id="waiting-remaining" hidden>
-        <span class="waiting-remaining-number" id="waiting-remaining-number"></span>
-        <span class="waiting-remaining-label" id="waiting-remaining-label"></span>
-      </div>
     </div>
     <h2 id="waiting-title" aria-live="polite">Stato della tua prenotazione</h2>
+    <p id="waiting-main-message" hidden aria-live="polite"></p>
     <p id="waiting-song"></p>
     <p id="waiting-booking-number" hidden aria-live="polite"></p>
     <p id="waiting-status">Sto controllando lo stato della tua prenotazione…</p>
@@ -812,6 +823,7 @@
     const notificationModalEl = document.getElementById('notification-modal');
     const notificationSkipBtnEl = document.getElementById('notification-skip-btn');
     const notificationAcceptBtnEl = document.getElementById('notification-accept-btn');
+    const waitingMainMessageEl = document.getElementById('waiting-main-message');
     const waitingBookingNumberEl = document.getElementById('waiting-booking-number');
     let activeSongTab = 'to-sing';
     let notificationPermissionRequested = false;
@@ -889,9 +901,42 @@
 
       songListAvailability = 'available';
       const allItems = data || [];
+      let indexRows = [];
+      if (usingLegacySongFallback) {
+        const allRowsResult = await db
+          .from('prenotazioni')
+          .select('id, created_at')
+          .is('serata_id', null)
+          .order('created_at', { ascending: true });
+        if (!allRowsResult.error && Array.isArray(allRowsResult.data)) {
+          indexRows = allRowsResult.data;
+        }
+      } else {
+        const allRowsResult = await db
+          .from('prenotazioni')
+          .select('id, created_at')
+          .eq('serata_id', currentSerataId)
+          .order('created_at', { ascending: true });
+        if (!allRowsResult.error && Array.isArray(allRowsResult.data)) {
+          indexRows = allRowsResult.data;
+        }
+      }
+      const progressiveIndexById = new Map();
+      const rowsForIndex = indexRows.length ? indexRows : allItems;
+      rowsForIndex.forEach((item, idx) => {
+        const id = Number(item?.id);
+        if (Number.isInteger(id) && id > 0) progressiveIndexById.set(id, idx + 1);
+      });
+      const indexedItems = allItems.map((item) => {
+        const id = Number(item.id);
+        return {
+          ...item,
+          progressive_index: progressiveIndexById.get(id) || null,
+        };
+      });
       songListCache = {
-        toSing: allItems.filter((item) => !item.cantata),
-        completed: allItems.filter((item) => item.cantata),
+        toSing: indexedItems.filter((item) => !item.cantata),
+        completed: indexedItems.filter((item) => item.cantata),
       };
       updateWaitingPositionStatus(songListCache.toSing);
       maybeNotifyTurn(songListCache.toSing);
@@ -998,13 +1043,18 @@
         return;
       }
 
-      const renderSongItem = (item, orderLabel, { currentSong = false, alert = false } = {}) => `
+      const renderSongItem = (item, orderLabel, { currentSong = false, alert = false } = {}) => {
+        const progressiveIndex = Number(item.progressive_index);
+        const progressiveLabel = Number.isInteger(progressiveIndex) && progressiveIndex > 0
+          ? ` (${progressiveIndex})`
+          : '';
+        return `
         <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}${currentSong ? ' current-song' : ''}" data-id="${item.id}">
           <div class="song-item-top">
             <div>
               <div class="song-item-title">${escapeHtml(item.canzone)}</div>
               <div class="song-item-artist">${escapeHtml(item.artista)}</div>
-              <div class="song-item-name">Prenotata da ${escapeHtml(item.nome)}</div>
+              <div class="song-item-name">Prenotata da ${escapeHtml(item.nome)}${progressiveLabel}</div>
               ${currentSong ? '<div class="song-item-badge">🎤 Canzone corrente</div>' : ''}
               ${Number(item.id) === currentBookingIdNum ? '<div class="song-item-badge">La tua prenotazione</div>' : ''}
             </div>
@@ -1012,6 +1062,7 @@
           </div>
         </div>
       `;
+      };
 
       if (activeSongTab === 'completed') {
         songListStatus.textContent = `${items.length} ${items.length === 1 ? 'canzone già cantata' : 'canzoni già cantate'}`;
@@ -1136,7 +1187,21 @@
         return;
       }
       waitingBookingNumberEl.hidden = false;
-      waitingBookingNumberEl.textContent = `Sei il numero ${normalized} della serata.`;
+      waitingBookingNumberEl.textContent = `Sei il numero ${normalized}`;
+    }
+
+    function setWaitingMainMessage(message, { prominent = false } = {}) {
+      if (!waitingMainMessageEl) return;
+      const text = String(message || '').trim();
+      if (!text) {
+        waitingMainMessageEl.textContent = '';
+        waitingMainMessageEl.hidden = true;
+        waitingMainMessageEl.classList.remove('is-prominent');
+        return;
+      }
+      waitingMainMessageEl.hidden = false;
+      waitingMainMessageEl.textContent = text;
+      waitingMainMessageEl.classList.toggle('is-prominent', Boolean(prominent));
     }
 
     function setWaitingTitle(state = 'in-list') {
@@ -1187,35 +1252,44 @@
       if (stepWaiting.style.display !== 'flex') return;
       const stored = safeParseBookingCookie(getCookie('last_booking'));
       if (!stored) return;
-      setWaitingBookingNumber(getStoredBookingNumber(stored));
       const isApproved = stored.pendingExpiresAt === null || stored.pendingExpiresAt === undefined;
       const safeQueueItems = Array.isArray(queueItems) ? queueItems : [];
       const index = getCurrentBookingQueueIndex(safeQueueItems);
       if (!isApproved) {
+        setWaitingMainMessage('');
         setWaitingRemainingSongs(null);
+        setWaitingBookingNumber(null);
         setWaitingTitle('pending');
         setWaitingStatus('La tua prenotazione è in attesa di approvazione.');
         return;
       }
       if (index === -1) {
+        setWaitingMainMessage('Sei in lista. Lo staff ti chiamerà quando arriva il tuo turno.');
         setWaitingRemainingSongs(null);
+        setWaitingBookingNumber(getStoredBookingNumber(stored));
         setWaitingTitle('in-list');
-        setWaitingStatus('La tua prenotazione è stata approvata. Resta in ascolto: la coda si aggiorna in tempo reale.');
+        setWaitingStatus('La tua prenotazione è stata approvata. Resta in ascolto: la coda si aggiorna in tempo reale.', { screenReaderOnly: true });
         return;
       }
       if (index === 0) {
+        setWaitingMainMessage('È il tuo turno.', { prominent: true });
         setWaitingRemainingSongs(null);
+        setWaitingBookingNumber(null);
         setWaitingTitle('turn');
-        setWaitingStatus('');
+        setWaitingStatus('🎤 È il tuo turno.', { screenReaderOnly: true });
         return;
       }
-      setWaitingRemainingSongs(index);
+      setWaitingRemainingSongs(null);
       setWaitingTitle('in-list');
       if (index === 1) {
-        setWaitingStatus('⏳ Manca una canzone: il tuo turno è il prossimo.');
+        setWaitingMainMessage('Preparati, canti al prossimo turno.', { prominent: true });
+        setWaitingBookingNumber(null);
+        setWaitingStatus('⏳ Manca una canzone: il tuo turno è il prossimo.', { screenReaderOnly: true });
         return;
       }
-      setWaitingStatus(`Il tuo turno arriva tra ${index} canzoni.`);
+      setWaitingMainMessage(`Mancano ${index} canzoni`, { prominent: true });
+      setWaitingBookingNumber(getStoredBookingNumber(stored));
+      setWaitingStatus(`Il tuo turno arriva tra ${index} canzoni.`, { screenReaderOnly: true });
     }
 
     function maybeNotifyTurn(queueItems) {
@@ -1609,7 +1683,8 @@
       showSongListCard(true);
       document.getElementById('waiting-song').textContent = `${canzone} – ${artista}`;
       const stored = safeParseBookingCookie(getCookie('last_booking'));
-      setWaitingBookingNumber(getStoredBookingNumber(stored));
+      setWaitingMainMessage('');
+      setWaitingBookingNumber(approvata ? getStoredBookingNumber(stored) : null);
       setWaitingRemainingSongs(null);
       setWaitingTitle(approvata ? 'in-list' : 'pending');
       setWaitingStatus(approvata
