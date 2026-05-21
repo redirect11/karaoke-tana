@@ -894,6 +894,7 @@
 
     async function loadFinalLeaderboard(serataId, winnerBookingId = null) {
       if (!db || !leaderboardStatus || !leaderboardList) return;
+      leaderboardStatus.style.display = 'block';
       leaderboardStatus.textContent = 'Caricamento classifica finale…';
       leaderboardList.innerHTML = '';
       const { data: rows, error } = await db
@@ -947,7 +948,8 @@
         return;
       }
 
-      leaderboardStatus.textContent = 'Vincitore decretato: prenotazioni chiuse per questa serata.';
+      leaderboardStatus.textContent = '';
+      leaderboardStatus.style.display = 'none';
       const winnerId = Number(winnerBookingId) || Number(ranking[0].id);
       leaderboardList.innerHTML = ranking.map((item, index) => {
         const isWinner = Number(item.id) === winnerId;
