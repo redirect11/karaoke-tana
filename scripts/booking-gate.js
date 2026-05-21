@@ -10,8 +10,8 @@
 
     function setMessage(policy) {
       if (!messageEl) return;
-      const providerLabel = policy.provider === 'adsense' ? 'sponsor' : 'sponsor breve';
-      messageEl.textContent = `Prima della conferma, visualizza un ${providerLabel} per supportare Karaoke Tana.`;
+      const sponsorLabel = policy.provider === 'adsense' ? 'sponsor AdSense' : 'sponsor breve';
+      messageEl.textContent = `Prima della conferma, visualizza un ${sponsorLabel} per supportare Karaoke Tana.`;
     }
 
     function preparePreview(policy) {
