@@ -146,6 +146,7 @@
     }
     button.action-btn:disabled { opacity: 0.55; cursor: not-allowed; }
     .btn-clean-serata { background: var(--gold); color: #12071f; }
+    .btn-notification-toggle { background: #3d2366; color: var(--text); }
     .btn-clean-all { background: var(--red); color: #fff; }
 
     #status-message {
@@ -205,8 +206,8 @@
           <span>Sto leggendo lo stato delle notifiche della serata corrente.</span>
         </div>
         <div class="actions">
-          <button class="action-btn btn-clean-serata" id="btn-toggle-telegram-notifications">—</button>
-          <button class="action-btn btn-clean-serata" id="btn-toggle-browser-notifications">—</button>
+          <button class="action-btn btn-notification-toggle" id="btn-toggle-telegram-notifications">—</button>
+          <button class="action-btn btn-notification-toggle" id="btn-toggle-browser-notifications">—</button>
         </div>
         <p>Qui puoi abilitare o disabilitare notifiche Telegram e browser per la serata aperta.</p>
       </section>
@@ -406,8 +407,8 @@
         `;
         toggleTelegramNotificationsBtn.disabled = true;
         toggleBrowserNotificationsBtn.disabled = true;
-        toggleTelegramNotificationsBtn.textContent = 'Disabilita notifiche Telegram';
-        toggleBrowserNotificationsBtn.textContent = 'Disabilita notifiche browser';
+        toggleTelegramNotificationsBtn.textContent = '—';
+        toggleBrowserNotificationsBtn.textContent = '—';
         return;
       }
 
@@ -465,9 +466,10 @@
           notificheTelegramAbilitate: nextValue,
         });
         currentSerata = updated;
-        renderCurrentSerata();
       } catch (error) {
         setStatus(error?.message || 'Non sono riuscito ad aggiornare le notifiche Telegram.', true);
+      } finally {
+        toggleTelegramNotificationsBtn.disabled = false;
         renderNotificationSettings();
       }
     }
@@ -482,9 +484,10 @@
           notificheBrowserAbilitate: nextValue,
         });
         currentSerata = updated;
-        renderCurrentSerata();
       } catch (error) {
         setStatus(error?.message || 'Non sono riuscito ad aggiornare le notifiche browser.', true);
+      } finally {
+        toggleBrowserNotificationsBtn.disabled = false;
         renderNotificationSettings();
       }
     }
