@@ -74,9 +74,6 @@ ALTER TABLE serate
 ALTER TABLE serate
   ADD COLUMN IF NOT EXISTS vincitore_prenotazione_id BIGINT;
 
-ALTER TABLE serate
-  ADD COLUMN IF NOT EXISTS vincitore_decretato_at TIMESTAMPTZ;
-
 -- tavolo non è più raccolto dal form; rende la colonna opzionale
 ALTER TABLE prenotazioni ALTER COLUMN tavolo DROP NOT NULL;
 ALTER TABLE prenotazioni ALTER COLUMN tavolo SET DEFAULT 0;

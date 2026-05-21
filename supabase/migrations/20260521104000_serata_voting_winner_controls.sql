@@ -6,6 +6,3 @@ ALTER TABLE serate
 
 ALTER TABLE serate
   ADD COLUMN IF NOT EXISTS vincitore_prenotazione_id BIGINT;
-
-ALTER TABLE serate
-  ADD COLUMN IF NOT EXISTS vincitore_decretato_at TIMESTAMPTZ;

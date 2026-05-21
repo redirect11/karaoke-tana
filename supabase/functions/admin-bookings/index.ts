@@ -395,7 +395,6 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           mostra_voti_totali: false,
           vincitore_decretato: false,
           vincitore_prenotazione_id: null,
-          vincitore_decretato_at: null,
         })
         .select("*")
         .single();
