@@ -331,7 +331,11 @@ serve(async (req) => {
     });
   }
 
-  const bookingNumberResult = await computeBookingNumber(admin, openSerataId, Number(data.id));
+  const insertedSerataId = Number(data.serata_id);
+  const serataIdForBookingNumber = Number.isInteger(insertedSerataId) && insertedSerataId > 0
+    ? insertedSerataId
+    : openSerataId;
+  const bookingNumberResult = await computeBookingNumber(admin, serataIdForBookingNumber, Number(data.id));
   if (!bookingNumberResult.ok) {
     return jsonResponse(req, 500, {
       success: false,
