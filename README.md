@@ -150,6 +150,8 @@ La UI gestisce loading/error sul bottone di submit.
 
 ## Deploy GitHub Pages
 
+### Deploy produzione (`main`)
+
 La pipeline (`.github/workflows/deploy.yml`) genera `config.js` dai secrets:
 
 - `IG_USERNAME`
@@ -165,6 +167,33 @@ La pipeline (`.github/workflows/deploy.yml`) genera `config.js` dai secrets:
 - `ADSENSE_CLIENT_ID` (es. `ca-pub-xxxxxxxxxxxxxxxx`)
 - `ADSENSE_BANNER_SLOT` (slot id banner)
 - `ADS_REQUIRE_BEFORE_BOOKING` (`true|false`)
+
+Sito produzione: `https://redirect11.github.io/karaoke-tana/`
+
+### Deploy test (`develop`)
+
+La pipeline (`.github/workflows/deploy-develop-test.yml`) parte su push a `develop` e pubblica:
+
+- root `/karaoke-tana/` = snapshot `main` (produzione)
+- path `/karaoke-tana/test/` = snapshot `develop` (test)
+
+URL test: `https://redirect11.github.io/karaoke-tana/test/`
+
+Secrets consigliati per ambiente test (workflow `develop`):
+
+- `TEST_IG_USERNAME`
+- `TEST_SUPABASE_URL`
+- `TEST_SUPABASE_ANON_KEY`
+- `TEST_SUBMIT_BOOKING_FUNCTION_URL` (opzionale)
+- `TEST_BOOKING_STATUS_FUNCTION_URL` (opzionale)
+- `TEST_BOOKING_PENDING_EXPIRY_MIN`
+- `TEST_BOOKING_COOLDOWN_MIN`
+- `TEST_ADS_ENABLED`
+- `TEST_ADS_MODE`
+- `TEST_ADS_PROVIDER`
+- `TEST_ADSENSE_CLIENT_ID`
+- `TEST_ADSENSE_BANNER_SLOT`
+- `TEST_ADS_REQUIRE_BEFORE_BOOKING`
 
 ## Ads / monetizzazione (frontend)
 
