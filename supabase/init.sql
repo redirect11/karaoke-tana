@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS serate (
   data        DATE         NOT NULL DEFAULT CURRENT_DATE,
   aperta      BOOLEAN      NOT NULL DEFAULT FALSE,
   voto_aperto BOOLEAN      NOT NULL DEFAULT FALSE,
+  notifiche_telegram_abilitate BOOLEAN NOT NULL DEFAULT TRUE,
+  notifiche_browser_abilitate  BOOLEAN NOT NULL DEFAULT TRUE,
   note        TEXT,
   created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
@@ -73,6 +75,14 @@ ALTER TABLE serate
 
 ALTER TABLE serate
   ADD COLUMN IF NOT EXISTS vincitore_prenotazione_id BIGINT;
+
+-- Compatibilità con installazioni esistenti che hanno creato `serate`
+-- prima dell'introduzione dei toggle notifiche.
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS notifiche_telegram_abilitate BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS notifiche_browser_abilitate BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- tavolo non è più raccolto dal form; rende la colonna opzionale
 ALTER TABLE prenotazioni ALTER COLUMN tavolo DROP NOT NULL;

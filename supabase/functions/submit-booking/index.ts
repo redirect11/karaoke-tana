@@ -122,7 +122,7 @@ async function validateUserToken(req: Request): Promise<{ ok: true } | { ok: fal
 async function getOpenSerata(admin: ReturnType<typeof createClient>) {
   const { data, error } = await admin
     .from("serate")
-    .select("id, vincitore_decretato")
+    .select("id, vincitore_decretato, notifiche_telegram_abilitate")
     .eq("aperta", true)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -345,7 +345,9 @@ serve(async (req) => {
   }
 
   // Notifica Telegram fire-and-forget (non blocca la risposta)
-  sendTelegramNotification(validated.data.nome, validated.data.canzone, validated.data.artista, data.created_at).catch(() => {});
+  if (currentOpenSerata.notifiche_telegram_abilitate !== false) {
+    sendTelegramNotification(validated.data.nome, validated.data.canzone, validated.data.artista, data.created_at).catch(() => {});
+  }
 
   return jsonResponse(req, 201, {
     success: true,
