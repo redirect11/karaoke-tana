@@ -318,9 +318,9 @@
       const avg      = sc.count > 0 ? (sc.sum / sc.count).toFixed(1) : '—';
 
       const btns = [1,2,3,4,5].map(v => {
-        const sel   = myVote >= v ? ' selected' : '';
+        const sel   = myVote > 0 && myVote >= v ? ' selected' : '';
         const dis   = !votingOpen ? ' disabled' : '';
-        return `<button class="btn-vote${sel}"${dis} data-v="${v}" aria-label="Vota ${v}">👏</button>`;
+        return `<button class="btn-vote${sel}"${dis} data-v="${v}" aria-label="Vota ${v} su 5">👏</button>`;
       }).join('');
 
       div.innerHTML = `
