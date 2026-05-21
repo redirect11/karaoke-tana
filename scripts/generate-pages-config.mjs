@@ -21,6 +21,9 @@ function getPendingExpiryMinutes(value) {
 }
 
 const targetDir = process.argv[2] ? path.resolve(process.argv[2]) : process.cwd();
+if (!fs.existsSync(targetDir) || !fs.statSync(targetDir).isDirectory()) {
+  throw new Error(`Invalid target directory for config.js generation: ${targetDir}`);
+}
 const pendingExpiryMinutes = getPendingExpiryMinutes(
   process.env.BOOKING_PENDING_EXPIRY_MIN || process.env.BOOKING_COOLDOWN_MIN
 );
