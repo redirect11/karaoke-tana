@@ -192,6 +192,8 @@
     .btn-close { background: var(--red); color: #fff; }
     .btn-voto-open  { background: var(--gold); color: #12071f; }
     .btn-voto-close { background: #555; color: #fff; }
+    .btn-winner { background: #ff6b6b; color: #12071f; }
+    .btn-secondary { background: #4b356f; color: #fff; }
 
     .serata-voto-row {
       width: 100%;
@@ -273,6 +275,7 @@
     .card-name { font-weight: 700; font-size: 1rem; }
     .card-song { font-size: 0.88rem; color: var(--gold-s); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .card-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .card-votes { font-size: 0.72rem; color: var(--gold-s); margin-top: 4px; font-weight: 700; }
 
     .badge-pending,
     .badge-approved {
@@ -602,6 +605,8 @@
         timeZone: 'UTC',
       });
       const votoOpen = Boolean(currentSerata.voto_aperto);
+      const showTotals = Boolean(currentSerata.mostra_voti_totali);
+      const winnerDecreed = Boolean(currentSerata.vincitore_decretato);
 
       serataWrap.innerHTML = `
         <div class="serata-card serata-open">
@@ -614,20 +619,31 @@
           </div>
           <div class="serata-voto-row">
             <div>
-              <div class="voto-label">Votazioni: ${votoOpen ? '🟢 aperte' : '⭕ chiuse'}</div>
+              <div class="voto-label">Votazioni: ${winnerDecreed ? '🏁 concluse con vincitore' : (votoOpen ? '🟢 aperte' : '⭕ chiuse')}</div>
               <a class="vota-link" href="vota.html" target="_blank">Apri pagina voti ↗</a>
+              <div class="voto-label">Totali pubblici: ${showTotals ? '👁️ visibili' : '🙈 nascosti'}</div>
             </div>
             <div class="serata-actions">
-              <button class="btn-serata ${votoOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-voto">
-                ${votoOpen ? 'Chiudi votazioni' : 'Apri votazioni'}
-              </button>
+              ${winnerDecreed ? '' : `
+                <button class="btn-serata ${votoOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-voto">
+                  ${votoOpen ? 'Chiudi votazioni' : 'Apri votazioni'}
+                </button>
+                <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
+                  ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
+                </button>
+                <button class="btn-serata btn-winner" id="btn-decree-winner">Decreta vincitore</button>
+              `}
             </div>
           </div>
         </div>
       `;
 
       document.getElementById('btn-close-serata').addEventListener('click', closeSerata);
-      document.getElementById('btn-toggle-voto').addEventListener('click', toggleVoto);
+      if (!winnerDecreed) {
+        document.getElementById('btn-toggle-voto').addEventListener('click', toggleVoto);
+        document.getElementById('btn-toggle-show-totals').addEventListener('click', toggleShowVoteTotals);
+        document.getElementById('btn-decree-winner').addEventListener('click', decreeWinner);
+      }
     }
 
     async function openSerata() {
@@ -688,8 +704,46 @@
       }
     }
 
+    async function toggleShowVoteTotals() {
+      if (!currentSerata) return;
+      const btn = document.getElementById('btn-toggle-show-totals');
+      if (btn) btn.disabled = true;
+      const nextValue = !Boolean(currentSerata.mostra_voti_totali);
+      try {
+        const updated = await callAdmin('set_show_vote_totals', {
+          serataId: currentSerata.id,
+          mostraVotiTotali: nextValue,
+        });
+        currentSerata = updated;
+        syncConnected = true;
+        renderSerata();
+        updateLiveDot();
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito ad aggiornare la visibilità dei voti.');
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function decreeWinner() {
+      if (!currentSerata) return;
+      if (!confirm('Conferma il decreto del vincitore. Dopo questa azione non sarà più possibile prenotare o modificare la coda.')) return;
+      const btn = document.getElementById('btn-decree-winner');
+      if (btn) btn.disabled = true;
+      try {
+        const result = await callAdmin('decree_winner', { serataId: currentSerata.id });
+        currentSerata = result?.serata || currentSerata;
+        syncConnected = true;
+        await refreshState(true);
+        alert('Vincitore decretato. Da ora puoi solo chiudere il karaoke.');
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito a decretare il vincitore.');
+        if (btn) btn.disabled = false;
+      }
+    }
+
     function renderQueue(list) {
       queueWrap.querySelectorAll('.booking-card').forEach((el) => el.remove());
+      const winnerDecreed = Boolean(currentSerata?.vincitore_decretato);
 
       const toApprove = list.filter((b) => !b.cantata && !b.approvata);
       const approved = list.filter((b) => !b.cantata && b.approvata);
@@ -723,11 +777,11 @@
 
       emptyState.style.display = 'none';
       visibleList.forEach((booking, index) => {
-        queueWrap.insertBefore(makeCard(booking, index, activeQueueTab), emptyState);
+        queueWrap.insertBefore(makeCard(booking, index, activeQueueTab, winnerDecreed), emptyState);
       });
     }
 
-    function makeCard(booking, index, kind) {
+    function makeCard(booking, index, kind, lockedAfterWinner = false) {
       const card = document.createElement('div');
       const isApproved = kind === 'approved';
       const isCompleted = kind === 'completed';
@@ -735,6 +789,11 @@
       card.dataset.id = booking.id;
 
       const time = new Date(booking.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+      const total = Number(booking.score_total) || 0;
+      const count = Number(booking.score_count) || 0;
+      const avg = Number(booking.score_average) || 0;
+      const scoreText = count > 0 ? `${total} pt · media ${avg.toFixed(2)} · ${count} vot${count === 1 ? 'o' : 'i'}` : 'Nessun voto';
 
       card.innerHTML = `
         <div class="card-pos">${index + 1}</div>
@@ -747,12 +806,17 @@
           </div>
               <div class="card-song">🎵 ${esc(booking.canzone)}</div>
               <div class="card-meta">${esc(booking.artista)}</div>
+              <div class="card-votes">🗳 ${scoreText}</div>
             </div>
             <div class="card-side">
               <div class="card-time">${time}</div>
               <div class="card-actions">
-                ${isCompleted ? '' : (isApproved ? '<button class="btn-action btn-done" data-action="done">✓ Fatto</button>' : '<button class="btn-action btn-approve" data-action="approve">Approva</button>')}
-                <button class="btn-action btn-delete" data-action="delete">Elimina</button>
+                ${lockedAfterWinner
+                  ? ''
+                  : (isCompleted
+                    ? ''
+                    : (isApproved ? '<button class="btn-action btn-done" data-action="done">✓ Fatto</button>' : '<button class="btn-action btn-approve" data-action="approve">Approva</button>'))}
+                ${lockedAfterWinner ? '' : '<button class="btn-action btn-delete" data-action="delete">Elimina</button>'}
               </div>
             </div>
       `;

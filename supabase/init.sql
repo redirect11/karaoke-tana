@@ -65,6 +65,15 @@ ALTER TABLE prenotazioni
 ALTER TABLE prenotazioni
   ADD COLUMN IF NOT EXISTS approvata BOOLEAN NOT NULL DEFAULT FALSE;
 
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS mostra_voti_totali BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS vincitore_decretato BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS vincitore_prenotazione_id BIGINT;
+
 -- tavolo non è più raccolto dal form; rende la colonna opzionale
 ALTER TABLE prenotazioni ALTER COLUMN tavolo DROP NOT NULL;
 ALTER TABLE prenotazioni ALTER COLUMN tavolo SET DEFAULT 0;

@@ -237,6 +237,7 @@
     let serata       = null;
     let songs        = [];
     let votingOpen   = false;
+    let showTotalsPublic = false;
     // localVotes: { [prenotazione_id]: { voto, db_id } }
     const localVotes = JSON.parse(localStorage.getItem('local_votes') || '{}');
 
@@ -276,6 +277,7 @@
       }
       serata     = data;
       votingOpen = data.voto_aperto;
+      showTotalsPublic = Boolean(data.mostra_voti_totali);
       updateBanner();
       await loadSongs();
       subscribeRealtime();
@@ -285,6 +287,9 @@
       if (votingOpen) {
         statusBanner.className = 'open';
         statusBanner.textContent = '🟢 Votazioni aperte — esprimi il tuo applauso!';
+      } else if (serata?.vincitore_decretato) {
+        statusBanner.className = 'closed';
+        statusBanner.textContent = '🏁 Vincitore decretato — votazioni concluse';
       } else {
         statusBanner.className = 'closed';
         statusBanner.textContent = '⭕ Votazioni chiuse';
@@ -367,6 +372,9 @@
       const myVote   = getLocalVote(s.id)?.voto || 0;
       const sc       = s._scores || { sum: 0, count: 0 };
       const avg      = sc.count > 0 ? (sc.sum / sc.count).toFixed(1) : '—';
+      const scoreBlock = showTotalsPublic
+        ? `<div class="vote-score"><span>${avg}</span>${sc.count} vot${sc.count === 1 ? 'o' : 'i'}</div>`
+        : `<div class="vote-score"><span>—</span>Voti nascosti</div>`;
 
       const btns = [1,2,3,4,5].map(v => {
         const classes = ['btn-vote'];
@@ -389,10 +397,7 @@
         </div>
         <div class="rating-row">
           <div class="${handsClass}" role="radiogroup" aria-label="Voto per ${esc(s.canzone)}">${btns}</div>
-          <div class="vote-score">
-            <span>${avg}</span>
-            ${sc.count} vot${sc.count === 1 ? 'o' : 'i'}
-          </div>
+          ${scoreBlock}
         </div>
       `;
 
@@ -470,6 +475,7 @@
           filter: `id=eq.${serata.id}` }, async payload => {
           serata     = payload.new;
           votingOpen = serata.voto_aperto;
+          showTotalsPublic = Boolean(serata.mostra_voti_totali);
           updateBanner();
           renderContent();
         })

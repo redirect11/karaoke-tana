@@ -122,7 +122,7 @@ async function validateUserToken(req: Request): Promise<{ ok: true } | { ok: fal
 async function getOpenSerata(admin: ReturnType<typeof createClient>) {
   const { data, error } = await admin
     .from("serate")
-    .select("id")
+    .select("id, vincitore_decretato")
     .eq("aperta", true)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -258,15 +258,23 @@ serve(async (req) => {
     });
   }
 
-  if (!openSerata.data) {
+  const currentOpenSerata = openSerata.data;
+  if (!currentOpenSerata) {
     return jsonResponse(req, 409, {
       success: false,
       data: null,
       error: { code: "bookings_closed", message: "Le prenotazioni sono chiuse: nessuna serata aperta." },
     });
   }
+  if (currentOpenSerata.vincitore_decretato) {
+    return jsonResponse(req, 409, {
+      success: false,
+      data: null,
+      error: { code: "bookings_closed", message: "Le prenotazioni sono chiuse: vincitore già decretato." },
+    });
+  }
 
-  const openSerataId = Number(openSerata.data.id);
+  const openSerataId = Number(currentOpenSerata.id);
   if (!Number.isInteger(openSerataId) || openSerataId <= 0) {
     return jsonResponse(req, 500, {
       success: false,
