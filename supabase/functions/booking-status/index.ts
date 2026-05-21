@@ -60,6 +60,21 @@ function computePendingExpiryIso(createdAt: string | null): string | null {
   return new Date(createdAtMs + getPendingExpiryMinutes() * 60 * 1000).toISOString();
 }
 
+async function computeBookingNumber(
+  admin: ReturnType<typeof createClient>,
+  serataId: number,
+  bookingId: number,
+): Promise<{ ok: true; value: number } | { ok: false; error: unknown }> {
+  const { count, error } = await admin
+    .from("prenotazioni")
+    .select("id", { count: "exact", head: true })
+    .eq("serata_id", serataId)
+    .lte("id", bookingId);
+
+  if (error) return { ok: false, error };
+  return { ok: true, value: count ?? 0 };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: getCorsHeaders(req.headers.get("origin")) });
@@ -106,7 +121,7 @@ serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceRoleKey);
   const { data, error } = await admin
     .from("prenotazioni")
-    .select("id, nome, canzone, artista, created_at, approvata, cantata")
+    .select("id, nome, canzone, artista, created_at, approvata, cantata, serata_id")
     .eq("id", bookingId)
     .maybeSingle();
 
@@ -127,6 +142,19 @@ serve(async (req) => {
   }
 
   if (data.approvata) {
+    const serataIdNum = Number(data.serata_id);
+    let bookingNumber = null;
+    if (Number.isInteger(serataIdNum) && serataIdNum > 0) {
+      const bookingNumberResult = await computeBookingNumber(admin, serataIdNum, bookingId);
+      if (!bookingNumberResult.ok) {
+        return jsonResponse(req, 500, {
+          success: false,
+          data: null,
+          error: { code: "query_failed", message: "Errore durante il calcolo del numero prenotazione." },
+        });
+      }
+      bookingNumber = bookingNumberResult.value;
+    }
     return jsonResponse(req, 200, {
       success: true,
       data: {
@@ -138,6 +166,8 @@ serve(async (req) => {
         nome: data.nome,
         canzone: data.canzone,
         artista: data.artista,
+        serata_id: data.serata_id,
+        booking_number: bookingNumber,
         created_at: data.created_at,
         expires_at: null,
       },
@@ -167,6 +197,20 @@ serve(async (req) => {
     });
   }
 
+  const serataIdNum = Number(data.serata_id);
+  let bookingNumber = null;
+  if (Number.isInteger(serataIdNum) && serataIdNum > 0) {
+    const bookingNumberResult = await computeBookingNumber(admin, serataIdNum, bookingId);
+    if (!bookingNumberResult.ok) {
+      return jsonResponse(req, 500, {
+        success: false,
+        data: null,
+        error: { code: "query_failed", message: "Errore durante il calcolo del numero prenotazione." },
+      });
+    }
+    bookingNumber = bookingNumberResult.value;
+  }
+
   return jsonResponse(req, 200, {
     success: true,
     data: {
@@ -178,6 +222,8 @@ serve(async (req) => {
       nome: data.nome,
       canzone: data.canzone,
       artista: data.artista,
+      serata_id: data.serata_id,
+      booking_number: bookingNumber,
       created_at: data.created_at,
       expires_at: expiresAt,
     },

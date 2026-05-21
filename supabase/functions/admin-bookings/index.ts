@@ -498,7 +498,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
 
       const { data, error } = await admin
         .from("serate")
-        .update({ aperta: false, voto_aperto: false })
+        .update({ aperta: false, voto_aperto: false, mostra_voti_totali: false })
         .eq("id", serataId)
         .select("*")
         .maybeSingle();

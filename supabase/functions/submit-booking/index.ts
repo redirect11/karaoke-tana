@@ -150,6 +150,21 @@ async function cleanupExpiredPendingBookings(admin: ReturnType<typeof createClie
   return { ok: true as const };
 }
 
+async function computeBookingNumber(
+  admin: ReturnType<typeof createClient>,
+  serataId: number,
+  bookingId: number,
+): Promise<{ ok: true; value: number } | { ok: false; error: unknown }> {
+  const { count, error } = await admin
+    .from("prenotazioni")
+    .select("id", { count: "exact", head: true })
+    .eq("serata_id", serataId)
+    .lte("id", bookingId);
+
+  if (error) return { ok: false, error };
+  return { ok: true, value: count ?? 0 };
+}
+
 const TELEGRAM_TOKEN_RE = /^\d+:[A-Za-z0-9_-]{20,}$/;
 
 async function sendTelegramNotification(nome: string, canzone: string, artista: string, createdAt: string): Promise<void> {
@@ -305,7 +320,7 @@ serve(async (req) => {
   const { data, error } = await admin
     .from("prenotazioni")
     .insert(insertPayload)
-    .select("id, created_at")
+    .select("id, created_at, serata_id")
     .single();
 
   if (error) {
@@ -316,6 +331,19 @@ serve(async (req) => {
     });
   }
 
+  const insertedSerataId = Number(data.serata_id);
+  const serataIdForBookingNumber = Number.isInteger(insertedSerataId) && insertedSerataId > 0
+    ? insertedSerataId
+    : openSerataId;
+  const bookingNumberResult = await computeBookingNumber(admin, serataIdForBookingNumber, Number(data.id));
+  if (!bookingNumberResult.ok) {
+    return jsonResponse(req, 500, {
+      success: false,
+      data: null,
+      error: { code: "query_failed", message: "Errore durante il calcolo del numero prenotazione." },
+    });
+  }
+
   // Notifica Telegram fire-and-forget (non blocca la risposta)
   sendTelegramNotification(validated.data.nome, validated.data.canzone, validated.data.artista, data.created_at).catch(() => {});
 
@@ -323,6 +351,7 @@ serve(async (req) => {
     success: true,
     data: {
       ...data,
+      booking_number: bookingNumberResult.value,
       pending_expires_at: computePendingExpiryIso(data?.created_at ?? null),
     },
     error: null,

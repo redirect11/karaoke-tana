@@ -683,6 +683,7 @@
     </div>
     <h2 id="waiting-title" aria-live="polite">Stato della tua prenotazione</h2>
     <p id="waiting-song"></p>
+    <p id="waiting-booking-number" hidden aria-live="polite"></p>
     <p id="waiting-status">Sto controllando lo stato della tua prenotazione…</p>
     <p id="waiting-timer"></p>
   </div>
@@ -809,6 +810,7 @@
     const notificationModalEl = document.getElementById('notification-modal');
     const notificationSkipBtnEl = document.getElementById('notification-skip-btn');
     const notificationAcceptBtnEl = document.getElementById('notification-accept-btn');
+    const waitingBookingNumberEl = document.getElementById('waiting-booking-number');
     let activeSongTab = 'to-sing';
     let notificationPermissionRequested = false;
     let songListPollInterval = null;
@@ -1114,6 +1116,29 @@
       timerEl.textContent = message;
     }
 
+    function normalizeBookingNumber(value) {
+      const number = Number(value);
+      if (!Number.isInteger(number) || number <= 0) return null;
+      return number;
+    }
+
+    function getStoredBookingNumber(storedBooking) {
+      if (!storedBooking || typeof storedBooking !== 'object') return null;
+      return normalizeBookingNumber(storedBooking.bookingNumber);
+    }
+
+    function setWaitingBookingNumber(bookingNumber) {
+      if (!waitingBookingNumberEl) return;
+      const normalized = normalizeBookingNumber(bookingNumber);
+      if (!normalized) {
+        waitingBookingNumberEl.textContent = '';
+        waitingBookingNumberEl.hidden = true;
+        return;
+      }
+      waitingBookingNumberEl.hidden = false;
+      waitingBookingNumberEl.textContent = `Sei il numero ${normalized} della serata.`;
+    }
+
     function setWaitingTitle(state = 'in-list') {
       const titleEl = document.getElementById('waiting-title');
       if (!titleEl) return;
@@ -1162,6 +1187,7 @@
       if (stepWaiting.style.display !== 'flex') return;
       const stored = safeParseBookingCookie(getCookie('last_booking'));
       if (!stored) return;
+      setWaitingBookingNumber(getStoredBookingNumber(stored));
       const isApproved = stored.pendingExpiresAt === null || stored.pendingExpiresAt === undefined;
       const safeQueueItems = Array.isArray(queueItems) ? queueItems : [];
       const index = getCurrentBookingQueueIndex(safeQueueItems);
@@ -1186,10 +1212,10 @@
       setWaitingRemainingSongs(index);
       setWaitingTitle('in-list');
       if (index === 1) {
-        setWaitingStatus('⏳ Manca una canzone: sei il numero <span class="waiting-position-critical">1</span> in lista di attesa.', { html: true });
+        setWaitingStatus('⏳ Manca una canzone: il tuo turno è il prossimo.');
         return;
       }
-      setWaitingStatus(`Sei il numero ${index} in lista di attesa.`);
+      setWaitingStatus(`Il tuo turno arriva tra ${index} canzoni.`);
     }
 
     function maybeNotifyTurn(queueItems) {
@@ -1382,6 +1408,18 @@
       return id;
     }
 
+    function getCurrentStoredSerataId(stored) {
+      const serataId = Number(stored?.serataId);
+      if (!Number.isInteger(serataId) || serataId <= 0) return null;
+      return serataId;
+    }
+
+    function getStatusSerataId(status) {
+      const serataId = Number(status?.serata_id);
+      if (!Number.isInteger(serataId) || serataId <= 0) return null;
+      return serataId;
+    }
+
     function formatCountdown(ms) {
       const totalSec = Math.max(0, Math.ceil(ms / 1000));
       const min = Math.floor(totalSec / 60);
@@ -1425,6 +1463,12 @@
         deleteCookie('last_booking');
         clearWaitingIntervals();
       };
+      const storedSerataId = getCurrentStoredSerataId(stored);
+      if (Number.isInteger(currentSerataId) && Number.isInteger(storedSerataId) && currentSerataId !== storedSerataId) {
+        deleteCookie('last_booking');
+        clearWaitingIntervals();
+        return false;
+      }
       if (!Number.isInteger(id) || id <= 0) {
         resetBookingState(stored);
         return false;
@@ -1440,7 +1484,12 @@
           }
 
           if (statusAtExpiry.approved) {
-            const updated = { ...stored, pendingExpiresAt: null };
+            const updated = {
+              ...stored,
+              serataId: getStatusSerataId(statusAtExpiry) ?? getCurrentStoredSerataId(stored),
+              bookingNumber: normalizeBookingNumber(statusAtExpiry.booking_number) || getStoredBookingNumber(stored),
+              pendingExpiresAt: null,
+            };
             if (stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) maybeNotifyBookingApproved(id);
             setCookie('last_booking', JSON.stringify(updated), 365 * 24 * 3600);
             showWaitingScreen(updated.canzone || canzone, updated.artista || artista, true, null);
@@ -1449,11 +1498,21 @@
         } else if (db) {
           const { data } = await db
             .from('prenotazioni')
-            .select('cantata, approvata')
+            .select('cantata, approvata, serata_id')
             .eq('id', id)
             .maybeSingle();
+          const fallbackSerataId = getStatusSerataId(data);
+          if (Number.isInteger(currentSerataId) && Number.isInteger(fallbackSerataId) && fallbackSerataId !== currentSerataId) {
+            deleteCookie('last_booking');
+            clearWaitingIntervals();
+            return false;
+          }
           if (data?.approvata && !data?.cantata) {
-            const updated = { ...stored, pendingExpiresAt: null };
+            const updated = {
+              ...stored,
+              pendingExpiresAt: null,
+              serataId: fallbackSerataId ?? storedSerataId ?? currentSerataId ?? null,
+            };
             if (stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) maybeNotifyBookingApproved(id);
             setCookie('last_booking', JSON.stringify(updated), 365 * 24 * 3600);
             showWaitingScreen(updated.canzone || canzone, updated.artista || artista, true, null);
@@ -1478,9 +1537,17 @@
           id,
           canzone: status.canzone || canzone,
           artista: status.artista || artista,
+          serataId: getStatusSerataId(status) ?? storedSerataId,
+          bookingNumber: normalizeBookingNumber(status.booking_number) || getStoredBookingNumber(stored),
           pendingExpiresAt: status.approved ? null : expiresAtMs,
           timestamp: Number.isFinite(createdAtMs) ? createdAtMs : (Number(stored.timestamp) || Date.now()),
         };
+        const updatedSerataId = getCurrentStoredSerataId(updated);
+        if (Number.isInteger(currentSerataId) && Number.isInteger(updatedSerataId) && updatedSerataId !== currentSerataId) {
+          deleteCookie('last_booking');
+          clearWaitingIntervals();
+          return false;
+        }
         if (status.approved && stored.pendingExpiresAt !== null && stored.pendingExpiresAt !== undefined) maybeNotifyBookingApproved(id);
         setCookie(
           'last_booking',
@@ -1494,11 +1561,17 @@
       if (db) {
         const { data } = await db
           .from('prenotazioni')
-          .select('cantata, approvata, created_at')
+          .select('cantata, approvata, created_at, serata_id')
           .eq('id', id)
           .maybeSingle();
         if (!data || data.cantata) {
           resetBookingState(stored);
+          return false;
+        }
+        const fallbackSerataId = getStatusSerataId(data);
+        if (Number.isInteger(currentSerataId) && Number.isInteger(fallbackSerataId) && fallbackSerataId !== currentSerataId) {
+          deleteCookie('last_booking');
+          clearWaitingIntervals();
           return false;
         }
 
@@ -1514,6 +1587,7 @@
         const updated = {
           ...stored,
           id,
+          serataId: fallbackSerataId ?? storedSerataId ?? currentSerataId ?? null,
           pendingExpiresAt: data.approvata ? null : fallbackExpiryAt,
         };
         setCookie(
@@ -1534,6 +1608,8 @@
       stepWaiting.style.display = 'flex';
       showSongListCard(true);
       document.getElementById('waiting-song').textContent = `${canzone} – ${artista}`;
+      const stored = safeParseBookingCookie(getCookie('last_booking'));
+      setWaitingBookingNumber(getStoredBookingNumber(stored));
       setWaitingRemainingSongs(null);
       setWaitingTitle(approvata ? 'in-list' : 'pending');
       setWaitingStatus(approvata
@@ -1761,6 +1837,8 @@
           : ((Number.isFinite(createdAtMs) ? createdAtMs : Date.now()) + PENDING_EXPIRY_MIN * 60 * 1000);
         setCookie('last_booking', JSON.stringify({
           id: data.id,
+          serataId: currentSerataId ?? null,
+          bookingNumber: normalizeBookingNumber(data.booking_number),
           timestamp: Number.isFinite(createdAtMs) ? createdAtMs : Date.now(),
           pendingExpiresAt,
           canzone,
