@@ -360,7 +360,7 @@
         const tabIndex = myVote > 0 ? (myVote === v ? '0' : '-1') : (v === 1 ? '0' : '-1');
         if (myVote === v) classes.push('selected');
         const dis   = !votingOpen ? ' disabled' : '';
-        return `<button class="${classes.join(' ')}"${dis} data-v="${v}" role="radio" aria-label="Vota ${v} su 5" aria-checked="${myVote === v ? 'true' : 'false'}" tabindex="${tabIndex}"><span>👏</span><span class="vote-num" aria-hidden="true">${v}</span></button>`;
+        return `<button class="${classes.join(' ')}"${dis} data-v="${v}" role="radio" aria-label="Vota ${v} su 5" aria-checked="${myVote === v ? 'true' : 'false'}" tabindex="${tabIndex}"><span aria-hidden="true">👏</span><span class="vote-num" aria-hidden="true">${v}</span></button>`;
       }).join('');
 
       div.innerHTML = `
@@ -389,8 +389,8 @@
     }
 
     async function castVote(songId, voto, card) {
-      const existing = getLocalVote(songId);
       card.querySelectorAll('.btn-vote').forEach(b => b.disabled = true);
+      const existing = getLocalVote(songId);
       let error;
 
       if (existing?.db_id) {
