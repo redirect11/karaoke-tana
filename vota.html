@@ -84,7 +84,7 @@
     .song-card {
       background: var(--card);
       border-radius: var(--radius);
-      padding: 16px 18px;
+      padding: 22px 24px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       animation: slideIn 0.3s ease;
     }
@@ -100,10 +100,10 @@
       gap: 10px;
       margin-bottom: 12px;
     }
-    .song-title { font-weight: 700; font-size: 1rem; color: var(--gold-s); }
-    .song-artist { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+    .song-title { font-weight: 700; font-size: 1.1rem; color: var(--gold-s); }
+    .song-artist { font-size: 0.85rem; color: var(--muted); margin-top: 3px; }
     .song-singer {
-      font-size: 0.72rem;
+      font-size: 0.78rem;
       color: var(--muted);
       background: var(--bg2);
       border-radius: 50px;
@@ -116,27 +116,33 @@
     .rating-row {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       flex-wrap: wrap;
     }
 
     .rating-hands {
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding: 4px;
-      border-radius: 14px;
+      gap: 6px;
+      padding: 6px;
+      border-radius: 16px;
       background: rgba(18,7,31,0.28);
+      border: 2px solid transparent;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .rating-hands.has-vote {
+      background: rgba(212,160,23,0.10);
+      border-color: rgba(212,160,23,0.30);
     }
 
     .btn-vote {
-      width: 36px;
-      height: 36px;
+      width: 52px;
+      height: 52px;
       border: var(--vote-border) solid transparent;
-      border-radius: 10px;
+      border-radius: 12px;
       background: transparent;
       color: inherit;
-      font-size: 1rem;
+      font-size: 1.5rem;
       line-height: 1;
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s, transform 0.1s, filter 0.15s, opacity 0.15s;
@@ -144,11 +150,11 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2px;
+      gap: 3px;
       filter: grayscale(1) opacity(0.55);
     }
     .btn-vote .vote-num {
-      font-size: 0.62rem;
+      font-size: 0.68rem;
       line-height: 1;
       font-weight: 700;
       color: var(--muted);
@@ -158,12 +164,19 @@
       filter: grayscale(0.45) opacity(0.9);
     }
     .btn-vote:active { transform: scale(0.93); }
+    .btn-vote.lit {
+      filter: grayscale(0) opacity(0.85);
+      background: rgba(212,160,23,0.10);
+    }
+    .btn-vote.lit .vote-num {
+      color: var(--gold-s);
+    }
     .btn-vote.selected {
       border-color: var(--gold);
       background: rgba(212,160,23,0.22);
       filter: none;
       opacity: 1;
-      box-shadow: 0 0 12px rgba(212,160,23,0.15);
+      box-shadow: 0 0 14px rgba(212,160,23,0.20);
     }
     .btn-vote.selected .vote-num {
       color: var(--gold-s);
@@ -357,11 +370,14 @@
 
       const btns = [1,2,3,4,5].map(v => {
         const classes = ['btn-vote'];
-        const tabIndex = myVote > 0 ? (myVote === v ? '0' : '-1') : (v === 1 ? '0' : '-1');
+        if (myVote > 0 && v <= myVote) classes.push('lit');
         if (myVote === v) classes.push('selected');
+        const tabIndex = myVote > 0 ? (myVote === v ? '0' : '-1') : (v === 1 ? '0' : '-1');
         const dis   = !votingOpen ? ' disabled' : '';
         return `<button class="${classes.join(' ')}"${dis} data-v="${v}" role="radio" aria-label="Vota ${v} su 5" aria-checked="${myVote === v ? 'true' : 'false'}" tabindex="${tabIndex}"><span aria-hidden="true">👏</span><span class="vote-num" aria-hidden="true">${v}</span></button>`;
       }).join('');
+
+      const handsClass = myVote > 0 ? 'rating-hands has-vote' : 'rating-hands';
 
       div.innerHTML = `
         <div class="song-header">
@@ -372,7 +388,7 @@
           <div class="song-singer">👤 ${esc(s.nome)}</div>
         </div>
         <div class="rating-row">
-          <div class="rating-hands" role="radiogroup" aria-label="Voto per ${esc(s.canzone)}">${btns}</div>
+          <div class="${handsClass}" role="radiogroup" aria-label="Voto per ${esc(s.canzone)}">${btns}</div>
           <div class="vote-score">
             <span>${avg}</span>
             ${sc.count} vot${sc.count === 1 ? 'o' : 'i'}
@@ -429,11 +445,15 @@
     function setCardVoteSelection(card, voto) {
       card.querySelectorAll('.btn-vote').forEach(btn => {
         const btnVote = Number(btn.dataset.v);
-        const selected = voto > 0 && btnVote === voto;
-        btn.classList.toggle('selected', selected);
-        btn.setAttribute('aria-checked', selected ? 'true' : 'false');
-        btn.tabIndex = voto > 0 ? (selected ? 0 : -1) : (btnVote === 1 ? 0 : -1);
+        const isLit      = voto > 0 && btnVote <= voto;
+        const isSelected = voto > 0 && btnVote === voto;
+        btn.classList.toggle('lit', isLit);
+        btn.classList.toggle('selected', isSelected);
+        btn.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+        btn.tabIndex = voto > 0 ? (isSelected ? 0 : -1) : (btnVote === 1 ? 0 : -1);
       });
+      const ratingHands = card.querySelector('.rating-hands');
+      if (ratingHands) ratingHands.classList.toggle('has-vote', voto > 0);
     }
 
     function showEmpty(msg) {
