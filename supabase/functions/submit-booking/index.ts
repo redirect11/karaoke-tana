@@ -235,14 +235,15 @@ serve(async (req) => {
     });
   }
 
-  if (!openSerata.data) {
+  const currentOpenSerata = openSerata.data;
+  if (!currentOpenSerata) {
     return jsonResponse(req, 409, {
       success: false,
       data: null,
       error: { code: "bookings_closed", message: "Le prenotazioni sono chiuse: nessuna serata aperta." },
     });
   }
-  if (openSerata.data.vincitore_decretato) {
+  if (currentOpenSerata.vincitore_decretato) {
     return jsonResponse(req, 409, {
       success: false,
       data: null,
@@ -250,7 +251,7 @@ serve(async (req) => {
     });
   }
 
-  const openSerataId = Number(openSerata.data.id);
+  const openSerataId = Number(currentOpenSerata.id);
   if (!Number.isInteger(openSerataId) || openSerataId <= 0) {
     return jsonResponse(req, 500, {
       success: false,

@@ -172,14 +172,19 @@ function buildRanking(bookings: Array<Record<string, unknown>>, scoreMap: Map<nu
         ...booking,
         score_total: score.total,
         score_count: score.count,
+        score_average_raw: scoreAverage,
         score_average: Number(scoreAverage.toFixed(2)),
       };
     })
     .sort((a, b) => {
       if (b.score_total !== a.score_total) return b.score_total - a.score_total;
-      if (b.score_average !== a.score_average) return b.score_average - a.score_average;
+      if (b.score_average_raw !== a.score_average_raw) return b.score_average_raw - a.score_average_raw;
       if (b.score_count !== a.score_count) return b.score_count - a.score_count;
       return String(a.created_at ?? "").localeCompare(String(b.created_at ?? ""));
+    })
+    .map((booking) => {
+      const { score_average_raw: _scoreAverageRaw, ...publicBooking } = booking;
+      return publicBooking;
     });
 }
 
