@@ -17,6 +17,7 @@
       --text:   #f0e6d3;
       --muted:  #a08ca0;
       --vote-border: 2px;
+      --vote-border-overlap: -2px;
       --radius: 14px;
     }
 
@@ -145,7 +146,7 @@
       filter: grayscale(1) opacity(0.55);
     }
     /* Overlap adjacent button borders so the selected range looks like a single box. */
-    .btn-vote + .btn-vote { margin-left: calc(-1 * var(--vote-border)); }
+    .btn-vote + .btn-vote { margin-left: var(--vote-border-overlap); }
     .btn-vote:hover {
       background: rgba(212,160,23,0.12);
       filter: grayscale(0.45) opacity(0.9);
@@ -236,11 +237,10 @@
 
     function setLocalVote(songId, voto, dbId) {
       const key = String(songId);
-      localVotes[key] = {
-        ...(localVotes[key] || {}),
-        voto,
-      };
+      const previousDbId = localVotes[key]?.db_id;
+      localVotes[key] = { voto };
       if (dbId) localVotes[key].db_id = dbId;
+      else if (previousDbId) localVotes[key].db_id = previousDbId;
     }
 
     // ── Load serata ────────────────────────────────────────────
