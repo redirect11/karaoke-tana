@@ -159,6 +159,51 @@ La pipeline (`.github/workflows/deploy.yml`) genera `config.js` dai secrets:
 - `BOOKING_STATUS_FUNCTION_URL` (opzionale)
 - `BOOKING_PENDING_EXPIRY_MIN`
 - `BOOKING_COOLDOWN_MIN`
+- `ADS_ENABLED` (`true|false`)
+- `ADS_MODE` (`off|soft|intrusive`)
+- `ADS_PROVIDER` (`none|adsense|custom`)
+- `ADSENSE_CLIENT_ID` (es. `ca-pub-xxxxxxxxxxxxxxxx`)
+- `ADSENSE_BANNER_SLOT` (slot id banner)
+- `ADS_REQUIRE_BEFORE_BOOKING` (`true|false`)
+
+## Ads / monetizzazione (frontend)
+
+La web app include un'infrastruttura ads configurabile e disaccoppiata dal flusso business:
+
+- `scripts/ads-config.js`: policy/config ads centralizzata (safe default se valori mancanti)
+- `scripts/ads-banner.js`: rendering banner con provider isolato
+- `scripts/booking-gate.js`: step intermedio opzionale prima della conferma prenotazione
+
+### Valori config supportati
+
+Nel `config.js` (o nei secrets della workflow deploy):
+
+- `ADS_ENABLED=true|false`
+- `ADS_MODE=off|soft|intrusive`
+- `ADS_PROVIDER=none|adsense|custom`
+- `ADSENSE_CLIENT_ID=ca-pub-...`
+- `ADSENSE_BANNER_SLOT=<slot-id>`
+- `ADS_REQUIRE_BEFORE_BOOKING=true|false`
+
+### Come abilitare/disabilitare
+
+- **Disabilitare tutto**: `ADS_ENABLED=false` oppure `ADS_MODE=off`
+- **Banner soft**: `ADS_ENABLED=true` + `ADS_MODE=soft`
+- **Banner intrusive/sticky**: `ADS_ENABLED=true` + `ADS_MODE=intrusive`
+
+### AdSense
+
+Per usare AdSense:
+
+1. `ADS_PROVIDER=adsense`
+2. imposta `ADSENSE_CLIENT_ID` e `ADSENSE_BANNER_SLOT`
+
+Se la config AdSense manca/incompleta, la pagina non si rompe: viene mostrato un placeholder safe.
+
+### Booking gate
+
+Se `ADS_REQUIRE_BEFORE_BOOKING=true` e gli ads sono attivi, il click su "Prenota" mostra prima una modale sponsor/intermedia con percorso esplicito "Continua".  
+Se ads sono off/disabilitati, la prenotazione procede normalmente senza step aggiuntivi.
 
 ## Nota piano Free Supabase
 

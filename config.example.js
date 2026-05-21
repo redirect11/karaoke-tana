@@ -30,6 +30,20 @@ const CONFIG = {
   // Legacy fallback (compatibilità config vecchie)
   BOOKING_COOLDOWN_MIN: 30,
 
+  // ── Advertising / monetizzazione ───────────────────────────
+  // Flag globale ads
+  ADS_ENABLED: false,
+  // off | soft | intrusive
+  ADS_MODE: 'off',
+  // none | adsense | custom
+  ADS_PROVIDER: 'none',
+  // Es: ca-pub-xxxxxxxxxxxxxxxx
+  ADSENSE_CLIENT_ID: '',
+  // Slot banner AdSense
+  ADSENSE_BANNER_SLOT: '',
+  // Se true, prima della conferma prenotazione appare uno step sponsor
+  ADS_REQUIRE_BEFORE_BOOKING: false,
+
 };
 
 if (typeof window !== 'undefined') {

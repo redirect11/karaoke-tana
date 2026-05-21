@@ -613,6 +613,118 @@
       color: #12071f;
     }
 
+    .ads-banner-container {
+      width: 100%;
+      max-width: 640px;
+      margin: 12px auto 0;
+    }
+    .ads-banner {
+      width: 100%;
+      background: rgba(42, 22, 80, 0.95);
+      border: 1px solid #3d2366;
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .ads-banner--intrusive {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(95vw, 520px);
+      z-index: 45;
+    }
+    body.ads-intrusive-active {
+      padding-bottom: 120px;
+    }
+    .ads-banner-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .ads-banner-content {
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ads-placeholder {
+      width: 100%;
+      background: rgba(20, 10, 38, 0.8);
+      border: 1px dashed #6d57a8;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .booking-gate-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 3, 15, 0.78);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 60;
+    }
+    .booking-gate-modal.open { display: flex; }
+    .booking-gate-card {
+      width: 100%;
+      max-width: 430px;
+      background: var(--card);
+      border: 1px solid #3d2366;
+      border-radius: 14px;
+      padding: 20px 18px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .booking-gate-card h3 {
+      color: var(--gold-soft);
+      font-size: 1.02rem;
+    }
+    .booking-gate-card p {
+      font-size: 0.86rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .booking-gate-preview {
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .booking-gate-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .booking-gate-actions button {
+      border: none;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-booking-gate-cancel {
+      background: #4b356f;
+      color: var(--text);
+    }
+    .btn-booking-gate-continue {
+      background: var(--gold);
+      color: #12071f;
+    }
+
     footer {
       margin-top: 40px;
       font-size: 0.72rem;
@@ -630,6 +742,7 @@
   </header>
 
   <a href="vota.html" id="vota-banner">🗳 Vota le esibizioni! →</a>
+  <div id="ads-banner-container" class="ads-banner-container" aria-live="polite"></div>
 
   <div class="card" id="leaderboard-card">
     <h3>🏆 Classifica finale · Top 5</h3>
@@ -754,15 +867,43 @@
     </div>
   </div>
 
+  <div class="booking-gate-modal" id="booking-gate-modal" role="dialog" aria-modal="true" aria-labelledby="booking-gate-title">
+    <div class="booking-gate-card">
+      <h3 id="booking-gate-title">Supporta la serata</h3>
+      <p data-booking-gate-message>Prima della conferma puoi visualizzare un breve sponsor.</p>
+      <div class="booking-gate-preview" data-booking-gate-ad></div>
+      <div class="booking-gate-actions">
+        <button type="button" class="btn-booking-gate-cancel" data-booking-gate-action="cancel">Annulla</button>
+        <button type="button" class="btn-booking-gate-continue" data-booking-gate-action="continue">Continua</button>
+      </div>
+    </div>
+  </div>
+
   <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.2</footer>
 
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="./scripts/ads-config.js"></script>
+  <script src="./scripts/ads-banner.js"></script>
+  <script src="./scripts/booking-gate.js"></script>
   <script>
     const config =
       (typeof window.CONFIG === 'object' && window.CONFIG)
       || (typeof CONFIG === 'object' && CONFIG)
       || {};
+    const adsPolicyStore = window.KaraokeAdsConfig
+      ? window.KaraokeAdsConfig.createPolicyStore(config)
+      : {
+        getPolicy: () => ({
+          enabled: false,
+          mode: 'off',
+          provider: 'none',
+          bannerEnabled: false,
+          intrusive: false,
+          requireBeforeBooking: false,
+        }),
+        setRuntimeOverrides: () => null,
+      };
 
     // ── Service Worker (required for notifications on Chrome Android) ──
     // navigator.serviceWorker.ready resolves only when the SW is active, which is
@@ -838,6 +979,8 @@
     const ind1         = document.getElementById('ind-1');
     const ind1num      = document.getElementById('ind-1-num');
     const ind2         = document.getElementById('ind-2');
+    const adsBannerContainerEl = document.getElementById('ads-banner-container');
+    const bookingGateModalEl = document.getElementById('booking-gate-modal');
     const notificationModalEl = document.getElementById('notification-modal');
     const notificationSkipBtnEl = document.getElementById('notification-skip-btn');
     const notificationAcceptBtnEl = document.getElementById('notification-accept-btn');
@@ -849,6 +992,28 @@
     let songListPollInterval = null;
     let songListAvailability = 'loading';
     let songListCache = { toSing: [], completed: [] };
+
+    const bookingGate = window.KaraokeBookingGate
+      ? window.KaraokeBookingGate.createBookingGate({
+        modalEl: bookingGateModalEl,
+        renderAdContent: (container, policy) => {
+          if (window.KaraokeAdsBanner) {
+            window.KaraokeAdsBanner.renderInlineAd(container, policy);
+          }
+        },
+      })
+      : { requestConfirmation: async () => true };
+
+    function renderAdsBanner() {
+      if (!window.KaraokeAdsBanner) return;
+      window.KaraokeAdsBanner.renderBanner(adsBannerContainerEl, adsPolicyStore.getPolicy());
+    }
+
+    renderAdsBanner();
+    window.updateAdsRuntimeSettings = (nextSettings) => {
+      adsPolicyStore.setRuntimeOverrides(nextSettings);
+      renderAdsBanner();
+    };
 
     // ── Vota banner ──────────────────────────────────────────
     const votaBanner = document.getElementById('vota-banner');
@@ -1945,6 +2110,9 @@
         alert('Compila tutti i campi prima di prenotare!');
         return;
       }
+
+      const canProceedWithBooking = await bookingGate.requestConfirmation(adsPolicyStore.getPolicy());
+      if (!canProceedWithBooking) return;
 
       const btn = e.target.querySelector('.btn-submit');
       btn.disabled = true;

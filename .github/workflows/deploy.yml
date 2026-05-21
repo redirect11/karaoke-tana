@@ -34,9 +34,26 @@ jobs:
           BOOKING_STATUS_FUNCTION_URL: ${{ secrets.BOOKING_STATUS_FUNCTION_URL }}
           BOOKING_PENDING_EXPIRY_MIN:  ${{ secrets.BOOKING_PENDING_EXPIRY_MIN }}
           BOOKING_COOLDOWN_MIN:  ${{ secrets.BOOKING_COOLDOWN_MIN }}
+          ADS_ENABLED: ${{ secrets.ADS_ENABLED }}
+          ADS_MODE: ${{ secrets.ADS_MODE }}
+          ADS_PROVIDER: ${{ secrets.ADS_PROVIDER }}
+          ADSENSE_CLIENT_ID: ${{ secrets.ADSENSE_CLIENT_ID }}
+          ADSENSE_BANNER_SLOT: ${{ secrets.ADSENSE_BANNER_SLOT }}
+          ADS_REQUIRE_BEFORE_BOOKING: ${{ secrets.ADS_REQUIRE_BEFORE_BOOKING }}
         run: |
           node -e "
           const fs = require('fs');
+          const parseBoolean = (value, fallback = false) => {
+            if (typeof value !== 'string') return fallback;
+            const normalized = value.trim().toLowerCase();
+            if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+            if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+            return fallback;
+          };
+          const normalizeFromSet = (value, allowed, fallback) => {
+            const normalized = String(value || '').trim().toLowerCase();
+            return allowed.includes(normalized) ? normalized : fallback;
+          };
           const getPendingExpiryMinutes = (value) => {
             const parsed = parseInt(value || '', 10);
             if (Number.isNaN(parsed) || parsed <= 0) return 30;
@@ -53,10 +70,16 @@ jobs:
              BOOKING_STATUS_FUNCTION_URL: process.env.BOOKING_STATUS_FUNCTION_URL || '',
              BOOKING_PENDING_EXPIRY_MIN: pendingExpiryMinutes,
              BOOKING_COOLDOWN_MIN:  pendingExpiryMinutes,
-          };
-          fs.writeFileSync('config.js', 'const CONFIG = ' + JSON.stringify(config, null, 2) + ';\nif (typeof window !== \'undefined\') { window.CONFIG = CONFIG; }');
-          console.log('config.js generato.');
-          "
+             ADS_ENABLED: parseBoolean(process.env.ADS_ENABLED, false),
+             ADS_MODE: normalizeFromSet(process.env.ADS_MODE, ['off', 'soft', 'intrusive'], 'off'),
+             ADS_PROVIDER: normalizeFromSet(process.env.ADS_PROVIDER, ['none', 'adsense', 'custom'], 'none'),
+             ADSENSE_CLIENT_ID: process.env.ADSENSE_CLIENT_ID || '',
+             ADSENSE_BANNER_SLOT: process.env.ADSENSE_BANNER_SLOT || '',
+             ADS_REQUIRE_BEFORE_BOOKING: parseBoolean(process.env.ADS_REQUIRE_BEFORE_BOOKING, false),
+           };
+           fs.writeFileSync('config.js', 'const CONFIG = ' + JSON.stringify(config, null, 2) + ';\nif (typeof window !== \'undefined\') { window.CONFIG = CONFIG; }');
+           console.log('config.js generato.');
+           "
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
