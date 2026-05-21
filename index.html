@@ -845,6 +845,7 @@
     const waitingBookingNumberEl = document.getElementById('waiting-booking-number');
     let activeSongTab = 'to-sing';
     let notificationPermissionRequested = false;
+    let browserNotificationsEnabled = true;
     let songListPollInterval = null;
     let songListAvailability = 'loading';
     let songListCache = { toSing: [], completed: [] };
@@ -1141,6 +1142,7 @@
     }
 
     function notifyBrowser(title, body) {
+      if (!browserNotificationsEnabled) return false;
       if (!('Notification' in window)) return false;
       if (Notification.permission !== 'granted') return false;
       const options = { body, icon: './logo.png' };
@@ -1406,12 +1408,13 @@
       if (!db) return true;
       const { data } = await db
         .from('serate')
-        .select('id, aperta, voto_aperto, vincitore_decretato, vincitore_prenotazione_id')
+        .select('id, aperta, voto_aperto, vincitore_decretato, vincitore_prenotazione_id, notifiche_browser_abilitate')
         .eq('aperta', true)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       if (!data) {
+        browserNotificationsEnabled = true;
         currentSerataId = null;
         clearSongListPolling();
         [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
@@ -1424,6 +1427,7 @@
         return false;
       }
       currentSerataId = data.id;
+      browserNotificationsEnabled = data.notifiche_browser_abilitate !== false;
       const winnerDecreed = Boolean(data.vincitore_decretato);
       setVotaBanner(Boolean(data.voto_aperto) && !winnerDecreed);
       if (winnerDecreed) {
@@ -1453,6 +1457,7 @@
       serataChannel = db.channel('index-serata')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate',
           filter: `id=eq.${serataId}` }, payload => {
+          browserNotificationsEnabled = payload.new.notifiche_browser_abilitate !== false;
           const winnerDecreed = Boolean(payload.new.vincitore_decretato);
           setVotaBanner(Boolean(payload.new.voto_aperto) && !winnerDecreed);
           if (!payload.new.aperta) {
@@ -1865,6 +1870,7 @@
 
     async function requestNotificationPermissionAfterBookingSuccess() {
       if (notificationPermissionRequested) return;
+      if (!browserNotificationsEnabled) return;
       if (!('Notification' in window)) return;
       if (Notification.permission !== 'default') return;
       // Wait for the SW to be active before prompting: on Chrome Android

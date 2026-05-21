@@ -66,6 +66,8 @@ if (typeof window !== 'undefined') {
 //    data        DATE NOT NULL DEFAULT CURRENT_DATE,
 //    aperta      BOOLEAN DEFAULT FALSE,
 //    voto_aperto BOOLEAN DEFAULT FALSE,
+//    notifiche_telegram_abilitate BOOLEAN NOT NULL DEFAULT TRUE,
+//    notifiche_browser_abilitate  BOOLEAN NOT NULL DEFAULT TRUE,
 //    note        TEXT,
 //    created_at  TIMESTAMPTZ DEFAULT NOW()
 //  );

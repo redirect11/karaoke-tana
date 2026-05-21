@@ -1,0 +1,5 @@
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS notifiche_telegram_abilitate BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS notifiche_browser_abilitate BOOLEAN NOT NULL DEFAULT TRUE;

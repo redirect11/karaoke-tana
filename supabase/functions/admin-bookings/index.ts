@@ -473,6 +473,8 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           aperta: true,
           voto_aperto: false,
           mostra_voti_totali: false,
+          notifiche_telegram_abilitate: true,
+          notifiche_browser_abilitate: true,
           vincitore_decretato: false,
           vincitore_prenotazione_id: null,
         })
@@ -570,6 +572,68 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
 
       if (error) {
         throw new ApiError(500, "update_failed", "Non sono riuscito ad aggiornare la visibilità dei voti.");
+      }
+      if (!data) {
+        throw new ApiError(404, "not_found", "Serata non trovata.");
+      }
+
+      return { status: 200, data };
+    }
+
+    case "set_browser_notifications":
+    case "toggle_browser_notifications": {
+      const currentSerata = body.serataId != null
+        ? await getSerataById(admin, toPositiveInt(body.serataId, "serataId"))
+        : await getOpenSerata(admin);
+
+      if (!currentSerata?.id) {
+        throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
+      }
+
+      const browserNotificationsEnabled = typeof body.notificheBrowserAbilitate === "boolean"
+        ? body.notificheBrowserAbilitate
+        : !Boolean(currentSerata.notifiche_browser_abilitate);
+
+      const { data, error } = await admin
+        .from("serate")
+        .update({ notifiche_browser_abilitate: browserNotificationsEnabled })
+        .eq("id", currentSerata.id)
+        .select("*")
+        .maybeSingle();
+
+      if (error) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito ad aggiornare le notifiche browser.");
+      }
+      if (!data) {
+        throw new ApiError(404, "not_found", "Serata non trovata.");
+      }
+
+      return { status: 200, data };
+    }
+
+    case "set_telegram_notifications":
+    case "toggle_telegram_notifications": {
+      const currentSerata = body.serataId != null
+        ? await getSerataById(admin, toPositiveInt(body.serataId, "serataId"))
+        : await getOpenSerata(admin);
+
+      if (!currentSerata?.id) {
+        throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
+      }
+
+      const telegramNotificationsEnabled = typeof body.notificheTelegramAbilitate === "boolean"
+        ? body.notificheTelegramAbilitate
+        : !Boolean(currentSerata.notifiche_telegram_abilitate);
+
+      const { data, error } = await admin
+        .from("serate")
+        .update({ notifiche_telegram_abilitate: telegramNotificationsEnabled })
+        .eq("id", currentSerata.id)
+        .select("*")
+        .maybeSingle();
+
+      if (error) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito ad aggiornare le notifiche Telegram.");
       }
       if (!data) {
         throw new ApiError(404, "not_found", "Serata non trovata.");
