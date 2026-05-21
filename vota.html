@@ -123,7 +123,7 @@
     .rating-hands {
       display: flex;
       align-items: center;
-      gap: 0;
+      gap: 4px;
       padding: 4px;
       border-radius: 14px;
       background: rgba(18,7,31,0.28);
@@ -133,44 +133,44 @@
       width: 36px;
       height: 36px;
       border: var(--vote-border) solid transparent;
-      border-radius: 0;
+      border-radius: 10px;
       background: transparent;
       color: inherit;
-      font-size: 1.1rem;
+      font-size: 1rem;
       line-height: 1;
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s, transform 0.1s, filter 0.15s, opacity 0.15s;
-      display: inline-flex;
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 2px;
       filter: grayscale(1) opacity(0.55);
     }
-    /* Overlap adjacent button borders so the selected range looks like a single box. */
-    .btn-vote + .btn-vote { margin-left: var(--vote-border-overlap); }
+    .btn-vote .vote-num {
+      font-size: 0.62rem;
+      line-height: 1;
+      font-weight: 700;
+      color: var(--muted);
+    }
     .btn-vote:hover {
       background: rgba(212,160,23,0.12);
       filter: grayscale(0.45) opacity(0.9);
     }
     .btn-vote:active { transform: scale(0.93); }
     .btn-vote.selected {
+      border-color: var(--gold);
+      background: rgba(212,160,23,0.22);
       filter: none;
       opacity: 1;
-    }
-    .btn-vote.selected-range {
-      background: rgba(212,160,23,0.22);
-      border-top-color: var(--gold);
-      border-bottom-color: var(--gold);
       box-shadow: 0 0 12px rgba(212,160,23,0.15);
     }
-    .btn-vote.range-start {
-      border-left-color: var(--gold);
-      border-top-left-radius: 12px;
-      border-bottom-left-radius: 12px;
+    .btn-vote.selected .vote-num {
+      color: var(--gold-s);
     }
-    .btn-vote.range-end {
-      border-right-color: var(--gold);
-      border-top-right-radius: 12px;
-      border-bottom-right-radius: 12px;
+    .btn-vote:focus-visible {
+      outline: 2px solid var(--gold-s);
+      outline-offset: 1px;
     }
     .btn-vote:disabled {
       opacity: 0.5;
@@ -358,13 +358,9 @@
       const btns = [1,2,3,4,5].map(v => {
         const classes = ['btn-vote'];
         const tabIndex = myVote > 0 ? (myVote === v ? '0' : '-1') : (v === 1 ? '0' : '-1');
-        if (myVote > 0 && myVote >= v) {
-          classes.push('selected', 'selected-range');
-          if (v === 1) classes.push('range-start');
-          if (v === myVote) classes.push('range-end');
-        }
+        if (myVote === v) classes.push('selected');
         const dis   = !votingOpen ? ' disabled' : '';
-        return `<button class="${classes.join(' ')}"${dis} data-v="${v}" role="radio" aria-label="Vota ${v} su 5" aria-checked="${myVote === v ? 'true' : 'false'}" tabindex="${tabIndex}">👏</button>`;
+        return `<button class="${classes.join(' ')}"${dis} data-v="${v}" role="radio" aria-label="Vota ${v} su 5" aria-checked="${myVote === v ? 'true' : 'false'}" tabindex="${tabIndex}"><span aria-hidden="true">👏</span><span class="vote-num" aria-hidden="true">${v}</span></button>`;
       }).join('');
 
       div.innerHTML = `
@@ -394,7 +390,6 @@
 
     async function castVote(songId, voto, card) {
       card.querySelectorAll('.btn-vote').forEach(b => b.disabled = true);
-
       const existing = getLocalVote(songId);
       let error;
 
@@ -415,6 +410,7 @@
 
       if (existing?.db_id) setLocalVote(songId, voto, existing.db_id);
       saveLocalVotes();
+      setCardVoteSelection(card, voto);
 
       // refresh scores for this card
       const song = songs.find(s => s.id === songId);
@@ -428,6 +424,16 @@
         const fresh = makeSongCard(song);
         card.replaceWith(fresh);
       }
+    }
+
+    function setCardVoteSelection(card, voto) {
+      card.querySelectorAll('.btn-vote').forEach(btn => {
+        const btnVote = Number(btn.dataset.v);
+        const selected = voto > 0 && btnVote === voto;
+        btn.classList.toggle('selected', selected);
+        btn.setAttribute('aria-checked', selected ? 'true' : 'false');
+        btn.tabIndex = voto > 0 ? (selected ? 0 : -1) : (btnVote === 1 ? 0 : -1);
+      });
     }
 
     function showEmpty(msg) {
