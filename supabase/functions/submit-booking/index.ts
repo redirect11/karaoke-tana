@@ -122,7 +122,7 @@ async function validateUserToken(req: Request): Promise<{ ok: true } | { ok: fal
 async function getOpenSerata(admin: ReturnType<typeof createClient>) {
   const { data, error } = await admin
     .from("serate")
-    .select("id")
+    .select("id, vincitore_decretato")
     .eq("aperta", true)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -240,6 +240,13 @@ serve(async (req) => {
       success: false,
       data: null,
       error: { code: "bookings_closed", message: "Le prenotazioni sono chiuse: nessuna serata aperta." },
+    });
+  }
+  if (openSerata.data.vincitore_decretato) {
+    return jsonResponse(req, 409, {
+      success: false,
+      data: null,
+      error: { code: "bookings_closed", message: "Le prenotazioni sono chiuse: vincitore già decretato." },
     });
   }
 

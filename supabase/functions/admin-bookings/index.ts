@@ -147,11 +147,85 @@ async function getSerataById(admin: ReturnType<typeof createClient>, serataId: n
   return data;
 }
 
+function computeScoreMap(votes: Array<{ prenotazione_id: number; voto: number }>) {
+  const byBooking = new Map<number, { total: number; count: number; average: number }>();
+  for (const vote of votes) {
+    const bookingId = Number(vote.prenotazione_id);
+    if (!Number.isInteger(bookingId) || bookingId <= 0) continue;
+    const value = Number(vote.voto);
+    if (!Number.isFinite(value)) continue;
+    const current = byBooking.get(bookingId) ?? { total: 0, count: 0, average: 0 };
+    current.total += value;
+    current.count += 1;
+    current.average = current.total / current.count;
+    byBooking.set(bookingId, current);
+  }
+  return byBooking;
+}
+
+function buildRanking(bookings: Array<Record<string, unknown>>, scoreMap: Map<number, { total: number; count: number; average: number }>) {
+  return bookings
+    .map((booking) => {
+      const bookingId = Number(booking.id);
+      const score = scoreMap.get(bookingId) ?? { total: 0, count: 0, average: 0 };
+      return {
+        ...booking,
+        score_total: score.total,
+        score_count: score.count,
+        score_average: score.count > 0 ? Number(score.average.toFixed(2)) : 0,
+      };
+    })
+    .sort((a, b) => {
+      if (b.score_total !== a.score_total) return b.score_total - a.score_total;
+      if (b.score_average !== a.score_average) return b.score_average - a.score_average;
+      if (b.score_count !== a.score_count) return b.score_count - a.score_count;
+      return String(a.created_at ?? "").localeCompare(String(b.created_at ?? ""));
+    });
+}
+
+async function getBookingScores(
+  admin: ReturnType<typeof createClient>,
+  bookings: Array<Record<string, unknown>>,
+) {
+  const bookingIds = bookings
+    .map((booking) => Number(booking.id))
+    .filter((id) => Number.isInteger(id) && id > 0);
+
+  if (bookingIds.length === 0) {
+    return new Map<number, { total: number; count: number; average: number }>();
+  }
+
+  const { data, error } = await admin
+    .from("voti")
+    .select("prenotazione_id, voto")
+    .in("prenotazione_id", bookingIds);
+
+  if (error) {
+    throw new ApiError(500, "query_failed", "Errore durante il caricamento dei voti.");
+  }
+
+  return computeScoreMap((data ?? []) as Array<{ prenotazione_id: number; voto: number }>);
+}
+
+async function ensureSerataAllowsMutations(
+  admin: ReturnType<typeof createClient>,
+  serataId: number,
+) {
+  const serata = await getSerataById(admin, serataId);
+  if (!serata) {
+    throw new ApiError(404, "not_found", "Serata non trovata.");
+  }
+  if (serata.vincitore_decretato) {
+    throw new ApiError(409, "winner_already_decreed", "Vincitore già decretato: puoi solo chiudere il karaoke.");
+  }
+  return serata;
+}
+
 async function getState(admin: ReturnType<typeof createClient>) {
   const serata = await getOpenSerata(admin);
 
   if (!serata) {
-    return { serata: null, bookings: [] };
+    return { serata: null, bookings: [], top5: [] };
   }
 
   const { data, error } = await admin
@@ -164,7 +238,22 @@ async function getState(admin: ReturnType<typeof createClient>) {
     throw new ApiError(500, "query_failed", "Errore durante il caricamento delle prenotazioni.");
   }
 
-  return { serata, bookings: data ?? [] };
+  const bookings = (data ?? []) as Array<Record<string, unknown>>;
+  const scoreMap = await getBookingScores(admin, bookings);
+  const bookingsWithScores = bookings.map((booking) => {
+    const bookingId = Number(booking.id);
+    const score = scoreMap.get(bookingId) ?? { total: 0, count: 0, average: 0 };
+    return {
+      ...booking,
+      score_total: score.total,
+      score_count: score.count,
+      score_average: score.count > 0 ? Number(score.average.toFixed(2)) : 0,
+    };
+  });
+  const approved = bookingsWithScores.filter((booking) => Boolean(booking.approvata));
+  const top5 = buildRanking(approved, scoreMap).slice(0, 5);
+
+  return { serata, bookings: bookingsWithScores, top5 };
 }
 
 async function executeAction(admin: ReturnType<typeof createClient>, action: string, body: Record<string, unknown>) {
@@ -181,6 +270,23 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
     case "approve_booking":
     case "approve": {
       const bookingId = toPositiveInt(body.bookingId ?? body.id, "bookingId");
+      const { data: bookingToApprove, error: bookingLoadError } = await admin
+        .from("prenotazioni")
+        .select("id, serata_id")
+        .eq("id", bookingId)
+        .maybeSingle();
+
+      if (bookingLoadError) {
+        throw new ApiError(500, "query_failed", "Errore durante il caricamento della prenotazione.");
+      }
+      if (!bookingToApprove) {
+        throw new ApiError(404, "not_found", "Prenotazione non trovata.");
+      }
+      const approveSerataId = Number(bookingToApprove.serata_id);
+      if (Number.isInteger(approveSerataId) && approveSerataId > 0) {
+        await ensureSerataAllowsMutations(admin, approveSerataId);
+      }
+
       const { data, error } = await admin
         .from("prenotazioni")
         .update({ approvata: true })
@@ -201,6 +307,23 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
     case "delete_booking":
     case "delete": {
       const bookingId = toPositiveInt(body.bookingId ?? body.id, "bookingId");
+      const { data: bookingToDelete, error: bookingLoadError } = await admin
+        .from("prenotazioni")
+        .select("id, serata_id")
+        .eq("id", bookingId)
+        .maybeSingle();
+
+      if (bookingLoadError) {
+        throw new ApiError(500, "query_failed", "Errore durante il caricamento della prenotazione.");
+      }
+      if (!bookingToDelete) {
+        throw new ApiError(404, "not_found", "Prenotazione non trovata.");
+      }
+      const deleteSerataId = Number(bookingToDelete.serata_id);
+      if (Number.isInteger(deleteSerataId) && deleteSerataId > 0) {
+        await ensureSerataAllowsMutations(admin, deleteSerataId);
+      }
+
       const { data, error } = await admin
         .from("prenotazioni")
         .delete()
@@ -221,6 +344,23 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
     case "mark_done":
     case "done": {
       const bookingId = toPositiveInt(body.bookingId ?? body.id, "bookingId");
+      const { data: bookingToComplete, error: bookingLoadError } = await admin
+        .from("prenotazioni")
+        .select("id, serata_id")
+        .eq("id", bookingId)
+        .maybeSingle();
+
+      if (bookingLoadError) {
+        throw new ApiError(500, "query_failed", "Errore durante il caricamento della prenotazione.");
+      }
+      if (!bookingToComplete) {
+        throw new ApiError(404, "not_found", "Prenotazione non trovata.");
+      }
+      const completeSerataId = Number(bookingToComplete.serata_id);
+      if (Number.isInteger(completeSerataId) && completeSerataId > 0) {
+        await ensureSerataAllowsMutations(admin, completeSerataId);
+      }
+
       const { data, error } = await admin
         .from("prenotazioni")
         .update({ cantata: true })
@@ -248,7 +388,15 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       const date = normalizeDateOrToday(body.date);
       const { data, error } = await admin
         .from("serate")
-        .insert({ data: date, aperta: true, voto_aperto: false })
+        .insert({
+          data: date,
+          aperta: true,
+          voto_aperto: false,
+          mostra_voti_totali: false,
+          vincitore_decretato: false,
+          vincitore_prenotazione_id: null,
+          vincitore_decretato_at: null,
+        })
         .select("*")
         .single();
 
@@ -295,6 +443,9 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       if (!currentSerata?.id) {
         throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
       }
+      if (currentSerata.vincitore_decretato) {
+        throw new ApiError(409, "winner_already_decreed", "Vincitore già decretato: non puoi riaprire le votazioni.");
+      }
 
       const votoAperto = typeof body.votoAperto === "boolean"
         ? body.votoAperto
@@ -317,6 +468,106 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       return { status: 200, data };
     }
 
+    case "set_show_vote_totals":
+    case "toggle_show_vote_totals": {
+      const currentSerata = body.serataId != null
+        ? await getSerataById(admin, toPositiveInt(body.serataId, "serataId"))
+        : await getOpenSerata(admin);
+
+      if (!currentSerata?.id) {
+        throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
+      }
+
+      const showVoteTotals = typeof body.mostraVotiTotali === "boolean"
+        ? body.mostraVotiTotali
+        : !Boolean(currentSerata.mostra_voti_totali);
+
+      const { data, error } = await admin
+        .from("serate")
+        .update({ mostra_voti_totali: showVoteTotals })
+        .eq("id", currentSerata.id)
+        .select("*")
+        .maybeSingle();
+
+      if (error) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito ad aggiornare la visibilità dei voti.");
+      }
+      if (!data) {
+        throw new ApiError(404, "not_found", "Serata non trovata.");
+      }
+
+      return { status: 200, data };
+    }
+
+    case "decree_winner":
+    case "decreta_vincitore": {
+      const currentSerata = body.serataId != null
+        ? await getSerataById(admin, toPositiveInt(body.serataId, "serataId"))
+        : await getOpenSerata(admin);
+
+      if (!currentSerata?.id) {
+        throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
+      }
+      if (currentSerata.vincitore_decretato) {
+        throw new ApiError(409, "winner_already_decreed", "Il vincitore è già stato decretato.");
+      }
+
+      const { data: serataBookings, error: bookingsError } = await admin
+        .from("prenotazioni")
+        .select("*")
+        .eq("serata_id", currentSerata.id)
+        .order("created_at", { ascending: true });
+
+      if (bookingsError) {
+        throw new ApiError(500, "query_failed", "Errore durante il caricamento delle prenotazioni.");
+      }
+
+      const allBookings = (serataBookings ?? []) as Array<Record<string, unknown>>;
+      const approvedBookings = allBookings.filter((booking) => Boolean(booking.approvata));
+      if (approvedBookings.length === 0) {
+        throw new ApiError(409, "no_approved_bookings", "Servono prenotazioni approvate per decretare il vincitore.");
+      }
+
+      const scoreMap = await getBookingScores(admin, allBookings);
+      const top5 = buildRanking(approvedBookings, scoreMap).slice(0, 5);
+      if (top5.length === 0) {
+        throw new ApiError(409, "no_ranking_available", "Impossibile calcolare la classifica finale.");
+      }
+
+      const winnerBookingId = Number(top5[0].id);
+      if (!Number.isInteger(winnerBookingId) || winnerBookingId <= 0) {
+        throw new ApiError(500, "invalid_winner", "Impossibile identificare il vincitore.");
+      }
+
+      const { data: updatedSerata, error: updateError } = await admin
+        .from("serate")
+        .update({
+          vincitore_decretato: true,
+          vincitore_prenotazione_id: winnerBookingId,
+          vincitore_decretato_at: new Date().toISOString(),
+          voto_aperto: false,
+        })
+        .eq("id", currentSerata.id)
+        .select("*")
+        .maybeSingle();
+
+      if (updateError) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito a decretare il vincitore.");
+      }
+      if (!updatedSerata) {
+        throw new ApiError(404, "not_found", "Serata non trovata.");
+      }
+
+      return {
+        status: 200,
+        data: {
+          serata: updatedSerata,
+          winner_booking_id: winnerBookingId,
+          top5,
+        },
+      };
+    }
+
     case "cleanup_current_serata":
     case "cleanup_serata": {
       const serataId = body.serataId != null
@@ -326,6 +577,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       if (!serataId) {
         throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
       }
+      await ensureSerataAllowsMutations(admin, serataId);
 
       const { data, error } = await admin
         .from("prenotazioni")

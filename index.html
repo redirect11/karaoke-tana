@@ -195,6 +195,63 @@
     }
     #vota-banner:hover { background: rgba(212,160,23,0.28); }
 
+    #leaderboard-card {
+      display: none;
+      margin-bottom: 20px;
+    }
+    #leaderboard-card h3 {
+      color: var(--gold-soft);
+      font-size: 1.02rem;
+      margin-bottom: 8px;
+    }
+    #leaderboard-status {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--bg2);
+      border: 1px solid #3d2366;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .leaderboard-item.winner {
+      border-color: var(--gold);
+      background: rgba(212,160,23,0.18);
+    }
+    .leaderboard-rank {
+      min-width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.76rem;
+      font-weight: 800;
+      background: rgba(212,160,23,0.2);
+      color: var(--gold-soft);
+    }
+    .leaderboard-item.winner .leaderboard-rank {
+      background: var(--gold);
+      color: #12071f;
+    }
+    .leaderboard-song {
+      flex: 1;
+      min-width: 0;
+    }
+    .leaderboard-song-title { font-size: 0.86rem; font-weight: 700; color: var(--text); }
+    .leaderboard-song-meta { font-size: 0.76rem; color: var(--muted); }
+    .leaderboard-points { font-size: 0.8rem; font-weight: 800; color: var(--gold-soft); white-space: nowrap; }
+
     /* ── booking form ── */
     #step-form { display: none; }
     .form-group {
@@ -539,6 +596,12 @@
 
   <a href="vota.html" id="vota-banner">🗳 Vota le esibizioni! →</a>
 
+  <div class="card" id="leaderboard-card">
+    <h3>🏆 Classifica finale · Top 5</h3>
+    <p id="leaderboard-status">Caricamento classifica…</p>
+    <div class="leaderboard-list" id="leaderboard-list"></div>
+  </div>
+
   <!-- step indicator -->
   <div class="steps">
     <div class="step active" id="ind-1">
@@ -719,9 +782,14 @@
     const stepSuccess  = document.getElementById('step-success');
     const stepWaiting  = document.getElementById('step-waiting');
     const stepClosed   = document.getElementById('step-closed');
+    const stepClosedTitle = stepClosed.querySelector('h2');
+    const stepClosedText = stepClosed.querySelector('p');
     const songListCard = document.getElementById('song-list-card');
     const songListEl   = document.getElementById('song-list');
     const songListStatus = document.getElementById('song-list-status');
+    const leaderboardCard = document.getElementById('leaderboard-card');
+    const leaderboardStatus = document.getElementById('leaderboard-status');
+    const leaderboardList = document.getElementById('leaderboard-list');
     const tabToSing = document.getElementById('tab-to-sing');
     const tabCompleted = document.getElementById('tab-completed');
     const ind1         = document.getElementById('ind-1');
@@ -740,6 +808,16 @@
     const votaBanner = document.getElementById('vota-banner');
     function setVotaBanner(open) {
       votaBanner.style.display = open ? 'flex' : 'none';
+    }
+
+    function setClosedState(title, message) {
+      if (stepClosedTitle) stepClosedTitle.textContent = title;
+      if (stepClosedText) stepClosedText.innerHTML = message;
+    }
+
+    function showLeaderboard(show) {
+      if (!leaderboardCard) return;
+      leaderboardCard.style.display = show ? 'block' : 'none';
     }
 
     function showSongListCard(show) {
@@ -812,6 +890,78 @@
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#39;');
+    }
+
+    async function loadFinalLeaderboard(serataId, winnerBookingId = null) {
+      if (!db || !leaderboardStatus || !leaderboardList) return;
+      leaderboardStatus.textContent = 'Caricamento classifica finale…';
+      leaderboardList.innerHTML = '';
+      const { data: rows, error } = await db
+        .from('prenotazioni')
+        .select('id, nome, canzone, artista, created_at, approvata')
+        .eq('serata_id', serataId)
+        .eq('approvata', true)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        leaderboardStatus.textContent = 'Impossibile caricare la classifica.';
+        return;
+      }
+
+      const items = rows || [];
+      if (!items.length) {
+        leaderboardStatus.textContent = 'Classifica non disponibile.';
+        return;
+      }
+
+      const ids = items.map((item) => item.id);
+      const votesResult = await db
+        .from('voti')
+        .select('prenotazione_id, voto')
+        .in('prenotazione_id', ids);
+      const votes = votesResult.data || [];
+      const totals = {};
+      votes.forEach((vote) => {
+        const key = Number(vote.prenotazione_id);
+        if (!totals[key]) totals[key] = { total: 0, count: 0, avg: 0 };
+        totals[key].total += Number(vote.voto) || 0;
+        totals[key].count += 1;
+        totals[key].avg = totals[key].count > 0 ? totals[key].total / totals[key].count : 0;
+      });
+
+      const ranking = items
+        .map((item) => {
+          const score = totals[item.id] || { total: 0, count: 0, avg: 0 };
+          return { ...item, scoreTotal: score.total, scoreCount: score.count, scoreAvg: score.avg };
+        })
+        .sort((a, b) => {
+          if (b.scoreTotal !== a.scoreTotal) return b.scoreTotal - a.scoreTotal;
+          if (b.scoreAvg !== a.scoreAvg) return b.scoreAvg - a.scoreAvg;
+          if (b.scoreCount !== a.scoreCount) return b.scoreCount - a.scoreCount;
+          return String(a.created_at || '').localeCompare(String(b.created_at || ''));
+        })
+        .slice(0, 5);
+
+      if (!ranking.length) {
+        leaderboardStatus.textContent = 'Classifica non disponibile.';
+        return;
+      }
+
+      leaderboardStatus.textContent = 'Vincitore decretato: prenotazioni chiuse per questa serata.';
+      const winnerId = Number(winnerBookingId) || Number(ranking[0].id);
+      leaderboardList.innerHTML = ranking.map((item, index) => {
+        const isWinner = Number(item.id) === winnerId || (index === 0 && !Number.isInteger(Number(winnerBookingId)));
+        return `
+          <div class="leaderboard-item${isWinner ? ' winner' : ''}">
+            <div class="leaderboard-rank">${index + 1}</div>
+            <div class="leaderboard-song">
+              <div class="leaderboard-song-title">${escapeHtml(item.canzone)} ${isWinner ? '👑' : ''}</div>
+              <div class="leaderboard-song-meta">${escapeHtml(item.artista)} · ${escapeHtml(item.nome)}</div>
+            </div>
+            <div class="leaderboard-points">${item.scoreTotal} pt</div>
+          </div>
+        `;
+      }).join('');
     }
 
     function renderSongList() {
@@ -1087,7 +1237,7 @@
       if (!db) return true;
       const { data } = await db
         .from('serate')
-        .select('id, voto_aperto')
+        .select('id, aperta, voto_aperto, vincitore_decretato, vincitore_prenotazione_id')
         .eq('aperta', true)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -1099,11 +1249,28 @@
         showSongListCard(false);
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
+        setClosedState('Prenotazioni chiuse', 'Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!');
+        showLeaderboard(false);
         setVotaBanner(false);
         return false;
       }
       currentSerataId = data.id;
-      setVotaBanner(data.voto_aperto);
+      const winnerDecreed = Boolean(data.vincitore_decretato);
+      setVotaBanner(Boolean(data.voto_aperto) && !winnerDecreed);
+      if (winnerDecreed) {
+        clearWaitingIntervals();
+        clearSongListPolling();
+        [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+        showSongListCard(false);
+        stepClosed.style.display = 'flex';
+        document.querySelector('.steps').style.display = 'none';
+        setClosedState('🏁 Karaoke concluso', 'Il vincitore è stato decretato e le prenotazioni sono chiuse per questa serata.');
+        showLeaderboard(true);
+        await loadFinalLeaderboard(data.id, data.vincitore_prenotazione_id);
+        return false;
+      }
+      showLeaderboard(false);
+      setClosedState('Prenotazioni chiuse', 'Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!');
       subscribeSerata(data.id);
       subscribeSongList(data.id);
       ensureSongListPolling();
@@ -1117,7 +1284,8 @@
       serataChannel = db.channel('index-serata')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate',
           filter: `id=eq.${serataId}` }, payload => {
-          setVotaBanner(payload.new.voto_aperto);
+          const winnerDecreed = Boolean(payload.new.vincitore_decretato);
+          setVotaBanner(Boolean(payload.new.voto_aperto) && !winnerDecreed);
           if (!payload.new.aperta) {
             currentSerataId = null;
             clearSongListPolling();
@@ -1125,7 +1293,23 @@
             showSongListCard(false);
             stepClosed.style.display = 'flex';
             document.querySelector('.steps').style.display = 'none';
+            setClosedState('Prenotazioni chiuse', 'Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!');
+            showLeaderboard(false);
+            return;
           }
+          if (winnerDecreed) {
+            clearWaitingIntervals();
+            clearSongListPolling();
+            [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+            showSongListCard(false);
+            stepClosed.style.display = 'flex';
+            document.querySelector('.steps').style.display = 'none';
+            setClosedState('🏁 Karaoke concluso', 'Il vincitore è stato decretato e le prenotazioni sono chiuse per questa serata.');
+            showLeaderboard(true);
+            loadFinalLeaderboard(serataId, payload.new.vincitore_prenotazione_id);
+            return;
+          }
+          showLeaderboard(false);
         })
         .subscribe();
     }
@@ -1381,6 +1565,7 @@
       [stepFollow, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
       stepForm.style.display = 'block';
       showSongListCard(true);
+      showLeaderboard(false);
       ind1.classList.remove('active'); ind1.classList.add('done');
       ind1num.textContent = '✓';
       ind2.classList.add('active');
@@ -1422,6 +1607,7 @@
       setCookie('ig_followed', 'true', 6 * 24 * 3600);
       stepFollow.style.display = 'none';
       showSongListCard(true);
+      showLeaderboard(false);
       const pending = await checkPendingBooking();
       if (!pending) showForm();
     }

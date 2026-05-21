@@ -1,0 +1,11 @@
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS mostra_voti_totali BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS vincitore_decretato BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS vincitore_prenotazione_id BIGINT;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS vincitore_decretato_at TIMESTAMPTZ;
