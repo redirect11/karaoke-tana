@@ -853,7 +853,10 @@
     }
 
     function hasCachedSongListItems() {
-      return songListCache.toSing.length > 0 || songListCache.completed.length > 0;
+      if (!songListCache || typeof songListCache !== 'object') return false;
+      const toSing = Array.isArray(songListCache.toSing) ? songListCache.toSing : [];
+      const completed = Array.isArray(songListCache.completed) ? songListCache.completed : [];
+      return toSing.length > 0 || completed.length > 0;
     }
 
     async function loadSongList() {
@@ -864,10 +867,10 @@
         songListEl.innerHTML = '';
         return;
       }
-      const hasVisibleList = hasCachedSongListItems();
+      const hasCachedSongs = hasCachedSongListItems();
 
       songListAvailability = 'loading';
-      if (!hasVisibleList) {
+      if (!hasCachedSongs) {
         songListStatus.textContent = 'Caricamento lista…';
       }
 
@@ -902,7 +905,7 @@
       if (error) {
         songListAvailability = 'error';
         console.error('Errore caricamento lista:', error);
-        if (!hasVisibleList) {
+        if (!hasCachedSongs) {
           songListStatus.textContent = 'Impossibile caricare la lista canzoni.';
           songListEl.innerHTML = '';
         } else {
@@ -966,8 +969,8 @@
 
     async function loadFinalLeaderboard(serataId, winnerBookingId = null) {
       if (!db || !leaderboardStatus || !leaderboardList) return;
-      const hasVisibleLeaderboard = leaderboardList.children.length > 0;
-      if (!hasVisibleLeaderboard) {
+      const hasVisibleLeaderboardList = leaderboardList.children.length > 0;
+      if (!hasVisibleLeaderboardList) {
         leaderboardStatus.style.display = 'block';
         leaderboardStatus.textContent = 'Caricamento classifica finale…';
         leaderboardList.innerHTML = '';
@@ -981,7 +984,7 @@
 
       if (error) {
         leaderboardStatus.style.display = 'block';
-        leaderboardStatus.textContent = hasVisibleLeaderboard
+        leaderboardStatus.textContent = hasVisibleLeaderboardList
           ? 'Aggiornamento classifica non riuscito.'
           : 'Impossibile caricare la classifica.';
         return;
