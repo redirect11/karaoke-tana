@@ -20,10 +20,6 @@ CREATE TABLE IF NOT EXISTS serate (
   data        DATE         NOT NULL DEFAULT CURRENT_DATE,
   aperta      BOOLEAN      NOT NULL DEFAULT FALSE,
   voto_aperto BOOLEAN      NOT NULL DEFAULT FALSE,
-  mostra_voti_totali BOOLEAN NOT NULL DEFAULT FALSE,
-  vincitore_decretato BOOLEAN NOT NULL DEFAULT FALSE,
-  vincitore_prenotazione_id BIGINT,
-  vincitore_decretato_at TIMESTAMPTZ,
   note        TEXT,
   created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
