@@ -45,7 +45,7 @@ Questa repo include anche:
 
 Scopo:
 
-- `admin-bookings`: esegue lato server le mutazioni admin (approva/elimina/completata, apertura/chiusura serata, toggle votazioni, visibilità pubblica totali voti, decreto vincitore, cleanup strumenti nascosti) solo con `Authorization: Bearer <supabase_access_token>`.
+- `admin-bookings`: esegue lato server le mutazioni admin (approva/modifica/elimina/completata, apertura/chiusura serata, toggle votazioni, visibilità pubblica totali voti, decreto vincitore, cleanup strumenti nascosti) solo con `Authorization: Bearer <supabase_access_token>`.
 - `admin-login`: **deprecato**. La funzione custom esiste ancora nel repo ma non è più utilizzata dal frontend. Il login avviene ora tramite Supabase Auth SDK.
 
 ### Autenticazione admin: Supabase Auth
