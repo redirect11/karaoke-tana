@@ -152,15 +152,20 @@ async function cleanupExpiredPendingBookings(admin: ReturnType<typeof createClie
 
 const TELEGRAM_TOKEN_RE = /^\d+:[A-Za-z0-9_-]{20,}$/;
 
-async function sendTelegramNotification(nome: string, canzone: string, artista: string): Promise<void> {
+async function sendTelegramNotification(nome: string, canzone: string, artista: string, createdAt: string): Promise<void> {
   const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
   const chatId = Deno.env.get("TELEGRAM_CHAT_ID");
   if (!botToken || !chatId || !TELEGRAM_TOKEN_RE.test(botToken)) return;
 
+  const dt = new Date(createdAt);
+  const dateStr = dt.toLocaleDateString("it-IT", { timeZone: "Europe/Rome", day: "2-digit", month: "2-digit", year: "numeric" });
+  const timeStr = dt.toLocaleTimeString("it-IT", { timeZone: "Europe/Rome", hour: "2-digit", minute: "2-digit" });
+
   const text =
     `🎤 Nuova prenotazione\n` +
     `👤 ${nome}\n` +
-    `🎵 ${canzone} — ${artista}`;
+    `🎵 ${canzone} — ${artista}\n` +
+    `📅 ${dateStr} alle ${timeStr}`;
 
   try {
     await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -312,7 +317,7 @@ serve(async (req) => {
   }
 
   // Notifica Telegram fire-and-forget (non blocca la risposta)
-  sendTelegramNotification(validated.data.nome, validated.data.canzone, validated.data.artista).catch(() => {});
+  sendTelegramNotification(validated.data.nome, validated.data.canzone, validated.data.artista, data.created_at).catch(() => {});
 
   return jsonResponse(req, 201, {
     success: true,
