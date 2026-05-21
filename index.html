@@ -959,18 +959,21 @@
       const wrapEl = document.getElementById('waiting-remaining');
       const numberEl = document.getElementById('waiting-remaining-number');
       const labelEl = document.getElementById('waiting-remaining-label');
+      const titleEl = document.getElementById('waiting-title');
       if (!wrapEl || !numberEl || !labelEl) return;
       if (remainingSongs == null || !Number.isInteger(remainingSongs) || remainingSongs < 1) {
         wrapEl.hidden = true;
         numberEl.textContent = '';
         labelEl.textContent = '';
         numberEl.classList.remove('is-critical');
+        if (titleEl) titleEl.hidden = false;
         return;
       }
       wrapEl.hidden = false;
       numberEl.textContent = String(remainingSongs);
       labelEl.textContent = remainingSongs === 1 ? 'canzone mancante' : 'canzoni mancanti';
       numberEl.classList.toggle('is-critical', remainingSongs === 1);
+      if (titleEl) titleEl.hidden = true;
     }
 
     function getCurrentBookingQueueIndex(queueItems = songListCache.toSing) {
