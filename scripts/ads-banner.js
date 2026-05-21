@@ -1,8 +1,15 @@
 (function (global) {
+  const adsenseScriptClients = new Set();
+
   function ensureAdSenseScript(clientId) {
     if (!clientId) return;
+    if (adsenseScriptClients.has(clientId)) return;
     const existing = document.querySelector('script[data-karaoke-adsense-client]');
-    if (existing) return;
+    if (existing) {
+      adsenseScriptClients.add(clientId);
+      return;
+    }
+    adsenseScriptClients.add(clientId);
     const script = document.createElement('script');
     script.async = true;
     script.crossOrigin = 'anonymous';
