@@ -150,6 +150,29 @@ async function cleanupExpiredPendingBookings(admin: ReturnType<typeof createClie
   return { ok: true as const };
 }
 
+const TELEGRAM_TOKEN_RE = /^\d+:[A-Za-z0-9_-]{20,}$/;
+
+async function sendTelegramNotification(nome: string, canzone: string, artista: string): Promise<void> {
+  const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
+  const chatId = Deno.env.get("TELEGRAM_CHAT_ID");
+  if (!botToken || !chatId || !TELEGRAM_TOKEN_RE.test(botToken)) return;
+
+  const text =
+    `🎤 Nuova prenotazione\n` +
+    `👤 ${nome}\n` +
+    `🎵 ${canzone} — ${artista}`;
+
+  try {
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    });
+  } catch {
+    // Notifica non critica: ignora errori di rete
+  }
+}
+
 function computePendingExpiryIso(createdAt: string | null): string | null {
   if (!createdAt) return null;
   const createdAtMs = Date.parse(createdAt);
@@ -279,6 +302,9 @@ serve(async (req) => {
       error: { code: "insert_failed", message: "Errore durante il salvataggio della prenotazione." },
     });
   }
+
+  // Notifica Telegram fire-and-forget (non blocca la risposta)
+  sendTelegramNotification(validated.data.nome, validated.data.canzone, validated.data.artista).catch(() => {});
 
   return jsonResponse(req, 201, {
     success: true,
