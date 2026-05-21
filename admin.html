@@ -845,6 +845,7 @@
       const card = document.createElement('div');
       const isApproved = kind === 'approved';
       const isCompleted = kind === 'completed';
+      const canMarkDone = isApproved && index === 0;
       const progressiveIndex = progressiveIndexMap.get(Number(booking.id));
       const hasProgressiveIndex = Number.isInteger(progressiveIndex) && progressiveIndex > 0;
       const progressiveIndexText = hasProgressiveIndex ? String(progressiveIndex) : '?';
@@ -878,7 +879,9 @@
                   ? ''
                   : (isCompleted
                     ? ''
-                    : (isApproved ? '<button class="btn-action btn-done" data-action="done">✓ Fatto</button>' : '<button class="btn-action btn-approve" data-action="approve">Approva</button>'))}
+                    : (isApproved
+                      ? (canMarkDone ? '<button class="btn-action btn-done" data-action="done">✓ Fatto</button>' : '')
+                      : '<button class="btn-action btn-approve" data-action="approve">Approva</button>'))}
                 ${lockedAfterWinner ? '' : '<button class="btn-action btn-edit" data-action="edit">Modifica</button>'}
                 ${lockedAfterWinner ? '' : '<button class="btn-action btn-delete" data-action="delete">Elimina</button>'}
               </div>
