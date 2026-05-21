@@ -142,8 +142,9 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      filter: grayscale(1) saturate(0) opacity(0.55);
+      filter: grayscale(1) opacity(0.55);
     }
+    /* Overlap adjacent button borders so the selected range looks like a single box. */
     .btn-vote + .btn-vote { margin-left: calc(-1 * var(--vote-border)); }
     .btn-vote:hover {
       background: rgba(212,160,23,0.12);
