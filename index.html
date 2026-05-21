@@ -857,7 +857,6 @@
     }
 
     async function loadSongList() {
-      const hasVisibleList = hasCachedSongListItems();
       if (!db || !currentSerataId) {
         songListAvailability = 'unavailable';
         songListCache = { toSing: [], completed: [] };
@@ -865,6 +864,7 @@
         songListEl.innerHTML = '';
         return;
       }
+      const hasVisibleList = hasCachedSongListItems();
 
       songListAvailability = 'loading';
       if (!hasVisibleList) {
