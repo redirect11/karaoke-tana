@@ -118,24 +118,33 @@
       flex-wrap: wrap;
     }
 
-    .btn-vote {
-      padding: 7px 12px;
-      border: 1.5px solid #3d2366;
-      border-radius: 50px;
-      background: transparent;
-      color: var(--text);
-      font-size: 0.82rem;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, transform 0.1s;
-      white-space: nowrap;
+    .rating-hands {
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
-    .btn-vote:hover { border-color: var(--gold); background: rgba(212,160,23,0.12); }
+
+    .btn-vote {
+      width: 34px;
+      height: 34px;
+      border: 1.5px solid #3d2366;
+      border-radius: 10px;
+      background: transparent;
+      color: #6d5a88;
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s, color 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-vote:hover { border-color: var(--gold); background: rgba(212,160,23,0.12); color: var(--gold-s); }
     .btn-vote:active { transform: scale(0.93); }
     .btn-vote.selected {
-      background: var(--gold);
+      background: rgba(212,160,23,0.22);
       border-color: var(--gold);
-      color: #12071f;
-      font-weight: 700;
+      color: var(--gold-s);
     }
     .btn-vote:disabled {
       opacity: 0.5;
@@ -309,10 +318,9 @@
       const avg      = sc.count > 0 ? (sc.sum / sc.count).toFixed(1) : '—';
 
       const btns = [1,2,3,4,5].map(v => {
-        const label = '👏'.repeat(v);
-        const sel   = myVote === v ? ' selected' : '';
+        const sel   = myVote >= v ? ' selected' : '';
         const dis   = !votingOpen ? ' disabled' : '';
-        return `<button class="btn-vote${sel}"${dis} data-v="${v}">${label}</button>`;
+        return `<button class="btn-vote${sel}"${dis} data-v="${v}" aria-label="Vota ${v}">👏</button>`;
       }).join('');
 
       div.innerHTML = `
@@ -324,7 +332,7 @@
           <div class="song-singer">👤 ${esc(s.nome)}</div>
         </div>
         <div class="rating-row">
-          ${btns}
+          <div class="rating-hands">${btns}</div>
           <div class="vote-score">
             <span>${avg}</span>
             ${sc.count} vot${sc.count === 1 ? 'o' : 'i'}
