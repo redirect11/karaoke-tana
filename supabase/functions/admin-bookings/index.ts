@@ -545,6 +545,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           vincitore_decretato: true,
           vincitore_prenotazione_id: winnerBookingId,
           voto_aperto: false,
+          mostra_voti_totali: true,
         })
         .eq("id", currentSerata.id)
         .select("*")

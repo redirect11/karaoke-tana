@@ -950,7 +950,7 @@
       leaderboardStatus.textContent = 'Vincitore decretato: prenotazioni chiuse per questa serata.';
       const winnerId = Number(winnerBookingId) || Number(ranking[0].id);
       leaderboardList.innerHTML = ranking.map((item, index) => {
-        const isWinner = Number(item.id) === winnerId || (index === 0 && !Number.isInteger(Number(winnerBookingId)));
+        const isWinner = Number(item.id) === winnerId;
         return `
           <div class="leaderboard-item${isWinner ? ' winner' : ''}">
             <div class="leaderboard-rank">${index + 1}</div>
