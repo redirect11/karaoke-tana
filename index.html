@@ -1414,7 +1414,7 @@
         .limit(1)
         .maybeSingle();
       if (!data) {
-        browserNotificationsEnabled = true;
+        browserNotificationsEnabled = false;
         currentSerataId = null;
         clearSongListPolling();
         [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
