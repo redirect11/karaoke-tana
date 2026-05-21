@@ -297,7 +297,7 @@
         .from('prenotazioni')
         .select('id, nome, canzone, artista')
         .eq('approvata', true)
-        .eq('cantata', false)
+        .eq('cantata', true)
         .eq('serata_id', serata.id)
         .order('created_at', { ascending: true });
 
@@ -306,7 +306,7 @@
           .from('prenotazioni')
           .select('id, nome, canzone, artista')
           .eq('approvata', true)
-          .eq('cantata', false)
+          .eq('cantata', true)
           .is('serata_id', null)
           .order('created_at', { ascending: true });
         if (!fallback.error && fallback.data?.length) {
@@ -350,7 +350,7 @@
         content.innerHTML = `
           <div class="state-box">
             <div class="big">🎤</div>
-            <p>Nessuna esibizione ancora.<br>Torna dopo la prima canzone!</p>
+            <p>Nessuna esibizione conclusa ancora.<br>Torna dopo la prima canzone completata!</p>
           </div>
         `;
         return;
