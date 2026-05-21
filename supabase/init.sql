@@ -76,6 +76,8 @@ ALTER TABLE serate
 ALTER TABLE serate
   ADD COLUMN IF NOT EXISTS vincitore_prenotazione_id BIGINT;
 
+-- Compatibilità con installazioni esistenti che hanno creato `serate`
+-- prima dell'introduzione dei toggle notifiche.
 ALTER TABLE serate
   ADD COLUMN IF NOT EXISTS notifiche_telegram_abilitate BOOLEAN NOT NULL DEFAULT TRUE;
 
