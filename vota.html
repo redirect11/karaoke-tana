@@ -143,7 +143,6 @@
       align-items: center;
       justify-content: center;
       filter: grayscale(1) saturate(0) opacity(0.55);
-      opacity: 0.8;
     }
     .btn-vote + .btn-vote { margin-left: calc(-1 * var(--vote-border)); }
     .btn-vote:hover {
@@ -363,7 +362,7 @@
           if (v === myVote) classes.push('range-end');
         }
         const dis   = !votingOpen ? ' disabled' : '';
-        return `<button class="${classes.join(' ')}"${dis} data-v="${v}" aria-label="Vota ${v} su 5" aria-pressed="${myVote === v ? 'true' : 'false'}">👏</button>`;
+        return `<button class="${classes.join(' ')}"${dis} data-v="${v}" aria-label="Vota ${v} su 5" aria-pressed="${myVote >= v ? 'true' : 'false'}">👏</button>`;
       }).join('');
 
       div.innerHTML = `
