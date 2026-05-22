@@ -135,6 +135,17 @@
     .status-box strong { display: block; color: var(--text); margin-bottom: 4px; }
 
     .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .next-date-controls { display: flex; flex-wrap: wrap; gap: 10px; }
+    .next-date-input {
+      min-width: 170px;
+      background: var(--bg2);
+      border: 1.5px solid #3d2366;
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.9rem;
+      padding: 10px 12px;
+      outline: none;
+    }
 
     button.action-btn {
       border: none;
@@ -148,6 +159,8 @@
     button.action-btn:disabled { opacity: 0.55; cursor: not-allowed; }
     .btn-clean-serata { background: var(--gold); color: #12071f; }
     .btn-notification-toggle { background: #3d2366; color: var(--text); }
+    .btn-public-settings { background: #4b356f; color: #fff; }
+    .btn-clear-next-date { background: var(--red); color: #fff; }
     .btn-clean-all { background: var(--red); color: #fff; }
 
     #status-message {
@@ -215,6 +228,22 @@
       </section>
 
       <section class="card">
+        <h2>Impostazioni pubbliche</h2>
+        <div class="status-box" id="archive-public-status-box">
+          <strong>Caricamento…</strong>
+          <span>Sto leggendo le impostazioni pubbliche.</span>
+        </div>
+        <div class="actions">
+          <button class="action-btn btn-public-settings" id="btn-toggle-archive-public" type="button">—</button>
+        </div>
+        <div class="next-date-controls">
+          <input class="next-date-input" id="next-karaoke-date" type="date" />
+          <button class="action-btn btn-public-settings" id="btn-save-next-date" type="button">Salva data</button>
+          <button class="action-btn btn-clear-next-date" id="btn-clear-next-date" type="button">Rimuovi data</button>
+        </div>
+      </section>
+
+      <section class="card">
         <h2>Database di test</h2>
         <div class="danger-note">
           <p>Usa questa opzione solo per sviluppo: svuota prenotazioni e serate. I voti vengono rimossi automaticamente tramite cascade.</p>
@@ -254,17 +283,26 @@
     const pwdError = document.getElementById('pwd-error');
     const currentSerataBox = document.getElementById('current-serata-box');
     const notificationSettingsBox = document.getElementById('notification-settings-box');
+    const archivePublicStatusBox = document.getElementById('archive-public-status-box');
     const statusMessage = document.getElementById('status-message');
     const cleanSerataBtn = document.getElementById('btn-clean-serata');
     const cleanAllBtn = document.getElementById('btn-clean-all');
     const toggleTelegramNotificationsBtn = document.getElementById('btn-toggle-telegram-notifications');
     const toggleBrowserNotificationsBtn = document.getElementById('btn-toggle-browser-notifications');
+    const btnToggleArchivePublic = document.getElementById('btn-toggle-archive-public');
+    const nextKaraokeDateInput = document.getElementById('next-karaoke-date');
+    const btnSaveNextDate = document.getElementById('btn-save-next-date');
+    const btnClearNextDate = document.getElementById('btn-clear-next-date');
     const pwdBtn = document.getElementById('pwd-btn');
 
     const ADMIN_EMAIL = 'admin@tana.it';
 
     let currentSerata = null;
     let adminToken = '';
+    let publicSettings = {
+      archivio_pubblico_abilitato: false,
+      prossima_serata_data: null,
+    };
 
     document.getElementById('pwd-btn').addEventListener('click', loginAdmin);
     pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAdmin(); });
@@ -272,6 +310,9 @@
     cleanAllBtn.addEventListener('click', cleanupAllData);
     toggleTelegramNotificationsBtn.addEventListener('click', toggleTelegramNotifications);
     toggleBrowserNotificationsBtn.addEventListener('click', toggleBrowserNotifications);
+    btnToggleArchivePublic.addEventListener('click', toggleArchivePublic);
+    btnSaveNextDate.addEventListener('click', saveNextKaraokeDate);
+    btnClearNextDate.addEventListener('click', clearNextKaraokeDate);
 
     if (supabaseClient) {
       supabaseClient.auth.getSession().then(({ data }) => {
@@ -369,7 +410,9 @@
       try {
         const state = await callAdmin('get_state');
         currentSerata = state?.serata || null;
+        publicSettings = state?.settings || publicSettings;
         renderCurrentSerata();
+        renderPublicSettings();
       } catch (error) {
         setStatus(error?.message || 'Non sono riuscito a leggere la serata corrente.', true);
       }
@@ -425,6 +468,56 @@
       toggleBrowserNotificationsBtn.disabled = false;
       toggleTelegramNotificationsBtn.textContent = telegramNotificationsEnabled ? 'Disabilita notifiche Telegram' : 'Abilita notifiche Telegram';
       toggleBrowserNotificationsBtn.textContent = browserNotificationsEnabled ? 'Disabilita notifiche browser' : 'Abilita notifiche browser';
+    }
+
+    function renderPublicSettings() {
+      const enabled = publicSettings?.archivio_pubblico_abilitato === true;
+      archivePublicStatusBox.innerHTML = `
+        <strong>Archivio pubblico: ${enabled ? '🟢 attivo' : '⭕ nascosto'}</strong>
+        <span>Data prossimo karaoke: ${publicSettings?.prossima_serata_data || 'non impostata'}</span>
+      `;
+      btnToggleArchivePublic.textContent = enabled ? 'Disattiva archivio in home' : 'Attiva archivio in home';
+      nextKaraokeDateInput.value = publicSettings?.prossima_serata_data || '';
+    }
+
+    async function toggleArchivePublic() {
+      const nextValue = !(publicSettings?.archivio_pubblico_abilitato === true);
+      setBusy(btnToggleArchivePublic, true, 'Aggiornamento…');
+      try {
+        publicSettings = await callAdmin('set_public_settings', { archivioPubblicoAbilitato: nextValue });
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito ad aggiornare la visibilità archivio.', true);
+      } finally {
+        btnToggleArchivePublic.disabled = false;
+        renderPublicSettings();
+      }
+    }
+
+    async function saveNextKaraokeDate() {
+      const value = (nextKaraokeDateInput.value || '').trim();
+      setBusy(btnSaveNextDate, true, 'Salvataggio…');
+      try {
+        publicSettings = await callAdmin('set_public_settings', { prossimaSerataData: value || null });
+        renderPublicSettings();
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito ad aggiornare la data del prossimo karaoke.', true);
+      } finally {
+        btnSaveNextDate.disabled = false;
+        btnSaveNextDate.textContent = 'Salva data';
+      }
+    }
+
+    async function clearNextKaraokeDate() {
+      setBusy(btnClearNextDate, true, 'Rimozione…');
+      try {
+        publicSettings = await callAdmin('set_public_settings', { prossimaSerataData: null });
+        renderPublicSettings();
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito a rimuovere la data del prossimo karaoke.', true);
+      } finally {
+        btnClearNextDate.disabled = false;
+        btnClearNextDate.textContent = 'Rimuovi data';
+      }
     }
 
     async function cleanupCurrentSerata() {
