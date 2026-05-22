@@ -41,12 +41,10 @@ Configura su Supabase Edge Functions:
 Questa repo include anche:
 
 - `supabase/functions/admin-bookings/index.ts`
-- `supabase/functions/admin-login/index.ts` *(deprecato – non più utilizzato)*
 
 Scopo:
 
 - `admin-bookings`: esegue lato server le mutazioni admin (approva/modifica/elimina/completata, apertura/chiusura serata, toggle votazioni, visibilità pubblica totali voti, toggle notifiche Telegram/browser, decreto vincitore, cleanup strumenti nascosti) solo con `Authorization: Bearer <supabase_access_token>`.
-- `admin-login`: **deprecato**. La funzione custom esiste ancora nel repo ma non è più utilizzata dal frontend. Il login avviene ora tramite Supabase Auth SDK.
 
 ### Autenticazione admin: Supabase Auth
 
@@ -105,12 +103,13 @@ Per l'auto-deploy delle Edge Functions nei branch preview, questa repo dichiara 
 
 - `supabase/config.toml`
 
-con almeno:
+con:
 
 - `[functions.submit-booking]`
 - `[functions.booking-status]`
 - `[functions.admin-bookings]`
-- `[functions.admin-login]`
+
+`admin-login` non è più dichiarata né deployata: il login admin usa direttamente Supabase Auth dal frontend, mentre le azioni server-side restano su `admin-bookings`.
 
 > Nota: aggiorna `project_id` in `supabase/config.toml` con il tuo project ref Supabase.
 
