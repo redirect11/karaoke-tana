@@ -416,13 +416,20 @@ async function getArchive(admin: ReturnType<typeof createClient>, serataId?: num
     .order("created_at", { ascending: true });
 
   if (bookingsError) {
-    throw new ApiError(500, "query_failed", "Errore durante il caricamento delle canzoni archivio.");
+    throw new ApiError(500, "query_failed", "Errore durante il caricamento delle prenotazioni archivio.");
   }
 
   const allBookings = (serataBookings ?? []) as Array<Record<string, unknown>>;
-  const songsList = allBookings.filter((booking) => Boolean(booking.cantata));
-  const approvedForRanking = allBookings.filter((booking) => Boolean(booking.approvata));
-  const scoredBookings = allBookings.filter((booking) => Boolean(booking.approvata) || Boolean(booking.cantata));
+  const songsList: Array<Record<string, unknown>> = [];
+  const approvedForRanking: Array<Record<string, unknown>> = [];
+  const scoredBookings: Array<Record<string, unknown>> = [];
+  for (const booking of allBookings) {
+    const isPerformed = Boolean(booking.cantata);
+    const isApproved = Boolean(booking.approvata);
+    if (isPerformed) songsList.push(booking);
+    if (isApproved) approvedForRanking.push(booking);
+    if (isPerformed || isApproved) scoredBookings.push(booking);
+  }
   const scoreMap = await getBookingScores(admin, scoredBookings);
   const songsWithScores = songsList.map((song) => {
     const bookingId = Number(song.id);
