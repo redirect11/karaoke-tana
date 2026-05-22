@@ -49,7 +49,7 @@ jobs:
           ADSENSE_BANNER_SLOT: ${{ secrets.ADSENSE_BANNER_SLOT }}
           ADS_REQUIRE_BEFORE_BOOKING: ${{ secrets.ADS_REQUIRE_BEFORE_BOOKING }}
         run: |
-          node ./prod-site/scripts/generate-pages-config.mjs ./prod-site
+          node ./test-site/scripts/generate-pages-config.mjs ./prod-site
 
       - name: Generate config.js for /test
         env:
