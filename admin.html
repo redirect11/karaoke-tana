@@ -164,6 +164,14 @@
       max-width: 560px;
       margin: 0 auto;
     }
+    #admin-extra-wrap {
+      padding: 12px 16px 0;
+      max-width: 560px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
     .serata-card {
       border-radius: var(--radius);
@@ -218,6 +226,110 @@
       text-decoration: none;
       margin-top: 2px;
       display: inline-block;
+    }
+    .extra-card {
+      background: var(--card);
+      border: 1px solid #3d2366;
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .extra-card h3 {
+      color: var(--gold-s);
+      font-size: 0.92rem;
+    }
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .setting-label {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    .next-date-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .next-date-input {
+      background: var(--bg2);
+      border: 1px solid #3d2366;
+      border-radius: 8px;
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 0.8rem;
+    }
+    .archive-layout {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) minmax(0, 1.7fr);
+      gap: 10px;
+    }
+    .archive-editions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 320px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .archive-edition-btn {
+      border: 1px solid #3d2366;
+      background: #1d1430;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 10px;
+      text-align: left;
+      font-size: 0.76rem;
+      cursor: pointer;
+    }
+    .archive-edition-btn.active {
+      border-color: var(--gold);
+      background: rgba(212,160,23,0.15);
+      color: var(--gold-s);
+    }
+    .archive-detail {
+      background: var(--bg2);
+      border: 1px solid #3d2366;
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 200px;
+    }
+    .archive-muted {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+    .archive-song-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .archive-song-item {
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 7px 8px;
+      font-size: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .archive-top5 {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.75rem;
     }
 
     #queue-wrap {
@@ -360,6 +472,9 @@
       .serata-voto-row .serata-actions {
         width: 100%;
       }
+      .archive-layout {
+        grid-template-columns: 1fr;
+      }
       .booking-card { flex-wrap: wrap; }
       .card-side { width: 100%; align-items: stretch; }
       .card-time, .card-actions { text-align: left; justify-content: flex-start; }
@@ -404,6 +519,34 @@
     </header>
 
     <div id="serata-wrap"></div>
+    <div id="admin-extra-wrap">
+      <section class="extra-card">
+        <h3>Impostazioni pubbliche</h3>
+        <div class="setting-row">
+          <div class="setting-label" id="archive-public-status">Archivio pubblico: —</div>
+          <button class="btn-serata btn-secondary" id="btn-toggle-archive-public" type="button">—</button>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">Data prossimo karaoke</div>
+          <div class="next-date-controls">
+            <input class="next-date-input" id="next-karaoke-date" type="date" />
+            <button class="btn-serata btn-secondary" id="btn-save-next-date" type="button">Salva</button>
+            <button class="btn-serata btn-voto-close" id="btn-clear-next-date" type="button">Rimuovi</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="extra-card">
+        <div class="setting-row">
+          <h3>Archivio karaoke</h3>
+          <button class="btn-serata btn-secondary" id="btn-refresh-archive" type="button">Aggiorna</button>
+        </div>
+        <div class="archive-layout">
+          <div class="archive-editions" id="archive-editions"></div>
+          <div class="archive-detail" id="archive-detail"></div>
+        </div>
+      </section>
+    </div>
 
     <div id="queue-wrap">
       <div class="queue-tabs">
@@ -449,6 +592,14 @@
     const tabApproved = document.getElementById('tab-approved');
     const tabCompleted = document.getElementById('tab-completed');
     const logoutBtn = document.getElementById('logout-btn');
+    const archivePublicStatus = document.getElementById('archive-public-status');
+    const btnToggleArchivePublic = document.getElementById('btn-toggle-archive-public');
+    const nextKaraokeDateInput = document.getElementById('next-karaoke-date');
+    const btnSaveNextDate = document.getElementById('btn-save-next-date');
+    const btnClearNextDate = document.getElementById('btn-clear-next-date');
+    const btnRefreshArchive = document.getElementById('btn-refresh-archive');
+    const archiveEditionsWrap = document.getElementById('archive-editions');
+    const archiveDetailWrap = document.getElementById('archive-detail');
 
     const overlay = document.getElementById('pwd-overlay');
     const panel = document.getElementById('panel');
@@ -464,6 +615,14 @@
     let activeQueueTab = 'pending';
     let adminToken = '';
     let pollingTimer = null;
+    let publicSettings = {
+      archivio_pubblico_abilitato: false,
+      prossima_serata_data: null,
+    };
+    let archiveEditions = [];
+    let archiveDetail = null;
+    let selectedArchiveSerataId = null;
+    let archiveLoading = false;
 
     document.getElementById('pwd-btn').addEventListener('click', loginAdmin);
     pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAdmin(); });
@@ -481,6 +640,10 @@
       activeQueueTab = 'completed';
       renderQueue(bookings);
     });
+    btnToggleArchivePublic.addEventListener('click', toggleArchivePublic);
+    btnSaveNextDate.addEventListener('click', saveNextKaraokeDate);
+    btnClearNextDate.addEventListener('click', clearNextKaraokeDate);
+    btnRefreshArchive.addEventListener('click', () => loadArchive(selectedArchiveSerataId || undefined));
 
     if (supabaseClient) {
       supabaseClient.auth.getSession().then(({ data }) => {
@@ -586,6 +749,7 @@
 
     async function initAdmin() {
       await refreshState();
+      await loadArchive();
       if (!pollingTimer) {
         pollingTimer = setInterval(() => {
           refreshState(true);
@@ -598,8 +762,10 @@
         const state = await callAdmin('get_state');
         currentSerata = state?.serata || null;
         bookings = Array.isArray(state?.bookings) ? state.bookings : [];
+        publicSettings = state?.settings || publicSettings;
         syncConnected = true;
         renderSerata();
+        renderPublicSettings();
         renderQueue(bookings);
         updateLiveDot();
       } catch (error) {
@@ -721,6 +887,7 @@
         renderSerata();
         renderQueue(bookings);
         updateLiveDot();
+        loadArchive();
       } catch (error) {
         alert(error?.message || 'Non sono riuscito a chiudere la serata.');
         if (btn) btn.disabled = false;
@@ -778,6 +945,7 @@
         currentSerata = result?.serata || currentSerata;
         syncConnected = true;
         await refreshState(true);
+        await loadArchive();
         alert('Vincitore decretato. Da ora puoi solo chiudere il karaoke.');
       } catch (error) {
         alert(error?.message || 'Non sono riuscito a decretare il vincitore.');
@@ -925,6 +1093,137 @@
       }
 
       return { nome, canzone, artista };
+    }
+
+    function formatAdminDateLabel(dateIso, withWeekday = true) {
+      if (!dateIso) return 'Data non disponibile';
+      const [year, month, day] = String(dateIso).split('-').map(Number);
+      if (!year || !month || !day) return String(dateIso);
+      return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('it-IT', {
+        weekday: withWeekday ? 'long' : undefined,
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+        timeZone: 'UTC',
+      }).trim();
+    }
+
+    function renderPublicSettings() {
+      const enabled = publicSettings?.archivio_pubblico_abilitato === true;
+      archivePublicStatus.textContent = `Archivio pubblico: ${enabled ? '🟢 attivo' : '⭕ nascosto'}`;
+      btnToggleArchivePublic.textContent = enabled ? 'Disattiva archivio in home' : 'Attiva archivio in home';
+      nextKaraokeDateInput.value = publicSettings?.prossima_serata_data || '';
+    }
+
+    async function toggleArchivePublic() {
+      const nextValue = !(publicSettings?.archivio_pubblico_abilitato === true);
+      btnToggleArchivePublic.disabled = true;
+      try {
+        publicSettings = await callAdmin('set_public_settings', { archivioPubblicoAbilitato: nextValue });
+        renderPublicSettings();
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito ad aggiornare la visibilità archivio.');
+      } finally {
+        btnToggleArchivePublic.disabled = false;
+      }
+    }
+
+    async function saveNextKaraokeDate() {
+      const value = (nextKaraokeDateInput.value || '').trim();
+      btnSaveNextDate.disabled = true;
+      try {
+        publicSettings = await callAdmin('set_public_settings', { prossimaSerataData: value || null });
+        renderPublicSettings();
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito ad aggiornare la data del prossimo karaoke.');
+      } finally {
+        btnSaveNextDate.disabled = false;
+      }
+    }
+
+    async function clearNextKaraokeDate() {
+      nextKaraokeDateInput.value = '';
+      await saveNextKaraokeDate();
+    }
+
+    async function loadArchive(serataId) {
+      if (archiveLoading) return;
+      archiveLoading = true;
+      btnRefreshArchive.disabled = true;
+      try {
+        const payload = serataId ? { serataId } : {};
+        const data = await callAdmin('get_archive', payload);
+        archiveEditions = Array.isArray(data?.editions) ? data.editions : [];
+        archiveDetail = data?.detail || null;
+        selectedArchiveSerataId = Number(archiveDetail?.serata?.id || 0) || null;
+        renderArchive();
+      } catch (error) {
+        archiveEditions = [];
+        archiveDetail = null;
+        selectedArchiveSerataId = null;
+        renderArchive(error?.message || 'Non sono riuscito a caricare l’archivio.');
+      } finally {
+        archiveLoading = false;
+        btnRefreshArchive.disabled = false;
+      }
+    }
+
+    function renderArchive(errorMessage = '') {
+      if (!archiveEditions.length) {
+        archiveEditionsWrap.innerHTML = '<div class="archive-muted">Nessuna edizione archiviata.</div>';
+      } else {
+        archiveEditionsWrap.innerHTML = archiveEditions.map((edition) => {
+          const editionId = Number(edition?.id || 0);
+          const isActive = selectedArchiveSerataId === editionId;
+          return `
+            <button class="archive-edition-btn${isActive ? ' active' : ''}" data-serata-id="${editionId}">
+              Edizione di ${esc(formatAdminDateLabel(edition?.data, true))}
+            </button>
+          `;
+        }).join('');
+        archiveEditionsWrap.querySelectorAll('[data-serata-id]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const serataId = Number(btn.getAttribute('data-serata-id'));
+            if (Number.isInteger(serataId) && serataId > 0) loadArchive(serataId);
+          });
+        });
+      }
+
+      if (errorMessage) {
+        archiveDetailWrap.innerHTML = `<div class="archive-muted">${esc(errorMessage)}</div>`;
+        return;
+      }
+      if (!archiveDetail?.serata) {
+        archiveDetailWrap.innerHTML = '<div class="archive-muted">Seleziona un’edizione per vedere canzoni cantate e top 5.</div>';
+        return;
+      }
+
+      const songs = Array.isArray(archiveDetail.songs) ? archiveDetail.songs : [];
+      const top5 = Array.isArray(archiveDetail.top5) ? archiveDetail.top5 : [];
+      const top5Html = archiveDetail.hasVoting
+        ? (top5.length
+          ? `<div class="archive-top5">${top5.map((item, index) => `
+              <div>${index + 1}. ${esc(item.nome)} — ${esc(item.canzone)} (${Number(item.score_total) || 0} pt)</div>
+            `).join('')}</div>`
+          : '<div class="archive-muted">Votazioni presenti ma nessuna top 5 disponibile.</div>')
+        : '<div class="archive-muted">Nessuna votazione registrata per questa edizione.</div>';
+
+      archiveDetailWrap.innerHTML = `
+        <strong>Edizione ${esc(formatAdminDateLabel(archiveDetail.serata.data, false))}</strong>
+        <div class="archive-muted">Canzoni cantate: ${songs.length}</div>
+        <div class="archive-song-list">
+          ${songs.length
+            ? songs.map((song) => `
+                <div class="archive-song-item">
+                  <div><strong>${esc(song.nome)}</strong> — ${esc(song.canzone)}</div>
+                  <div>${esc(song.artista)}</div>
+                </div>
+              `).join('')
+            : '<div class="archive-muted">Nessuna canzone segnata come cantata.</div>'}
+        </div>
+        <strong>Top 5</strong>
+        ${top5Html}
+      `;
     }
 
     async function approveBooking(id, card) {

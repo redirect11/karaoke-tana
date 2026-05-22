@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Archivio Karaoke – La Tana del Coniglio</title>
+  <style>
+    :root {
+      --bg: #12071f;
+      --card: #2a1650;
+      --card2: #1d1430;
+      --gold: #d4a017;
+      --text: #f0e6d3;
+      --muted: #a08ca0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px 14px 36px; }
+    .wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+    .card { background: var(--card); border-radius: 14px; border: 1px solid #3d2366; padding: 14px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    h1 { color: var(--gold); font-size: 1.1rem; }
+    .back-link { color: var(--gold); text-decoration: none; font-size: 0.85rem; }
+    .layout { display: grid; grid-template-columns: minmax(170px, 1fr) minmax(0, 1.6fr); gap: 10px; }
+    .editions { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow: auto; }
+    .edition-btn { border: 1px solid #3d2366; border-radius: 10px; background: var(--card2); color: var(--text); text-align: left; padding: 8px 10px; font-size: 0.78rem; cursor: pointer; }
+    .edition-btn.active { border-color: var(--gold); color: var(--gold); background: rgba(212,160,23,0.16); }
+    .detail { background: var(--card2); border: 1px solid #3d2366; border-radius: 10px; padding: 10px; min-height: 280px; display: flex; flex-direction: column; gap: 8px; }
+    .muted { color: var(--muted); font-size: 0.84rem; line-height: 1.5; }
+    .song-list { display: flex; flex-direction: column; gap: 6px; max-height: 230px; overflow: auto; }
+    .song-item { border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 7px 8px; font-size: 0.8rem; }
+    .top5 { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; }
+    @media (max-width: 700px) { .layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card topbar">
+      <h1>Archivio Karaoke</h1>
+      <a class="back-link" href="index.html">← Torna alla home</a>
+    </section>
+    <section class="card" id="archive-root">
+      <div class="muted">Caricamento archivio…</div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    const config = (typeof window.CONFIG === 'object' && window.CONFIG) || (typeof CONFIG === 'object' && CONFIG) || {};
+    const supabaseReady = config.SUPABASE_URL && !config.SUPABASE_URL.includes('TUO-PROGETTO');
+    const db = supabaseReady ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY || '') : null;
+    const archiveRoot = document.getElementById('archive-root');
+    let editions = [];
+    let selectedId = null;
+    let detail = null;
+
+    function esc(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+    }
+
+    function formatDateLabel(dateIso, withWeekday = true) {
+      if (!dateIso) return 'Data non disponibile';
+      const [year, month, day] = String(dateIso).split('-').map(Number);
+      if (!year || !month || !day) return String(dateIso);
+      return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('it-IT', {
+        weekday: withWeekday ? 'long' : undefined,
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+        timeZone: 'UTC',
+      }).trim();
+    }
+
+    function buildRanking(bookings, scoreMap) {
+      return bookings
+        .map((booking) => {
+          const score = scoreMap.get(Number(booking.id)) || { total: 0, count: 0 };
+          const average = score.count > 0 ? score.total / score.count : 0;
+          return { ...booking, score_total: score.total, score_count: score.count, score_average_raw: average };
+        })
+        .sort((a, b) => {
+          if (b.score_total !== a.score_total) return b.score_total - a.score_total;
+          if (b.score_average_raw !== a.score_average_raw) return b.score_average_raw - a.score_average_raw;
+          if (b.score_count !== a.score_count) return b.score_count - a.score_count;
+          return String(a.created_at || '').localeCompare(String(b.created_at || ''));
+        });
+    }
+
+    async function loadSettings() {
+      const { data, error } = await db
+        .from('impostazioni_pubbliche')
+        .select('archivio_pubblico_abilitato, prossima_serata_data')
+        .eq('id', 1)
+        .maybeSingle();
+      if (error) throw error;
+      return data || { archivio_pubblico_abilitato: false, prossima_serata_data: null };
+    }
+
+    async function loadEditions() {
+      const { data, error } = await db
+        .from('serate')
+        .select('id, data, created_at')
+        .eq('aperta', false)
+        .order('data', { ascending: false })
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    }
+
+    async function loadDetail(serataId) {
+      const { data: songs, error: songsError } = await db
+        .from('prenotazioni')
+        .select('id, nome, canzone, artista, created_at')
+        .eq('serata_id', serataId)
+        .eq('cantata', true)
+        .order('created_at', { ascending: true });
+      if (songsError) throw songsError;
+      const songList = songs || [];
+      const ids = songList.map((song) => Number(song.id)).filter((id) => Number.isInteger(id) && id > 0);
+      const scoreMap = new Map();
+      if (ids.length) {
+        const { data: votes, error: votesError } = await db
+          .from('voti')
+          .select('prenotazione_id, voto')
+          .in('prenotazione_id', ids);
+        if (votesError) throw votesError;
+        (votes || []).forEach((vote) => {
+          const key = Number(vote.prenotazione_id);
+          const value = Number(vote.voto);
+          if (!Number.isInteger(key) || key <= 0 || !Number.isFinite(value)) return;
+          const prev = scoreMap.get(key) || { total: 0, count: 0 };
+          prev.total += value;
+          prev.count += 1;
+          scoreMap.set(key, prev);
+        });
+      }
+      const ranking = buildRanking(songList, scoreMap);
+      const top5 = ranking.filter((song) => Number(song.score_count) > 0).slice(0, 5);
+      return { songs: songList, top5, hasVoting: top5.length > 0 };
+    }
+
+    function render() {
+      if (!editions.length) {
+        archiveRoot.innerHTML = '<div class="muted">Nessuna edizione archiviata disponibile.</div>';
+        return;
+      }
+      const songs = Array.isArray(detail?.songs) ? detail.songs : [];
+      const top5 = Array.isArray(detail?.top5) ? detail.top5 : [];
+      archiveRoot.innerHTML = `
+        <div class="layout">
+          <div class="editions">
+            ${editions.map((edition) => `
+              <button class="edition-btn${selectedId === Number(edition.id) ? ' active' : ''}" data-serata-id="${Number(edition.id)}">
+                Edizione di ${esc(formatDateLabel(edition.data, true))}
+              </button>
+            `).join('')}
+          </div>
+          <div class="detail">
+            <strong>Edizione ${esc(formatDateLabel(editions.find((item) => Number(item.id) === selectedId)?.data, false))}</strong>
+            <div class="muted">Canzoni cantate: ${songs.length}</div>
+            <div class="song-list">
+              ${songs.length
+                ? songs.map((song) => `<div class="song-item"><strong>${esc(song.nome)}</strong> — ${esc(song.canzone)}<br>${esc(song.artista)}</div>`).join('')
+                : '<div class="muted">Nessuna canzone segnata come cantata in questa edizione.</div>'}
+            </div>
+            <strong>Top 5</strong>
+            ${detail?.hasVoting
+              ? (top5.length
+                ? `<div class="top5">${top5.map((item, index) => `<div>${index + 1}. ${esc(item.nome)} — ${esc(item.canzone)} (${Number(item.score_total) || 0} pt)</div>`).join('')}</div>`
+                : '<div class="muted">Nessuna top 5 disponibile.</div>')
+              : '<div class="muted">Nessuna votazione registrata per questa edizione.</div>'}
+          </div>
+        </div>
+      `;
+      archiveRoot.querySelectorAll('[data-serata-id]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const id = Number(button.getAttribute('data-serata-id'));
+          if (!Number.isInteger(id) || id <= 0 || id === selectedId) return;
+          selectedId = id;
+          archiveRoot.innerHTML = '<div class="muted">Caricamento edizione…</div>';
+          try {
+            detail = await loadDetail(selectedId);
+            render();
+          } catch (error) {
+            archiveRoot.innerHTML = `<div class="muted">${esc(error?.message || 'Errore durante il caricamento dell’edizione.')}</div>`;
+          }
+        });
+      });
+    }
+
+    async function init() {
+      if (!db) {
+        archiveRoot.innerHTML = '<div class="muted">Configurazione Supabase non disponibile.</div>';
+        return;
+      }
+      try {
+        const settings = await loadSettings();
+        if (settings.archivio_pubblico_abilitato !== true) {
+          const nextDateText = settings.prossima_serata_data
+            ? `Data del prossimo karaoke: ${esc(formatDateLabel(settings.prossima_serata_data, true))}.`
+            : 'Data del prossimo karaoke non ancora comunicata.';
+          archiveRoot.innerHTML = `
+            <div class="muted">
+              Archivio non ancora disponibile pubblicamente.<br>
+              ${nextDateText}
+            </div>
+          `;
+          return;
+        }
+        editions = await loadEditions();
+        selectedId = Number(editions[0]?.id || 0) || null;
+        if (selectedId) detail = await loadDetail(selectedId);
+        render();
+      } catch (error) {
+        archiveRoot.innerHTML = `<div class="muted">${esc(error?.message || 'Errore durante il caricamento archivio.')}</div>`;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

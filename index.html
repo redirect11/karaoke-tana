@@ -850,7 +850,12 @@
   <div class="card" id="step-closed">
     <div class="big-icon">🌙</div>
     <h2>Prenotazioni chiuse</h2>
-    <p>Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!</p>
+    <p id="closed-state-message">Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!</p>
+    <p id="closed-state-next-date" style="font-size:0.9rem; color:var(--gold); margin-top:-2px;"></p>
+    <button id="closed-ig-btn" type="button" class="ig-follow-btn" style="margin-top:8px;">Segui</button>
+    <a id="closed-archive-link" href="archive.html" style="display:none; margin-top:6px; color:var(--gold); text-decoration:underline; font-size:0.86rem;">
+      Consulta archivio karaoke
+    </a>
   </div>
 
   <div class="notification-modal" id="notification-modal" role="dialog" aria-modal="true" aria-labelledby="notification-modal-title">
@@ -969,6 +974,10 @@
     let serataChannel   = null;
     let songListChannel = null;
     let usingLegacySongFallback = false;
+    let publicSettings = {
+      archivio_pubblico_abilitato: false,
+      prossima_serata_data: null,
+    };
 
     // ── UI refs ─────────────────────────────────────────────
     const stepFollow   = document.getElementById('step-follow');
@@ -977,7 +986,10 @@
     const stepWaiting  = document.getElementById('step-waiting');
     const stepClosed   = document.getElementById('step-closed');
     const stepClosedTitle = stepClosed.querySelector('h2');
-    const stepClosedText = stepClosed.querySelector('p');
+    const stepClosedText = document.getElementById('closed-state-message');
+    const closedStateNextDate = document.getElementById('closed-state-next-date');
+    const closedIgBtn = document.getElementById('closed-ig-btn');
+    const closedArchiveLink = document.getElementById('closed-archive-link');
     const songListCard = document.getElementById('song-list-card');
     const songListEl   = document.getElementById('song-list');
     const songListStatus = document.getElementById('song-list-status');
@@ -1034,6 +1046,46 @@
     function setClosedState(title, message) {
       if (stepClosedTitle) stepClosedTitle.textContent = title;
       if (stepClosedText) stepClosedText.innerHTML = message;
+    }
+
+    function formatPublicDateLabel(dateIso, withWeekday = true) {
+      if (!dateIso) return '';
+      const [year, month, day] = String(dateIso).split('-').map(Number);
+      if (!year || !month || !day) return '';
+      return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('it-IT', {
+        weekday: withWeekday ? 'long' : undefined,
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).trim();
+    }
+
+    async function loadPublicSettings() {
+      if (!db) return publicSettings;
+      const { data, error } = await db
+        .from('impostazioni_pubbliche')
+        .select('archivio_pubblico_abilitato, prossima_serata_data')
+        .eq('id', 1)
+        .maybeSingle();
+      if (!error && data) {
+        publicSettings = data;
+      }
+      return publicSettings;
+    }
+
+    function updateClosedPromoContent() {
+      const alreadyFollowed = getCookie('ig_followed') === 'true';
+      if (closedIgBtn) closedIgBtn.textContent = alreadyFollowed ? 'Apri' : 'Segui';
+      if (closedStateNextDate) {
+        const formattedDate = formatPublicDateLabel(publicSettings?.prossima_serata_data, true);
+        closedStateNextDate.textContent = formattedDate
+          ? `Data del prossimo karaoke: ${formattedDate}.`
+          : 'Data del prossimo karaoke in aggiornamento.';
+      }
+      if (closedArchiveLink) {
+        closedArchiveLink.style.display = publicSettings?.archivio_pubblico_abilitato === true ? 'inline-block' : 'none';
+      }
     }
 
     function showLeaderboard(show) {
@@ -1581,6 +1633,7 @@
     // ── Serata aperta ────────────────────────────────────────
     async function checkSerataAperta() {
       if (!db) return true;
+      await loadPublicSettings();
       const { data } = await db
         .from('serate')
         .select('id, aperta, voto_aperto, vincitore_decretato, vincitore_prenotazione_id, notifiche_browser_abilitate')
@@ -1596,7 +1649,8 @@
         showSongListCard(false);
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
-        setClosedState('Prenotazioni chiuse', 'Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!');
+        setClosedState('Prenotazioni chiuse', 'Per ora non c’è nessun karaoke in corso.<br>Segui la pagina Instagram per conoscere le ultime novità.');
+        updateClosedPromoContent();
         showLeaderboard(false);
         setVotaBanner(false);
         return false;
@@ -1613,12 +1667,14 @@
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
         setClosedState('🏁 Karaoke concluso', 'Il vincitore è stato decretato e le prenotazioni sono chiuse per questa serata.');
+        updateClosedPromoContent();
         showLeaderboard(true);
         await loadFinalLeaderboard(data.id, data.vincitore_prenotazione_id);
         return false;
       }
       showLeaderboard(false);
       setClosedState('Prenotazioni chiuse', 'Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!');
+      updateClosedPromoContent();
       subscribeSerata(data.id);
       subscribeSongList(data.id);
       ensureSongListPolling();
@@ -1631,22 +1687,25 @@
       if (!db || serataChannel) return;
       serataChannel = db.channel('index-serata')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate',
-          filter: `id=eq.${serataId}` }, payload => {
+          filter: `id=eq.${serataId}` }, async (payload) => {
           browserNotificationsEnabled = payload.new.notifiche_browser_abilitate !== false;
           const winnerDecreed = Boolean(payload.new.vincitore_decretato);
           setVotaBanner(Boolean(payload.new.voto_aperto) && !winnerDecreed);
           if (!payload.new.aperta) {
+            await loadPublicSettings();
             currentSerataId = null;
             clearSongListPolling();
             [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
             showSongListCard(false);
             stepClosed.style.display = 'flex';
             document.querySelector('.steps').style.display = 'none';
-            setClosedState('Prenotazioni chiuse', 'Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!');
+            setClosedState('Prenotazioni chiuse', 'Per ora non c’è nessun karaoke in corso.<br>Segui la pagina Instagram per conoscere le ultime novità.');
+            updateClosedPromoContent();
             showLeaderboard(false);
             return;
           }
           if (winnerDecreed) {
+            await loadPublicSettings();
             clearWaitingIntervals();
             clearSongListPolling();
             [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
@@ -1654,6 +1713,7 @@
             stepClosed.style.display = 'flex';
             document.querySelector('.steps').style.display = 'none';
             setClosedState('🏁 Karaoke concluso', 'Il vincitore è stato decretato e le prenotazioni sono chiuse per questa serata.');
+            updateClosedPromoContent();
             showLeaderboard(true);
             loadFinalLeaderboard(serataId, payload.new.vincitore_prenotazione_id);
             return;
@@ -1988,6 +2048,9 @@
       e.stopPropagation();
       openInstagram();
     });
+    if (closedIgBtn) {
+      closedIgBtn.addEventListener('click', openInstagram);
+    }
 
     // Quando l'utente torna alla pagina dopo aver aperto Instagram
     async function handleReturn() {
