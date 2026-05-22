@@ -508,7 +508,6 @@
     }
 
     async function clearNextKaraokeDate() {
-      nextKaraokeDateInput.value = '';
       setBusy(btnClearNextDate, true, 'Rimozione…');
       try {
         publicSettings = await callAdmin('set_public_settings', { prossimaSerataData: null });
