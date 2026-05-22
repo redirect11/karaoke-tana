@@ -485,7 +485,6 @@
       setBusy(btnToggleArchivePublic, true, 'Aggiornamento…');
       try {
         publicSettings = await callAdmin('set_public_settings', { archivioPubblicoAbilitato: nextValue });
-        renderPublicSettings();
       } catch (error) {
         setStatus(error?.message || 'Non sono riuscito ad aggiornare la visibilità archivio.', true);
       } finally {
