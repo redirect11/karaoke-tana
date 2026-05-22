@@ -420,14 +420,9 @@ async function getArchive(admin: ReturnType<typeof createClient>, serataId?: num
   }
 
   const allBookings = (serataBookings ?? []) as Array<Record<string, unknown>>;
-  const songsList = allBookings.filter((song) => Boolean(song.cantata));
-  const approvedForRanking = allBookings.filter((song) => Boolean(song.approvata));
-  const scoredCandidates = Array.from(
-    new Map(
-      [...songsList, ...approvedForRanking].map((booking) => [Number(booking.id), booking]),
-    ).values(),
-  );
-  const scoreMap = await getBookingScores(admin, scoredCandidates);
+  const songsList = allBookings.filter((booking) => Boolean(booking.cantata));
+  const approvedForRanking = allBookings.filter((booking) => Boolean(booking.approvata));
+  const scoreMap = await getBookingScores(admin, allBookings);
   const songsWithScores = songsList.map((song) => {
     const bookingId = Number(song.id);
     const score = scoreMap.get(bookingId) ?? { total: 0, count: 0 };
