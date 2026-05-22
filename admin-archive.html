@@ -468,8 +468,8 @@
       `;
     }
 
-    function formatAdminDateLabel(dateIso, withWeekday) {
-      if (!dateIso) return '—';
+    function formatAdminDateLabel(dateIso, withWeekday = true) {
+      if (!dateIso) return 'Data non disponibile';
       const [year, month, day] = String(dateIso).split('-').map(Number);
       if (!year || !month || !day) return String(dateIso);
       return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('it-IT', {
