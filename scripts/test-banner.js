@@ -1,16 +1,16 @@
 (() => {
   const PRODUCTION_HOSTNAME = 'www.ilkaraokedellatana.it';
-  const TEST_HOSTNAME = 'test.ilkaraokedellatana.it';
   const BANNER_ID = 'kt-test-banner';
   const STYLE_ID = 'kt-test-banner-style';
 
   function shouldShowBanner(hostname) {
-    if (!hostname) return false;
-    return hostname === TEST_HOSTNAME || hostname !== PRODUCTION_HOSTNAME;
+    const normalizedHostname = String(hostname || '').trim().toLowerCase();
+    if (!normalizedHostname) return false;
+    return normalizedHostname !== PRODUCTION_HOSTNAME;
   }
 
   function injectBanner() {
-    const hostname = window.location.hostname.toLowerCase();
+    const hostname = window.location.hostname;
     if (!shouldShowBanner(hostname)) return;
     if (!document.body || document.getElementById(BANNER_ID)) return;
 
