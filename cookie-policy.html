@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cookie Policy – La Tana del Coniglio</title>
+  <style>
+    :root {
+      --bg:        #12071f;
+      --bg2:       #1e0f35;
+      --card:      #2a1650;
+      --gold:      #d4a017;
+      --gold-soft: #f0c94a;
+      --text:      #f0e6d3;
+      --muted:     #a08ca0;
+      --radius:    14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 64px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header .logo { font-size: 2.4rem; line-height: 1; margin-bottom: 8px; }
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.03em;
+    }
+    header p.sub {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .content {
+      width: 100%;
+      max-width: 680px;
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      line-height: 1.65;
+    }
+
+    h2 {
+      font-size: 1.05rem;
+      color: var(--gold-soft);
+      margin: 28px 0 10px;
+    }
+    h2:first-child { margin-top: 0; }
+
+    p { font-size: 0.88rem; color: var(--text); margin-bottom: 12px; }
+    p:last-child { margin-bottom: 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 0.83rem;
+    }
+    th {
+      text-align: left;
+      padding: 8px 10px;
+      background: #1e0f35;
+      color: var(--gold-soft);
+      font-weight: 600;
+      border-bottom: 1px solid #3d2366;
+    }
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #2d1a50;
+      color: var(--text);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+
+    a { color: var(--gold-soft); text-decoration: underline; }
+    a:hover { color: var(--gold); }
+
+    .back-link {
+      margin-top: 28px;
+      font-size: 0.85rem;
+    }
+    .back-link a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+    .back-link a:hover { color: var(--text); }
+
+    footer {
+      margin-top: 40px;
+      font-size: 0.72rem;
+      color: #3d2366;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">🐰🎤</div>
+    <h1>Cookie Policy</h1>
+    <p class="sub">La Tana del Coniglio · Nola</p>
+  </header>
+
+  <div class="content">
+
+    <h2>1. Cosa sono i cookie</h2>
+    <p>
+      I cookie sono piccoli file di testo che i siti web salvano nel browser dell'utente.
+      Permettono al sito di ricordare le preferenze e le azioni dell'utente durante una sessione
+      o tra sessioni successive.
+    </p>
+
+    <h2>2. Cookie utilizzati da questo sito</h2>
+    <p>
+      Questo sito utilizza esclusivamente cookie tecnici strettamente necessari al funzionamento
+      dell'applicazione. Non vengono usati cookie di profilazione, di tracciamento o di marketing.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Scopo</th>
+          <th>Durata</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>last_booking</code></td>
+          <td>Memorizza lo stato della prenotazione karaoke dell'utente (ID, canzone, artista, scadenza) per mostrare la schermata di attesa corretta al ritorno sulla pagina.</td>
+          <td>Variabile: fino alla scadenza della prenotazione, comunque non oltre 1 anno.</td>
+        </tr>
+        <tr>
+          <td><code>ig_clicked</code></td>
+          <td>Registra se l'utente ha aperto il link Instagram durante il flusso di prenotazione, per permettere il passaggio automatico al modulo di prenotazione al ritorno sulla pagina.</td>
+          <td>2 ore</td>
+        </tr>
+        <tr>
+          <td><code>ig_followed</code></td>
+          <td>Registra se l'utente ha completato il passaggio di follow su Instagram, saltando così il primo step alle visite successive.</td>
+          <td>6 giorni</td>
+        </tr>
+        <tr>
+          <td><code>cc_cookie</code></td>
+          <td>Memorizza le preferenze dell'utente relative al banner di informativa cookie (gestito dalla libreria Vanilla CookieConsent).</td>
+          <td>6 mesi</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>3. Base giuridica</h2>
+    <p>
+      I cookie tecnici sopra elencati sono strettamente necessari al funzionamento del servizio
+      e non richiedono il consenso dell'utente ai sensi dell'art. 122 del Codice della Privacy
+      (D.Lgs. 196/2003) e delle Linee guida del Garante per la protezione dei dati personali.
+    </p>
+
+    <h2>4. Cookie di terze parti</h2>
+    <p>
+      Questo sito non installa cookie di terze parti propri. Alcune risorse tecniche esterne
+      (librerie JavaScript caricate da CDN) potrebbero impostare cookie tecnici propri;
+      si consiglia di consultare le rispettive privacy policy:
+    </p>
+    <ul style="margin: 0 0 12px 20px; font-size: 0.85rem; color: var(--text); line-height: 1.7;">
+      <li><a href="https://supabase.com/privacy" target="_blank" rel="noopener">Supabase (database e autenticazione)</a></li>
+      <li><a href="https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net" target="_blank" rel="noopener">jsDelivr CDN (librerie JavaScript e CSS)</a></li>
+    </ul>
+
+    <h2>5. Come disabilitare i cookie</h2>
+    <p>
+      È possibile disabilitare i cookie direttamente dal proprio browser. Si tenga presente che
+      la disabilitazione dei cookie tecnici potrebbe compromettere il corretto funzionamento
+      dell'applicazione (ad esempio il tracciamento dello stato della prenotazione).
+    </p>
+    <p>
+      Istruzioni per i principali browser:
+    </p>
+    <ul style="margin: 0 0 12px 20px; font-size: 0.85rem; color: var(--text); line-height: 1.7;">
+      <li><a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener">Google Chrome</a></li>
+      <li><a href="https://support.mozilla.org/it/kb/protezione-antitracciamento-avanzata-firefox" target="_blank" rel="noopener">Mozilla Firefox</a></li>
+      <li><a href="https://support.apple.com/it-it/guide/safari/sfri11471/mac" target="_blank" rel="noopener">Apple Safari</a></li>
+      <li><a href="https://support.microsoft.com/it-it/microsoft-edge/eliminare-i-cookie-in-microsoft-edge-63947406-40ac-c3b8-57b9-2a946a29ae09" target="_blank" rel="noopener">Microsoft Edge</a></li>
+    </ul>
+
+    <h2>6. Aggiornamenti alla cookie policy</h2>
+    <p>
+      Questa pagina potrebbe essere aggiornata in caso di modifiche alle funzionalità del sito.
+      Si consiglia di consultarla periodicamente.
+    </p>
+    <p>Ultimo aggiornamento: maggio 2026.</p>
+
+    <div class="back-link">← <a href="index.html">Torna alla home</a></div>
+  </div>
+
+  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.2</footer>
+
+</body>
+</html>
