@@ -122,6 +122,12 @@ Esempio con Supabase CLI:
 supabase functions deploy submit-booking --project-ref <PROJECT_REF>
 ```
 
+### Deploy automatico su `develop`
+
+La repo include anche il workflow GitHub Actions `.github/workflows/deploy-supabase-functions-develop.yml`, che su push a `develop` deploya automaticamente tutte le funzioni trovate in `supabase/functions/` (esclusa `_shared`) verso il progetto test `jiqjklcnplxolyqeklxr`.
+
+Il workflow usa il secret GitHub `SUPABASE_ACCESS_TOKEN`, che deve contenere un personal access token Supabase. Se vuoi rendere modificabile il project ref senza toccare il file workflow, puoi impostare anche la variabile GitHub `SUPABASE_TEST_PROJECT_REF`.
+
 ### Test endpoint pubblico
 
 Endpoint:
