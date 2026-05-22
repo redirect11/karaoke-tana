@@ -443,6 +443,7 @@
         </div>
         <div class="header-tools">
           <span id="queue-count"></span>
+          <a class="settings-link" href="admin-archive.html" title="Archivio karaoke" aria-label="Archivio karaoke">📚</a>
           <a class="settings-link" href="admin-tools.html" title="Strumenti nascosti" aria-label="Strumenti nascosti">⚙️</a>
           <button class="logout-btn" id="logout-btn" type="button">Disconnetti</button>
         </div>
@@ -450,27 +451,6 @@
     </header>
 
     <div id="serata-wrap"></div>
-    <div id="admin-extra-wrap">
-      <section class="extra-card">
-        <h3>Impostazioni pubbliche</h3>
-        <div class="setting-row">
-          <div class="setting-label" id="archive-public-status">Archivio pubblico: —</div>
-          <button class="btn-serata btn-secondary" id="btn-toggle-archive-public" type="button">—</button>
-        </div>
-        <div class="setting-row">
-          <div class="setting-label">Data prossimo karaoke</div>
-          <div class="next-date-controls">
-            <input class="next-date-input" id="next-karaoke-date" type="date" />
-            <button class="btn-serata btn-secondary" id="btn-save-next-date" type="button">Salva</button>
-            <button class="btn-serata btn-voto-close" id="btn-clear-next-date" type="button">Rimuovi</button>
-          </div>
-        </div>
-        <div class="setting-row">
-          <div class="setting-label">Archivio karaoke</div>
-          <a class="btn-serata btn-secondary" href="admin-archive.html">Vai all'archivio →</a>
-        </div>
-      </section>
-    </div>
 
     <div id="queue-wrap">
       <div class="queue-tabs">
@@ -516,11 +496,6 @@
     const tabApproved = document.getElementById('tab-approved');
     const tabCompleted = document.getElementById('tab-completed');
     const logoutBtn = document.getElementById('logout-btn');
-    const archivePublicStatus = document.getElementById('archive-public-status');
-    const btnToggleArchivePublic = document.getElementById('btn-toggle-archive-public');
-    const nextKaraokeDateInput = document.getElementById('next-karaoke-date');
-    const btnSaveNextDate = document.getElementById('btn-save-next-date');
-    const btnClearNextDate = document.getElementById('btn-clear-next-date');
 
     const overlay = document.getElementById('pwd-overlay');
     const panel = document.getElementById('panel');
@@ -536,10 +511,6 @@
     let activeQueueTab = 'pending';
     let adminToken = '';
     let pollingTimer = null;
-    let publicSettings = {
-      archivio_pubblico_abilitato: false,
-      prossima_serata_data: null,
-    };
 
     document.getElementById('pwd-btn').addEventListener('click', loginAdmin);
     pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAdmin(); });
@@ -557,9 +528,6 @@
       activeQueueTab = 'completed';
       renderQueue(bookings);
     });
-    btnToggleArchivePublic.addEventListener('click', toggleArchivePublic);
-    btnSaveNextDate.addEventListener('click', saveNextKaraokeDate);
-    btnClearNextDate.addEventListener('click', clearNextKaraokeDate);
 
     if (supabaseClient) {
       supabaseClient.auth.getSession().then(({ data }) => {
@@ -677,10 +645,8 @@
         const state = await callAdmin('get_state');
         currentSerata = state?.serata || null;
         bookings = Array.isArray(state?.bookings) ? state.bookings : [];
-        publicSettings = state?.settings || publicSettings;
         syncConnected = true;
         renderSerata();
-        renderPublicSettings();
         renderQueue(bookings);
         updateLiveDot();
       } catch (error) {
@@ -1007,45 +973,6 @@
 
       return { nome, canzone, artista };
     }
-
-    function renderPublicSettings() {
-      const enabled = publicSettings?.archivio_pubblico_abilitato === true;
-      archivePublicStatus.textContent = `Archivio pubblico: ${enabled ? '🟢 attivo' : '⭕ nascosto'}`;
-      btnToggleArchivePublic.textContent = enabled ? 'Disattiva archivio in home' : 'Attiva archivio in home';
-      nextKaraokeDateInput.value = publicSettings?.prossima_serata_data || '';
-    }
-
-    async function toggleArchivePublic() {
-      const nextValue = !(publicSettings?.archivio_pubblico_abilitato === true);
-      btnToggleArchivePublic.disabled = true;
-      try {
-        publicSettings = await callAdmin('set_public_settings', { archivioPubblicoAbilitato: nextValue });
-        renderPublicSettings();
-      } catch (error) {
-        alert(error?.message || 'Non sono riuscito ad aggiornare la visibilità archivio.');
-      } finally {
-        btnToggleArchivePublic.disabled = false;
-      }
-    }
-
-    async function saveNextKaraokeDate() {
-      const value = (nextKaraokeDateInput.value || '').trim();
-      btnSaveNextDate.disabled = true;
-      try {
-        publicSettings = await callAdmin('set_public_settings', { prossimaSerataData: value || null });
-        renderPublicSettings();
-      } catch (error) {
-        alert(error?.message || 'Non sono riuscito ad aggiornare la data del prossimo karaoke.');
-      } finally {
-        btnSaveNextDate.disabled = false;
-      }
-    }
-
-    async function clearNextKaraokeDate() {
-      nextKaraokeDateInput.value = '';
-      await saveNextKaraokeDate();
-    }
-
 
     async function approveBooking(id, card) {
       setCardBusy(card, true);
