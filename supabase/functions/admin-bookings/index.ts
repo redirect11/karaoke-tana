@@ -409,20 +409,25 @@ async function getArchive(admin: ReturnType<typeof createClient>, serataId?: num
     throw new ApiError(404, "not_found", "Edizione archivio non trovata.");
   }
 
-  const { data: serataBookings, error: songsError } = await admin
+  const { data: serataBookings, error: bookingsError } = await admin
     .from("prenotazioni")
     .select("*")
     .eq("serata_id", selectedSerataId)
     .order("created_at", { ascending: true });
 
-  if (songsError) {
+  if (bookingsError) {
     throw new ApiError(500, "query_failed", "Errore durante il caricamento delle canzoni archivio.");
   }
 
   const allBookings = (serataBookings ?? []) as Array<Record<string, unknown>>;
   const songsList = allBookings.filter((song) => Boolean(song.cantata));
   const approvedForRanking = allBookings.filter((song) => Boolean(song.approvata));
-  const scoreMap = await getBookingScores(admin, allBookings);
+  const scoredCandidates = Array.from(
+    new Map(
+      [...songsList, ...approvedForRanking].map((booking) => [Number(booking.id), booking]),
+    ).values(),
+  );
+  const scoreMap = await getBookingScores(admin, scoredCandidates);
   const songsWithScores = songsList.map((song) => {
     const bookingId = Number(song.id);
     const score = scoreMap.get(bookingId) ?? { total: 0, count: 0 };
