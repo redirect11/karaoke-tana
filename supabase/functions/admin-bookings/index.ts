@@ -117,6 +117,21 @@ function normalizeOptionalDate(value: unknown, fieldName: string): string | null
   return trimmed;
 }
 
+function toIsoDateFromTimestamp(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return null;
+  return new Date(parsed).toISOString().slice(0, 10);
+}
+
+function getArchiveDate(serata: Record<string, unknown>): string | null {
+  const fromCreatedAt = toIsoDateFromTimestamp(serata.created_at);
+  if (fromCreatedAt) return fromCreatedAt;
+  const fromData = typeof serata.data === "string" ? serata.data : null;
+  if (fromData && /^\d{4}-\d{2}-\d{2}$/.test(fromData)) return fromData;
+  return null;
+}
+
 function createAdminClient() {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -379,9 +394,14 @@ async function getArchive(admin: ReturnType<typeof createClient>, serataId?: num
     throw new ApiError(500, "query_failed", "Errore durante il caricamento dell'archivio.");
   }
 
-  const selectedSerataId = serataId ?? Number(editions?.[0]?.id ?? 0);
+  const normalizedEditions = (editions ?? []).map((edition) => ({
+    ...edition,
+    archive_date: getArchiveDate(edition as Record<string, unknown>),
+  }));
+
+  const selectedSerataId = serataId ?? Number(normalizedEditions[0]?.id ?? 0);
   if (!Number.isInteger(selectedSerataId) || selectedSerataId <= 0) {
-    return { editions: editions ?? [], detail: null };
+    return { editions: normalizedEditions, detail: null };
   }
 
   const detailSerata = await getSerataById(admin, selectedSerataId);
@@ -417,13 +437,16 @@ async function getArchive(admin: ReturnType<typeof createClient>, serataId?: num
   const ranked = buildRanking(songsWithScores, scoreMap);
   const top5 = ranked.filter((song) => Number(song.score_count) > 0).slice(0, 5);
   const detail = {
-    serata: detailSerata,
+    serata: {
+      ...detailSerata,
+      archive_date: getArchiveDate(detailSerata as Record<string, unknown>),
+    },
     songs: songsWithScores,
     top5,
     hasVoting: top5.length > 0,
   };
 
-  return { editions: editions ?? [], detail };
+  return { editions: normalizedEditions, detail };
 }
 
 async function executeAction(admin: ReturnType<typeof createClient>, action: string, body: Record<string, unknown>) {

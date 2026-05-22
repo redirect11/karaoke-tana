@@ -1177,7 +1177,7 @@
           const isActive = selectedArchiveSerataId === editionId;
           return `
             <button class="archive-edition-btn${isActive ? ' active' : ''}" data-serata-id="${editionId}">
-              Edizione di ${esc(formatAdminDateLabel(edition?.data, true))}
+              Edizione di ${esc(formatAdminDateLabel(edition?.archive_date || edition?.data, true))}
             </button>
           `;
         }).join('');
@@ -1209,7 +1209,7 @@
         : '<div class="archive-muted">Nessuna votazione registrata per questa edizione.</div>';
 
       archiveDetailWrap.innerHTML = `
-        <strong>Edizione ${esc(formatAdminDateLabel(archiveDetail.serata.data, false))}</strong>
+        <strong>Edizione ${esc(formatAdminDateLabel(archiveDetail.serata.archive_date || archiveDetail.serata.data, false))}</strong>
         <div class="archive-muted">Canzoni cantate: ${songs.length}</div>
         <div class="archive-song-list">
           ${songs.length
