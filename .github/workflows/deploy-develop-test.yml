@@ -1,0 +1,89 @@
+name: Deploy test site on develop
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy-test:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout production (main)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: prod-site
+
+      - name: Checkout test (develop)
+        uses: actions/checkout@v4
+        with:
+          path: test-site
+
+      - name: Generate config.js for production root
+        env:
+          IG_USERNAME:        ${{ secrets.IG_USERNAME }}
+          SUPABASE_URL:       ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY:  ${{ secrets.SUPABASE_ANON_KEY }}
+          SUBMIT_BOOKING_FUNCTION_URL: ${{ secrets.SUBMIT_BOOKING_FUNCTION_URL }}
+          BOOKING_STATUS_FUNCTION_URL: ${{ secrets.BOOKING_STATUS_FUNCTION_URL }}
+          BOOKING_PENDING_EXPIRY_MIN:  ${{ secrets.BOOKING_PENDING_EXPIRY_MIN }}
+          BOOKING_COOLDOWN_MIN:  ${{ secrets.BOOKING_COOLDOWN_MIN }}
+          ADS_ENABLED: ${{ secrets.ADS_ENABLED }}
+          ADS_MODE: ${{ secrets.ADS_MODE }}
+          ADS_PROVIDER: ${{ secrets.ADS_PROVIDER }}
+          ADSENSE_CLIENT_ID: ${{ secrets.ADSENSE_CLIENT_ID }}
+          ADSENSE_BANNER_SLOT: ${{ secrets.ADSENSE_BANNER_SLOT }}
+          ADS_REQUIRE_BEFORE_BOOKING: ${{ secrets.ADS_REQUIRE_BEFORE_BOOKING }}
+        run: |
+          node ./test-site/scripts/generate-pages-config.mjs ./prod-site
+
+      - name: Generate config.js for /test
+        env:
+          IG_USERNAME:        ${{ secrets.TEST_IG_USERNAME }}
+          SUPABASE_URL:       ${{ secrets.TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY:  ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          SUBMIT_BOOKING_FUNCTION_URL: ${{ secrets.TEST_SUBMIT_BOOKING_FUNCTION_URL }}
+          BOOKING_STATUS_FUNCTION_URL: ${{ secrets.TEST_BOOKING_STATUS_FUNCTION_URL }}
+          BOOKING_PENDING_EXPIRY_MIN:  ${{ secrets.TEST_BOOKING_PENDING_EXPIRY_MIN }}
+          BOOKING_COOLDOWN_MIN:  ${{ secrets.TEST_BOOKING_COOLDOWN_MIN }}
+          ADS_ENABLED: ${{ secrets.TEST_ADS_ENABLED }}
+          ADS_MODE: ${{ secrets.TEST_ADS_MODE }}
+          ADS_PROVIDER: ${{ secrets.TEST_ADS_PROVIDER }}
+          ADSENSE_CLIENT_ID: ${{ secrets.TEST_ADSENSE_CLIENT_ID }}
+          ADSENSE_BANNER_SLOT: ${{ secrets.TEST_ADSENSE_BANNER_SLOT }}
+          ADS_REQUIRE_BEFORE_BOOKING: ${{ secrets.TEST_ADS_REQUIRE_BEFORE_BOOKING }}
+        run: |
+          node ./test-site/scripts/generate-pages-config.mjs ./test-site
+
+      - name: Assemble Pages artifact (root=main, /test=develop)
+        run: |
+          rm -rf publish
+          mkdir -p publish/test
+          rsync -a --exclude='.git' prod-site/ publish/
+          rsync -a --exclude='.git' test-site/ publish/test/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './publish'
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
