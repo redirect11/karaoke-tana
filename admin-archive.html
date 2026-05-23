@@ -4,493 +4,110 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Archivio karaoke – La Tana del Coniglio</title>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6652706779509567" crossorigin="anonymous"></script>
   <style>
-    :root {
-      --bg:     #12071f;
-      --bg2:    #1e0f35;
-      --card:   #2a1650;
-      --gold:   #d4a017;
-      --gold-s: #f0c94a;
-      --text:   #f0e6d3;
-      --muted:  #a08ca0;
-      --radius: 14px;
-    }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      background: #0e0518;
+      color: #f0e6d3;
       min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
     }
-
-    #pwd-overlay {
-      position: fixed;
-      inset: 0;
-      background: var(--bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      z-index: 10;
-    }
-    #pwd-overlay.hidden { display: none; }
-
-    .pwd-box {
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: 0 8px 40px rgba(0,0,0,0.45);
-      width: 100%;
+    .box {
+      background: #2a1650;
+      border: 1px solid #3d2366;
+      border-radius: 14px;
+      padding: 28px 24px;
       max-width: 380px;
-      padding: 36px 28px;
       text-align: center;
     }
-    .pwd-box .logo { font-size: 2.5rem; margin-bottom: 8px; }
-    .pwd-box h2 { color: var(--gold); margin-bottom: 4px; font-size: 1.2rem; }
-    .pwd-box p { color: var(--muted); font-size: 0.84rem; margin-bottom: 20px; }
-
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-    .pwd-box input {
+    .logo { font-size: 2.6rem; margin-bottom: 12px; }
+    h2 { color: #d4a017; font-size: 1.15rem; margin-bottom: 6px; }
+    p { color: #a08ca0; font-size: 0.88rem; line-height: 1.5; }
+    input, button {
       width: 100%;
-      background: var(--bg2);
+      padding: 10px 14px;
+      border-radius: 8px;
       border: 1.5px solid #3d2366;
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 0.95rem;
-      padding: 11px 14px;
-      outline: none;
-      margin-bottom: 12px;
+      background: #1e0f35;
+      color: #f0e6d3;
+      font-size: 0.94rem;
+      margin-top: 12px;
     }
-    .pwd-box button {
-      width: 100%;
-      padding: 12px;
-      background: var(--gold);
-      border: none;
-      border-radius: 50px;
-      color: #12071f;
-      font-weight: 700;
-      font-size: 0.95rem;
-      cursor: pointer;
+    button {
+      background: #d4a017; color: #12071f; font-weight: 700;
+      border: none; border-radius: 50px; cursor: pointer;
     }
-    .pwd-error {
-      color: #e74c3c;
-      font-size: 0.8rem;
-      margin-top: 10px;
-      min-height: 18px;
-    }
-
-    #panel {
-      display: none;
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 32px 16px 48px;
-    }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .topbar h1 { font-size: 1.2rem; color: var(--gold); }
-    .topbar p { color: var(--muted); font-size: 0.82rem; margin-top: 3px; }
-    .back-link {
-      color: var(--gold);
-      text-decoration: none;
-      font-size: 0.82rem;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .archive-card {
-      background: var(--card);
-      border: 1px solid #3d2366;
-      border-radius: var(--radius);
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .archive-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .archive-card h2 { color: var(--gold-s); font-size: 1rem; }
-
-    .btn-refresh {
-      border: none;
-      border-radius: 999px;
-      padding: 8px 16px;
-      background: #4b356f;
-      color: #fff;
-      font-size: 0.8rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .btn-refresh:disabled { opacity: 0.55; cursor: not-allowed; }
-
-    .archive-layout {
-      display: grid;
-      grid-template-columns: minmax(150px, 1fr) minmax(0, 1.7fr);
-      gap: 10px;
-    }
-    .archive-editions {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      max-height: 420px;
-      overflow: auto;
-      padding-right: 4px;
-    }
-    .archive-edition-btn {
-      border: 1px solid #3d2366;
-      background: #1d1430;
-      color: var(--text);
-      border-radius: 10px;
-      padding: 8px 10px;
-      text-align: left;
-      font-size: 0.76rem;
-      cursor: pointer;
-    }
-    .archive-edition-btn.active {
-      border-color: var(--gold);
-      background: rgba(212,160,23,0.15);
-      color: var(--gold-s);
-    }
-    .archive-detail {
-      background: var(--bg2);
-      border: 1px solid #3d2366;
-      border-radius: 10px;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      min-height: 200px;
-    }
-    .archive-muted {
-      color: var(--muted);
-      font-size: 0.78rem;
-      line-height: 1.45;
-    }
-    .archive-song-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      max-height: 280px;
-      overflow: auto;
-      padding-right: 4px;
-    }
-    .archive-song-item {
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.08);
-      padding: 7px 8px;
-      font-size: 0.75rem;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .archive-top5 {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 0.75rem;
-    }
-
-    @media (max-width: 560px) {
-      .archive-layout {
-        grid-template-columns: 1fr;
-      }
-    }
+    button:disabled { opacity: 0.55; cursor: wait; }
+    .error { color: #ff6b6b; font-size: 0.82rem; margin-top: 10px; min-height: 18px; }
+    .hint { font-size: 0.78rem; color: #a08ca0; margin-top: 16px; }
+    .hint a { color: #f0c94a; text-decoration: none; }
   </style>
-  <link rel="stylesheet" href="scripts/vendor/cookieconsent.css" />
 </head>
 <body>
-
-  <div id="pwd-overlay">
-    <div class="pwd-box">
-      <div class="logo">📚</div>
-      <h2>Archivio karaoke</h2>
-      <p>Inserisci la password admin per visualizzare l'archivio.</p>
-      <label class="sr-only" for="pwd-input">Password amministratore</label>
-      <input id="pwd-input" type="password" placeholder="password admin" autocomplete="current-password" />
-      <button id="pwd-btn">Accedi</button>
-      <p class="pwd-error" id="pwd-error"></p>
-    </div>
+  <div class="box" id="login-box">
+    <div class="logo">📚</div>
+    <h2>Archivio admin</h2>
+    <p>L'archivio admin è ora la stessa pagina <strong>archive.html</strong>: se accedi con la password admin trovi i controlli inline per nascondere/mostrare edizioni e scegliere la foto di copertina.</p>
+    <input id="pwd" type="password" placeholder="password admin" autocomplete="current-password" />
+    <button id="btn">Accedi e apri archivio</button>
+    <div class="error" id="err"></div>
+    <p class="hint">Hai già fatto il login dal pannello staff? <a href="archive.html">Apri archivio direttamente →</a></p>
   </div>
-
-  <main id="panel">
-    <div class="topbar">
-      <div>
-        <h1>Archivio karaoke</h1>
-        <p>Edizioni archiviate con canzoni cantate e top 5.</p>
-      </div>
-      <a class="back-link" href="admin.html">← Torna al pannello</a>
-    </div>
-
-    <div class="archive-card">
-      <div class="archive-card-header">
-        <h2>Edizioni</h2>
-        <button class="btn-refresh" id="btn-refresh-archive" type="button">Aggiorna</button>
-      </div>
-      <div class="archive-layout">
-        <div class="archive-editions" id="archive-editions">
-          <div class="archive-muted">Caricamento…</div>
-        </div>
-        <div class="archive-detail" id="archive-detail">
-          <div class="archive-muted">Seleziona un'edizione per vedere canzoni cantate e top 5.</div>
-        </div>
-      </div>
-    </div>
-  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="config.js"></script>
-  <script defer src="scripts/test-banner.js"></script>
   <script>
-    const config =
-      (typeof window.CONFIG === 'object' && window.CONFIG)
-      || (typeof CONFIG === 'object' && CONFIG)
-      || {};
-    const supabaseUrl = `${config.SUPABASE_URL || ''}`;
-    const supabaseReady = !!supabaseUrl && !supabaseUrl.includes('TUO-PROGETTO');
-    const edgeBaseUrl = supabaseReady ? `${supabaseUrl.replace(/\/+$/, '')}/functions/v1` : '';
-    const adminBookingsUrl = supabaseReady ? `${edgeBaseUrl}/admin-bookings` : '';
-
-    // Supabase Auth client – sessions persisted in sessionStorage (cleared when tab closes)
+    const config = (typeof window.CONFIG === 'object' && window.CONFIG) || (typeof CONFIG === 'object' && CONFIG) || {};
+    const supabaseReady = config.SUPABASE_URL && !config.SUPABASE_URL.includes('TUO-PROGETTO');
+    const ADMIN_EMAIL = 'admin@tana.it';
     const supabaseClient = supabaseReady
-      ? window.supabase.createClient(supabaseUrl, config.SUPABASE_ANON_KEY || '', {
+      ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY || '', {
           auth: { persistSession: true, storage: sessionStorage },
         })
       : null;
 
-    const overlay = document.getElementById('pwd-overlay');
-    const panel = document.getElementById('panel');
-    const pwdInput = document.getElementById('pwd-input');
-    const pwdError = document.getElementById('pwd-error');
-    const pwdBtn = document.getElementById('pwd-btn');
-    const btnRefreshArchive = document.getElementById('btn-refresh-archive');
-    const archiveEditionsWrap = document.getElementById('archive-editions');
-    const archiveDetailWrap = document.getElementById('archive-detail');
+    const pwd = document.getElementById('pwd');
+    const btn = document.getElementById('btn');
+    const err = document.getElementById('err');
 
-    const ADMIN_EMAIL = 'admin@tana.it';
-
-    let adminToken = '';
-    let archiveEditions = [];
-    let archiveDetail = null;
-    let selectedArchiveSerataId = null;
-    let archiveLoading = false;
-
-    document.getElementById('pwd-btn').addEventListener('click', loginAdmin);
-    pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAdmin(); });
-    btnRefreshArchive.addEventListener('click', () => loadArchive(selectedArchiveSerataId || undefined));
-
+    // Se l'utente è già loggato in questa sessione (es. ha fatto login da admin.html
+    // nello stesso tab), saltiamo direttamente alla pagina archivio.
     if (supabaseClient) {
       supabaseClient.auth.getSession().then(({ data }) => {
-        if (data.session?.access_token) {
-          adminToken = data.session.access_token;
-          unlockPanel();
+        if (data?.session?.access_token) {
+          location.replace('archive.html');
         }
       }).catch(() => {});
     }
 
-    function getAdminHeaders(token) {
-      const headers = new Headers({ 'Content-Type': 'application/json', Authorization: `Bearer ${token}` });
-      if (config.SUPABASE_ANON_KEY) {
-        headers.set('apikey', config.SUPABASE_ANON_KEY);
-      }
-      return headers;
-    }
-
-    async function callAdminRaw(token, action, payload = {}) {
-      if (!adminBookingsUrl) {
-        throw new Error('CONFIG.SUPABASE_URL non configurato.');
-      }
-
-      const response = await fetch(adminBookingsUrl, {
-        method: 'POST',
-        headers: getAdminHeaders(token),
-        body: JSON.stringify({ action, ...payload }),
-      });
-
-      let result = null;
-      try {
-        result = await response.json();
-      } catch (_) {
-        result = null;
-      }
-
-      if (!response.ok || !result?.success) {
-        const message = result?.error?.message || 'Errore durante la richiesta admin.';
-        throw new Error(message);
-      }
-
-      return result.data;
-    }
-
-    async function callAdmin(action, payload = {}) {
-      if (!adminToken) {
-        throw new Error('Sessione admin mancante.');
-      }
-      return await callAdminRaw(adminToken, action, payload);
-    }
-
-    async function loginAdmin() {
-      const password = pwdInput.value;
+    async function login() {
+      const password = pwd.value;
       if (!password) {
-        pwdError.textContent = 'Inserisci la password admin.';
+        err.textContent = 'Inserisci la password admin.';
         return;
       }
-
-      pwdBtn.disabled = true;
-      pwdBtn.textContent = 'Verifica in corso…';
-      pwdError.textContent = '';
-
+      if (!supabaseClient) {
+        err.textContent = 'Configurazione Supabase mancante.';
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Accesso in corso…';
+      err.textContent = '';
       try {
-        if (!supabaseClient) {
-          throw new Error('Configurazione Supabase mancante.');
-        }
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password });
+        const { error } = await supabaseClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password });
         if (error) throw error;
-
-        const token = data.session?.access_token;
-        if (!token) throw new Error('Sessione non ricevuta.');
-
-        adminToken = token;
-        pwdInput.value = '';
-        unlockPanel();
+        location.replace('archive.html');
       } catch (error) {
-        pwdError.textContent = error?.message || 'Credenziali non valide.';
+        err.textContent = error?.message || 'Credenziali non valide.';
       } finally {
-        pwdBtn.disabled = false;
-        pwdBtn.textContent = 'Accedi';
+        btn.disabled = false;
+        btn.textContent = 'Accedi e apri archivio';
       }
     }
-
-    function unlockPanel() {
-      overlay.classList.add('hidden');
-      panel.style.display = 'block';
-      loadArchive();
-    }
-
-    async function loadArchive(serataId) {
-      if (archiveLoading) return;
-      archiveLoading = true;
-      btnRefreshArchive.disabled = true;
-      try {
-        const payload = serataId ? { serataId } : {};
-        const data = await callAdmin('get_archive', payload);
-        archiveEditions = Array.isArray(data?.editions) ? data.editions : [];
-        archiveDetail = data?.detail || null;
-        selectedArchiveSerataId = Number(archiveDetail?.serata?.id || 0) || null;
-        renderArchive();
-      } catch (error) {
-        archiveEditions = [];
-        archiveDetail = null;
-        selectedArchiveSerataId = null;
-        renderArchive(error?.message || 'Non sono riuscito a caricare l\u2019archivio.');
-      } finally {
-        archiveLoading = false;
-        btnRefreshArchive.disabled = false;
-      }
-    }
-
-    function renderArchive(errorMessage = '') {
-      if (!archiveEditions.length) {
-        archiveEditionsWrap.innerHTML = '<div class="archive-muted">Nessuna edizione archiviata.</div>';
-      } else {
-        archiveEditionsWrap.innerHTML = archiveEditions.map((edition) => {
-          const editionId = Number(edition?.id || 0);
-          const isActive = selectedArchiveSerataId === editionId;
-          return `
-            <button class="archive-edition-btn${isActive ? ' active' : ''}" data-serata-id="${editionId}">
-              Edizione di ${esc(formatAdminDateLabel(edition?.archive_date || edition?.data, true))}
-            </button>
-          `;
-        }).join('');
-        archiveEditionsWrap.querySelectorAll('[data-serata-id]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const serataId = Number(btn.getAttribute('data-serata-id'));
-            if (Number.isInteger(serataId) && serataId > 0) loadArchive(serataId);
-          });
-        });
-      }
-
-      if (errorMessage) {
-        archiveDetailWrap.innerHTML = `<div class="archive-muted">${esc(errorMessage)}</div>`;
-        return;
-      }
-      if (!archiveDetail?.serata) {
-        archiveDetailWrap.innerHTML = '<div class="archive-muted">Seleziona un\u2019edizione per vedere canzoni cantate e top 5.</div>';
-        return;
-      }
-
-      const songs = Array.isArray(archiveDetail.songs) ? archiveDetail.songs : [];
-      const top5 = Array.isArray(archiveDetail.top5) ? archiveDetail.top5 : [];
-      const top5Html = archiveDetail.hasVoting
-        ? (top5.length
-          ? `<div class="archive-top5">${top5.map((item, index) => `
-              <div>${index + 1}. ${esc(item.nome)} — ${esc(item.canzone)} (${Number(item.score_total) || 0} pt)</div>
-            `).join('')}</div>`
-          : '<div class="archive-muted">Votazioni presenti ma nessuna top 5 disponibile.</div>')
-        : '<div class="archive-muted">Nessuna votazione registrata per questa edizione.</div>';
-
-      archiveDetailWrap.innerHTML = `
-        <strong>Edizione ${esc(formatAdminDateLabel(archiveDetail.serata.archive_date || archiveDetail.serata.data, false))}</strong>
-        <div class="archive-muted">Canzoni cantate: ${songs.length}</div>
-        <div class="archive-song-list">
-          ${songs.length
-            ? songs.map((song) => `
-                <div class="archive-song-item">
-                  <div><strong>${esc(song.nome)}</strong> — ${esc(song.canzone)}</div>
-                  <div>${esc(song.artista)}</div>
-                </div>
-              `).join('')
-            : '<div class="archive-muted">Nessuna canzone segnata come cantata.</div>'}
-        </div>
-        <strong>Top 5</strong>
-        ${top5Html}
-      `;
-    }
-
-    function formatAdminDateLabel(dateIso, withWeekday = true) {
-      if (!dateIso) return 'Data non disponibile';
-      const [year, month, day] = String(dateIso).split('-').map(Number);
-      if (!year || !month || !day) return String(dateIso);
-      return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('it-IT', {
-        weekday: withWeekday ? 'long' : undefined,
-        day: '2-digit',
-        month: '2-digit',
-        year: '2-digit',
-        timeZone: 'UTC',
-      }).trim();
-    }
-
-    function esc(str) {
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#x27;');
-    }
+    btn.addEventListener('click', login);
+    pwd.addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
   </script>
-  <script defer src="scripts/vendor/cookieconsent.umd.js"></script>
-  <script defer src="cookie-consent.js"></script>
 </body>
 </html>

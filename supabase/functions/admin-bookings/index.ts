@@ -385,7 +385,7 @@ async function updatePublicSettings(
 async function getArchive(admin: ReturnType<typeof createClient>, serataId?: number) {
   const { data: editions, error: editionsError } = await admin
     .from("serate")
-    .select("id, data, created_at, voto_aperto, vincitore_decretato, vincitore_prenotazione_id")
+    .select("id, data, created_at, voto_aperto, vincitore_decretato, vincitore_prenotazione_id, archiviato_nascosto, cover_prenotazione_id")
     .eq("aperta", false)
     .order("data", { ascending: false })
     .order("created_at", { ascending: false });
@@ -495,6 +495,55 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         ? toPositiveInt(body.serataId, "serataId")
         : undefined;
       return { status: 200, data: await getArchive(admin, serataId) };
+    }
+
+    case "set_archive_visibility": {
+      const serataId = toPositiveInt(body.serataId, "serataId");
+      if (typeof body.hidden !== "boolean") {
+        throw new ApiError(400, "invalid_payload", "Il campo `hidden` deve essere booleano.");
+      }
+      const { data, error } = await admin
+        .from("serate")
+        .update({ archiviato_nascosto: body.hidden })
+        .eq("id", serataId)
+        .eq("aperta", false)
+        .select("id, archiviato_nascosto, cover_prenotazione_id")
+        .single();
+      if (error) {
+        throw new ApiError(500, "query_failed", "Errore durante l'aggiornamento della visibilità.");
+      }
+      return { status: 200, data };
+    }
+
+    case "set_archive_cover": {
+      const serataId = toPositiveInt(body.serataId, "serataId");
+      let prenotazioneId: number | null = null;
+      if (body.prenotazioneId !== null && body.prenotazioneId !== undefined && body.prenotazioneId !== "") {
+        prenotazioneId = toPositiveInt(body.prenotazioneId, "prenotazioneId");
+        // Verifica che la prenotazione appartenga alla serata indicata
+        const { data: booking, error: bookingErr } = await admin
+          .from("prenotazioni")
+          .select("id, serata_id")
+          .eq("id", prenotazioneId)
+          .maybeSingle();
+        if (bookingErr) {
+          throw new ApiError(500, "query_failed", "Errore durante la verifica della prenotazione di cover.");
+        }
+        if (!booking || Number(booking.serata_id) !== serataId) {
+          throw new ApiError(400, "invalid_payload", "La prenotazione selezionata non appartiene a questa serata.");
+        }
+      }
+      const { data, error } = await admin
+        .from("serate")
+        .update({ cover_prenotazione_id: prenotazioneId })
+        .eq("id", serataId)
+        .eq("aperta", false)
+        .select("id, archiviato_nascosto, cover_prenotazione_id")
+        .single();
+      if (error) {
+        throw new ApiError(500, "query_failed", "Errore durante l'aggiornamento della copertina.");
+      }
+      return { status: 200, data };
     }
 
     case "approve_booking":

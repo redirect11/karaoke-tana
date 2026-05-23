@@ -430,12 +430,14 @@
       background: var(--bg2);
       border: 1px solid #3d2366;
       border-radius: 10px;
-      padding: 12px;
+      padding: 16px 14px;
+      min-height: 96px;
       display: flex;
       flex-direction: row;
-      align-items: flex-start;
-      gap: 8px;
+      align-items: center;
+      gap: 10px;
       text-align: left;
+      position: relative;
     }
     .song-item.mine {
       border-color: var(--gold);
@@ -453,10 +455,10 @@
       align-items: flex-start;
     }
     .song-item-index {
-      font-size: 1.4rem;
+      font-size: 1.6rem;
       font-weight: 800;
       color: var(--muted);
-      min-width: 28px;
+      min-width: 32px;
       text-align: center;
       flex-shrink: 0;
       line-height: 1;
@@ -470,42 +472,49 @@
     }
     .song-item-title {
       font-weight: 700;
+      font-size: 1.18rem;
       color: var(--text);
-      line-height: 1.35;
+      line-height: 1.3;
     }
     .song-item-artist {
-      font-size: 0.84rem;
+      font-size: 1.05rem;
       color: var(--gold-soft);
     }
     .song-item-name {
-      font-size: 0.8rem;
+      font-size: 0.95rem;
       color: var(--muted);
+      margin-top: 3px;
     }
     .song-item-badge {
-      margin-top: 6px;
+      margin-top: 8px;
       display: inline-flex;
       align-items: center;
       border-radius: 999px;
       border: 1px solid rgba(212,160,23,0.55);
       color: var(--gold-soft);
       background: rgba(212,160,23,0.12);
-      padding: 2px 8px;
-      font-size: 0.68rem;
+      padding: 3px 10px;
+      font-size: 0.78rem;
       font-weight: 700;
       letter-spacing: 0.02em;
     }
     .song-item-order {
-      min-width: 28px;
-      height: 28px;
-      border-radius: 50%;
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      min-width: 32px;
+      height: 32px;
+      padding: 0 8px;
+      border-radius: 999px;
       background: rgba(212,160,23,0.18);
       color: var(--gold-soft);
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.8rem;
-      font-weight: 700;
+      font-size: 0.85rem;
+      font-weight: 800;
       flex-shrink: 0;
+      z-index: 2;
     }
     .song-item-order.alert {
       background: rgba(255,107,107,0.28);
@@ -524,7 +533,109 @@
       text-transform: uppercase;
       color: var(--muted);
     }
-    .song-item-edit {
+    /* ── Selfie integrato nella card ──
+       La foto è ancorata a destra, dimensionata in altezza alla card
+       (cover preserva l'aspect ratio), leggermente sbiadita, e una
+       mask-image la fa sfumare verso sinistra nel colore di sfondo
+       della card stessa — senza overlay aggiuntivi, così la tinta
+       di `.mine` / `.current-song` resta coerente automaticamente. */
+    .song-item.has-selfie {
+      position: relative;
+      overflow: hidden;
+    }
+    .song-item.has-selfie .song-item-selfie-bg {
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 62%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0.55;
+      filter: blur(1px) saturate(0.8) brightness(0.88);
+      -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
+              mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
+      cursor: zoom-in;
+      z-index: 0;
+      transition: opacity 0.2s, filter 0.2s;
+    }
+    .song-item.has-selfie .song-item-selfie-bg:hover {
+      opacity: 0.85;
+      filter: blur(0) saturate(1) brightness(1);
+    }
+    .song-item.has-selfie > *:not(.song-item-selfie-bg):not(.song-item-order) {
+      position: relative;
+      z-index: 1;
+    }
+    /* Il contenuto testuale resta leggibile sulla metà sinistra:
+       non si estende sopra la zona "piena" del selfie. */
+    .song-item.has-selfie .song-item-top {
+      max-width: 62%;
+    }
+    /* Il badge dell'ordine sta in alto a destra sopra il selfie:
+       backdrop + bordo sottile per la leggibilità sopra la foto. */
+    .song-item.has-selfie .song-item-order {
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px) saturate(140%);
+      -webkit-backdrop-filter: blur(8px) saturate(140%);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #fff;
+    }
+
+    /* ── Selfie lightbox ── */
+    .selfie-lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+      cursor: zoom-out;
+    }
+    .selfie-lightbox.open { display: flex; }
+    .selfie-lightbox img {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 14px;
+      box-shadow: 0 12px 60px rgba(0,0,0,0.7);
+      object-fit: contain;
+    }
+    .selfie-lightbox-close {
+      position: absolute;
+      top: 16px;
+      right: 18px;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: #fff;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .selfie-lightbox-close:hover { background: rgba(255,255,255,0.25); }
+    /* ── Selfie upload form ── */
+    .selfie-upload-wrap { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+    .selfie-preview {
+      width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
+      border: 2px solid var(--gold); display: none; flex-shrink: 0;
+    }
+    .selfie-preview.visible { display: block; }
+    .selfie-label {
+      display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+      background: rgba(212,160,23,0.12); border: 1px dashed rgba(212,160,23,0.45);
+      border-radius: 8px; padding: 8px 14px; font-size: 0.85rem;
+      color: var(--gold-soft); transition: background 0.18s; user-select: none;
+    }
+    .selfie-label:hover { background: rgba(212,160,23,0.2); }
+    .selfie-remove {
+      font-size: 0.78rem; color: var(--muted); cursor: pointer;
+      text-decoration: underline; display: none; margin-top: 4px;
+    }
+    .selfie-remove.visible { display: inline; }
+        .song-item-edit {
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -816,6 +927,23 @@
           <input id="artista" type="text" placeholder="Es. Lady Gaga" required />
         </div>
       </div>
+      <div class="form-group" style="margin-bottom:4px;">
+        <label>Selfie <span style="color:var(--muted);font-weight:400;font-size:0.8rem;">(opzionale)</span></label>
+        <div class="selfie-upload-wrap">
+          <img id="selfie-preview" class="selfie-preview" alt="anteprima" />
+          <div>
+            <label class="selfie-label" for="selfie-input">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              Aggiungi selfie
+            </label>
+            <input id="selfie-input" type="file" accept="image/*" capture="user" style="display:none;" />
+            <span id="selfie-remove" class="selfie-remove">Rimuovi</span>
+          </div>
+        </div>
+      </div>
       <button type="submit" class="btn-submit">🎙 Prenota</button>
     </form>
   </div>
@@ -903,6 +1031,12 @@
         <button type="button" class="btn-booking-gate-continue" data-booking-gate-action="continue">Continua</button>
       </div>
     </div>
+  </div>
+
+  <!-- Selfie lightbox -->
+  <div class="selfie-lightbox" id="selfie-lightbox" role="dialog" aria-modal="true" aria-label="Visualizza selfie">
+    <button type="button" class="selfie-lightbox-close" id="selfie-lightbox-close" aria-label="Chiudi">×</button>
+    <img id="selfie-lightbox-img" src="" alt="selfie ingrandito" />
   </div>
 
   <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.2 &nbsp;|&nbsp; <a href="cookie-policy.html" style="color:inherit;text-decoration:underline;">Cookie Policy</a></footer>
@@ -1013,6 +1147,34 @@
     const songListCard = document.getElementById('song-list-card');
     const songListEl   = document.getElementById('song-list');
     const songListStatus = document.getElementById('song-list-status');
+
+    // ── Selfie lightbox: apertura via delega + chiusura ──────
+    const selfieLightboxEl = document.getElementById('selfie-lightbox');
+    const selfieLightboxImg = document.getElementById('selfie-lightbox-img');
+    const selfieLightboxClose = document.getElementById('selfie-lightbox-close');
+    function closeSelfieLightbox() {
+      if (!selfieLightboxEl) return;
+      selfieLightboxEl.classList.remove('open');
+      selfieLightboxImg.src = '';
+    }
+    if (songListEl) {
+      songListEl.addEventListener('click', (e) => {
+        const target = e.target.closest('[data-selfie-full]');
+        if (!target) return;
+        const url = target.getAttribute('data-selfie-full');
+        if (!url || !selfieLightboxEl) return;
+        selfieLightboxImg.src = url;
+        selfieLightboxEl.classList.add('open');
+      });
+    }
+    if (selfieLightboxEl) {
+      selfieLightboxEl.addEventListener('click', (e) => {
+        if (e.target === selfieLightboxEl || e.target === selfieLightboxClose) closeSelfieLightbox();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && selfieLightboxEl.classList.contains('open')) closeSelfieLightbox();
+      });
+    }
     const leaderboardCard = document.getElementById('leaderboard-card');
     const leaderboardStatus = document.getElementById('leaderboard-status');
     const leaderboardList = document.getElementById('leaderboard-list');
@@ -1139,7 +1301,7 @@
 
       let { data, error } = await db
         .from('prenotazioni')
-        .select('id, nome, canzone, artista, created_at, cantata, approvata')
+        .select('id, nome, canzone, artista, created_at, cantata, approvata, selfie_url')
         .eq('serata_id', currentSerataId)
         .eq('approvata', true)
         .order('created_at', { ascending: true });
@@ -1147,7 +1309,7 @@
       if (error || !data || data.length === 0) {
         const fallback = await db
           .from('prenotazioni')
-          .select('id, nome, canzone, artista, created_at, cantata, approvata')
+          .select('id, nome, canzone, artista, created_at, cantata, approvata, selfie_url')
           .is('serata_id', null)
           .eq('approvata', true)
           .order('created_at', { ascending: true });
@@ -1228,6 +1390,17 @@
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#39;');
+    }
+
+    // Riscrive URL Supabase salvati con host "localhost"/"127.0.0.1"
+    // quando la pagina è aperta da un IP di rete. Necessario per le
+    // foto dei selfie caricate da desktop su localhost e poi richieste
+    // da un mobile che apre la stessa app via LAN.
+    function resolveLanUrl(url) {
+      if (typeof url !== 'string' || !url) return url;
+      const host = typeof window !== 'undefined' && window.location && window.location.hostname;
+      if (!host || host === 'localhost' || host === '127.0.0.1') return url;
+      return url.replace(/^(https?:\/\/)(localhost|127\.0\.0\.1)(:|\/|$)/, `$1${host}$3`);
     }
 
     async function loadFinalLeaderboard(serataId, winnerBookingId = null) {
@@ -1332,8 +1505,11 @@
         const progressiveLabel = Number.isInteger(progressiveIndex) && progressiveIndex > 0
           ? String(progressiveIndex)
           : '?';
+        const hasSelfie = typeof item.selfie_url === 'string' && item.selfie_url.length > 0;
         return `
-        <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}${currentSong ? ' current-song' : ''}" data-id="${item.id}">
+        <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}${currentSong ? ' current-song' : ''}${hasSelfie ? ' has-selfie' : ''}" data-id="${item.id}">
+          ${hasSelfie ? (() => { const resolved = resolveLanUrl(item.selfie_url); return `<div class="song-item-selfie-bg" style="background-image:url('${escapeHtml(resolved)}')" data-selfie-full="${escapeHtml(resolved)}" role="button" aria-label="ingrandisci selfie di ${escapeHtml(item.nome)}"></div>`; })() : ''}
+          ${showOrder ? `<div class="song-item-order${alert ? ' alert' : ''}">${orderLabel}</div>` : ''}
           <div class="song-item-index">${progressiveLabel}</div>
           <div class="song-item-top">
             <div>
@@ -1343,7 +1519,6 @@
               ${currentSong ? '<div class="song-item-badge">🎤 Canzone corrente</div>' : ''}
               ${Number(item.id) === currentBookingIdNum ? '<div class="song-item-badge">La tua prenotazione</div>' : ''}
             </div>
-            ${showOrder ? `<div class="song-item-order${alert ? ' alert' : ''}">${orderLabel}</div>` : ''}
           </div>
         </div>
       `;
@@ -1785,7 +1960,7 @@
       } else {
         document.querySelector('.steps').style.display = '';
         stepClosed.style.display = 'none';
-        stepFollow.style.display = 'flex';
+        stepFollow.style.display = 'block';
       }
     }
 
@@ -2206,6 +2381,71 @@
       return headers;
     }
 
+    // Form handler: raccoglie dati, upload selfie, invia prenotazione,
+    // salva cookie e mostra schermata di attesa.
+    document.getElementById('booking-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nome    = document.getElementById('nome').value.trim();
+      const canzone = document.getElementById('canzone').value.trim();
+      const artista = document.getElementById('artista').value.trim();
+
+      if (!nome || !canzone || !artista) {
+        alert('Compila tutti i campi prima di prenotare!');
+        return;
+      }
+
+      const canProceedWithBooking = await bookingGate.requestConfirmation(adsPolicyStore.getPolicy());
+      if (!canProceedWithBooking) return;
+
+      const btn = e.target.querySelector('.btn-submit');
+      btn.disabled = true;
+      btn.textContent = 'Invio in corso…';
+
+      const booking = { nome, canzone, artista };
+      if (currentSerataId) booking.serata_id = currentSerataId;
+
+      let pendingExpiresAt = null;
+      try {
+        if (selfieBlob) {
+          btn.textContent = 'Caricamento selfie…';
+          const selfie_url = await uploadSelfie(selfieBlob);
+          if (selfie_url) booking.selfie_url = selfie_url;
+          btn.textContent = 'Invio in corso…';
+        }
+        const data = await submitBooking(booking);
+        const createdAtMs = Date.parse(data.created_at || '');
+        pendingExpiresAt = data.pending_expires_at
+          ? Date.parse(data.pending_expires_at)
+          : ((Number.isFinite(createdAtMs) ? createdAtMs : Date.now()) + PENDING_EXPIRY_MIN * 60 * 1000);
+        setCookie('last_booking', JSON.stringify({
+          id: data.id,
+          serataId: currentSerataId ?? null,
+          bookingNumber: normalizeBookingNumber(data.booking_number),
+          timestamp: Number.isFinite(createdAtMs) ? createdAtMs : Date.now(),
+          pendingExpiresAt,
+          canzone,
+          artista,
+        }), Math.max(PENDING_EXPIRY_MIN * 60, 60));
+      } catch (error) {
+        console.error('Booking error:', error);
+        btn.disabled = false;
+        btn.textContent = '🎙 Prenota';
+        if (error?.code === 'bookings_closed') {
+          await checkSerataAperta();
+        }
+        alert(error?.message || BOOKING_ERROR_MESSAGE);
+        return;
+      }
+
+      loadSongList();
+
+      showWaitingScreen(canzone, artista, false, pendingExpiresAt);
+      ind2.classList.remove('active');
+      ind2.classList.add('done');
+      requestNotificationPermissionAfterBookingSuccess();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
     async function submitBooking(booking) {
       if (!submitBookingUrl) {
         throw new Error(BOOKING_CONFIG_ERROR_MESSAGE);
@@ -2233,7 +2473,84 @@
       return payload.data;
     }
 
-    // ── Init ─────────────────────────────────────────────────
+    // ── Selfie upload ─────────────────────────────────────────
+    const selfieInput   = document.getElementById('selfie-input');
+    const selfiePreview = document.getElementById('selfie-preview');
+    const selfieRemove  = document.getElementById('selfie-remove');
+    let selfieBlob = null;   // File compresso pronto per l'upload
+    let selfieDataUrl = null;
+
+    // Comprime l'immagine a max 800px lato lungo, qualità 0.82, formato JPEG
+    function compressImage(file, maxPx = 800, quality = 0.82) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const ratio = Math.min(1, maxPx / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width  = Math.round(img.width  * ratio);
+          canvas.height = Math.round(img.height * ratio);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('compressione fallita')), 'image/jpeg', quality);
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+    }
+
+    if (selfieInput) {
+      selfieInput.addEventListener('change', async () => {
+        const file = selfieInput.files?.[0];
+        if (!file) return;
+        try {
+          selfieBlob = await compressImage(file);
+          const reader = new FileReader();
+          reader.onload = e => {
+            selfieDataUrl = e.target.result;
+            selfiePreview.src = selfieDataUrl;
+            selfiePreview.classList.add('visible');
+            selfieRemove.classList.add('visible');
+          };
+          reader.readAsDataURL(selfieBlob);
+        } catch (_) {
+          selfieBlob = null;
+          selfieDataUrl = null;
+        }
+      });
+    }
+    if (selfieRemove) {
+      selfieRemove.addEventListener('click', () => {
+        selfieBlob = null;
+        selfieDataUrl = null;
+        selfieInput.value = '';
+        selfiePreview.classList.remove('visible');
+        selfiePreview.src = '';
+        selfieRemove.classList.remove('visible');
+      });
+    }
+
+    // Carica il selfie su Supabase Storage e restituisce l'URL pubblico
+    async function uploadSelfie(blob) {
+      if (!db || !blob) return null;
+      try {
+        const ext = 'jpg';
+        const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const path = `public/${filename}`;
+        const { error } = await db.storage.from('selfies').upload(path, blob, {
+          contentType: 'image/jpeg',
+          upsert: false,
+        });
+        if (error) return null;
+        const { data } = db.storage.from('selfies').getPublicUrl(path);
+        return data?.publicUrl ?? null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+        // ── Init ─────────────────────────────────────────────────
     (async () => {
       const open = await checkSerataAperta();
       if (!open) {
@@ -2245,10 +2562,14 @@
       const alreadyFollowed = getCookie('ig_followed') === 'true';
       if (alreadyFollowed) {
         showForm();
+      } else if (getCookie('ig_clicked')) {
+        // Tab scartato da Android dopo aver aperto Instagram: il flag in
+        // memoria è perso ma il cookie sopravvive — riprendi dal form.
+        goToForm();
       } else {
         document.querySelector('.steps').style.display = '';
         stepClosed.style.display = 'none';
-        stepFollow.style.display = 'flex';
+        stepFollow.style.display = 'block';
       }
     })();
 
