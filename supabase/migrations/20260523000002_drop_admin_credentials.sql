@@ -1,0 +1,21 @@
+-- =============================================================
+--  Rimozione tabella admin_credentials (sistema legacy)
+--
+--  La tabella admin_credentials era usata dal vecchio sistema
+--  di autenticazione admin basato su password hash custom.
+--  È stata sostituita da Supabase Auth (auth.users + admin_users).
+--
+--  Nessun file attivo nel progetto la referenzia più:
+--    - Le Edge Functions usano auth.users + admin_users
+--    - L'HTML usa Supabase Auth SDK
+--    - generate-admin-password.mjs era il vecchio script di setup
+--      (non più nel flusso attivo)
+--
+--  Anche la migrazione 20260520150000_admin_credentials_pbkdf2.sql
+--  diventa un no-op (altera colonne di una tabella che ora non esiste
+--  più), ma essendo già stata applicata su ambienti esistenti la
+--  lasciamo per compatibilità — sul DB locale viene eseguita prima
+--  di questa migrazione e la tabella viene poi droppata qui.
+-- =============================================================
+
+DROP TABLE IF EXISTS admin_credentials;

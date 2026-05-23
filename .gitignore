@@ -1,1 +1,7 @@
 config.js
+
+# Variabili d'ambiente locali (per override docker-compose.dev.yml)
+.env.dev
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md

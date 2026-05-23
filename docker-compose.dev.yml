@@ -1,0 +1,74 @@
+# =============================================================
+#  karaoke-tana – Ambiente di sviluppo locale (Docker-in-Docker)
+#
+#  Avvio:
+#    docker compose -f docker-compose.dev.yml up --build
+#
+#  Prima volta: scarica immagini Supabase (~1-2 GB).
+#  Le volte successive usa la cache nel volume 'docker-data'
+#  ed è molto più veloce.
+#
+#  Al termine trovi:
+#    http://localhost:3000        →  Web app
+#    http://localhost:3000/admin.html  →  Pannello admin
+#    http://localhost:54321       →  Supabase API
+#    http://localhost:54323       →  Supabase Studio (UI DB)
+#    http://localhost:54324       →  Inbucket (email di test)
+#
+#  Reset DB (cancella dati, riapplica migrazioni):
+#    docker exec -it karaoke-tana-dev supabase db reset
+#
+#  Aprire una shell nel container:
+#    docker exec -it karaoke-tana-dev bash
+#
+#  Stop:
+#    docker compose -f docker-compose.dev.yml down
+#
+#  Stop + cancella cache Docker (riparte da zero):
+#    docker compose -f docker-compose.dev.yml down -v
+# =============================================================
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: karaoke-tana-dev
+
+    # Docker-in-Docker richiede modalità privilegiata
+    privileged: true
+
+    # Disabilita TLS interno di DinD (non necessario in locale)
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+      BOOKING_PENDING_EXPIRY_MIN: "30"
+      # Sovrascrivibili tramite file .env.dev (gitignored):
+      # SUPABASE_URL: http://localhost:54321
+      # SUPABASE_ANON_KEY: eyJ...
+    # env_file:
+    #   - .env.dev
+
+    volumes:
+      # Progetto montato live: le modifiche a HTML/JS/CSS
+      # sono immediatamente visibili senza rebuild
+      - .:/workspace
+
+      # Cache immagini Docker: evita di riscaricare Supabase
+      # ad ogni avvio (risparmia 1-2 GB di download)
+      - dev-docker-data:/var/lib/docker
+
+    ports:
+      - "3000:3000"    # Web app
+      - "54321:54321"  # Supabase API (Kong)
+      - "54322:54322"  # Supabase DB  (Postgres)
+      - "54323:54323"  # Supabase Studio
+      - "54324:54324"  # Inbucket (email)
+
+    restart: "no"
+    stdin_open: true
+    tty: true
+
+volumes:
+  # Named volume per la cache delle immagini Docker interne.
+  # Sopravvive ai 'down', viene cancellato solo con 'down -v'.
+  dev-docker-data:

@@ -530,12 +530,35 @@
     });
 
     if (supabaseClient) {
-      supabaseClient.auth.getSession().then(({ data }) => {
+      supabaseClient.auth.getSession().then(async ({ data }) => {
         if (data.session?.access_token) {
-          adminToken = data.session.access_token;
-          unlockPanel();
+          const token = data.session.access_token;
+          const isAdmin = await verifyAdminAccess(token);
+          if (isAdmin) {
+            adminToken = token;
+            unlockPanel();
+          } else {
+            // Sessione valida ma utente non admin: sign out silenzioso
+            supabaseClient.auth.signOut().catch(() => {});
+          }
         }
       }).catch(() => {});
+    }
+
+    // Verifica che il token appartenga a un utente in admin_users
+    // usando l'azione ping (passa per il check server-side prima di fare qualsiasi cosa)
+    async function verifyAdminAccess(token) {
+      if (!adminBookingsUrl) return false;
+      try {
+        const res = await fetch(adminBookingsUrl, {
+          method: 'POST',
+          headers: getAdminHeaders(token),
+          body: JSON.stringify({ action: 'ping' }),
+        });
+        return res.ok;
+      } catch (_) {
+        return false;
+      }
     }
 
     function getAdminHeaders(token) {
@@ -599,6 +622,13 @@
 
         const token = data.session?.access_token;
         if (!token) throw new Error('Sessione non ricevuta.');
+
+        // Verifica admin_users PRIMA di mostrare il pannello
+        const isAdmin = await verifyAdminAccess(token);
+        if (!isAdmin) {
+          await supabaseClient.auth.signOut();
+          throw new Error('Accesso negato: utente non autorizzato.');
+        }
 
         adminToken = token;
         pwdInput.value = '';

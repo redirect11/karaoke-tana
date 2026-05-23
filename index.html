@@ -857,7 +857,21 @@
     <h2>Prenotazioni chiuse</h2>
     <p id="closed-state-message">Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!</p>
     <p id="closed-state-next-date" style="font-size:0.9rem; color:var(--gold); margin-top:-2px;"></p>
-    <button id="closed-ig-btn" type="button" class="ig-follow-btn" style="margin-top:8px;">Segui</button>
+    <div class="ig-profile-card" id="closed-ig-profile-card" style="margin-top:8px; cursor:pointer;">
+      <div class="ig-pic"></div>
+      <div class="ig-profile-info">
+        <div class="ig-profile-name">La Tana del Coniglio</div>
+        <div class="ig-profile-handle">@latanadelconiglio_nola</div>
+      </div>
+      <button class="ig-btn-follow" id="closed-ig-follow-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <rect x="2" y="2" width="20" height="20" rx="5.5"/>
+          <circle cx="12" cy="12" r="4"/>
+          <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+        Segui
+      </button>
+    </div>
     <a id="closed-archive-link" href="archive.html" style="display:none; margin-top:6px; color:var(--gold); text-decoration:underline; font-size:0.86rem;">
       Consulta archivio karaoke
     </a>
@@ -993,7 +1007,8 @@
     const stepClosedTitle = stepClosed.querySelector('h2');
     const stepClosedText = document.getElementById('closed-state-message');
     const closedStateNextDate = document.getElementById('closed-state-next-date');
-    const closedIgBtn = document.getElementById('closed-ig-btn');
+    const closedIgProfileCard = document.getElementById('closed-ig-profile-card');
+    const closedIgFollowBtn   = document.getElementById('closed-ig-follow-btn');
     const closedArchiveLink = document.getElementById('closed-archive-link');
     const songListCard = document.getElementById('song-list-card');
     const songListEl   = document.getElementById('song-list');
@@ -1080,8 +1095,6 @@
     }
 
     function updateClosedPromoContent() {
-      const alreadyFollowed = getCookie('ig_followed') === 'true';
-      if (closedIgBtn) closedIgBtn.textContent = alreadyFollowed ? 'Apri' : 'Segui';
       if (closedStateNextDate) {
         const formattedDate = formatPublicDateLabel(publicSettings?.prossima_serata_data, true);
         closedStateNextDate.textContent = formattedDate
@@ -1678,8 +1691,8 @@
         return false;
       }
       showLeaderboard(false);
-      setClosedState('Prenotazioni chiuse', 'Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!');
-      updateClosedPromoContent();
+      stepClosed.style.display = 'none';
+      document.querySelector('.steps').style.display = '';
       subscribeSerata(data.id);
       subscribeSongList(data.id);
       ensureSongListPolling();
@@ -1726,6 +1739,54 @@
           showLeaderboard(false);
         })
         .subscribe();
+    }
+
+    // ── Subscription globale: rileva apertura nuova serata ───
+    // Usata quando la pagina è in stato "chiuso": non c'è una serata
+    // specifica da osservare, quindi ascoltiamo INSERT e UPDATE su tutta
+    // la tabella serate. Quando arriva un evento con aperta=true,
+    // ri-eseguiamo checkSerataAperta() e mostriamo il flusso di prenotazione.
+    let globalSerataChannel = null;
+
+    function subscribeGlobalSerata() {
+      if (!db || globalSerataChannel) return;
+      globalSerataChannel = db.channel('index-serata-global')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'serate' },
+          async (payload) => {
+            if (payload.new?.aperta) await handleNewSerataOpened();
+          })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate' },
+          async (payload) => {
+            if (payload.new?.aperta && !currentSerataId) await handleNewSerataOpened();
+          })
+        .subscribe();
+    }
+
+    function clearGlobalSerataSubscription() {
+      if (globalSerataChannel && db) {
+        db.removeChannel(globalSerataChannel);
+        globalSerataChannel = null;
+      }
+    }
+
+    async function handleNewSerataOpened() {
+      clearGlobalSerataSubscription();
+      const open = await checkSerataAperta();
+      if (!open) {
+        // Non ancora aperta (race condition): riattiva subscription
+        subscribeGlobalSerata();
+        return;
+      }
+      const pending = await checkPendingBooking();
+      if (pending) return;
+      const alreadyFollowed = getCookie('ig_followed') === 'true';
+      if (alreadyFollowed) {
+        showForm();
+      } else {
+        document.querySelector('.steps').style.display = '';
+        stepClosed.style.display = 'none';
+        stepFollow.style.display = 'flex';
+      }
     }
 
     // ── Pending booking check ────────────────────────────────
@@ -2053,8 +2114,14 @@
       e.stopPropagation();
       openInstagram();
     });
-    if (closedIgBtn) {
-      closedIgBtn.addEventListener('click', openInstagram);
+    if (closedIgProfileCard) {
+      closedIgProfileCard.addEventListener('click', openInstagram);
+    }
+    if (closedIgFollowBtn) {
+      closedIgFollowBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openInstagram();
+      });
     }
 
     // Quando l'utente torna alla pagina dopo aver aperto Instagram
@@ -2169,82 +2236,22 @@
     // ── Init ─────────────────────────────────────────────────
     (async () => {
       const open = await checkSerataAperta();
-      if (!open) return;
-      if (getCookie('ig_followed') === 'true') {
-        const stepsEl = document.querySelector('.steps');
-        if (stepsEl) stepsEl.style.display = 'none';
-        goToForm();
+      if (!open) {
+        subscribeGlobalSerata();
+        return;
+      }
+      const pending = await checkPendingBooking();
+      if (pending) return;
+      const alreadyFollowed = getCookie('ig_followed') === 'true';
+      if (alreadyFollowed) {
+        showForm();
+      } else {
+        document.querySelector('.steps').style.display = '';
+        stepClosed.style.display = 'none';
+        stepFollow.style.display = 'flex';
       }
     })();
 
-    // ── Form submit ─────────────────────────────────────────
-    document.getElementById('booking-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const nome    = document.getElementById('nome').value.trim();
-      const canzone = document.getElementById('canzone').value.trim();
-      const artista = document.getElementById('artista').value.trim();
-
-      if (!nome || !canzone || !artista) {
-        alert('Compila tutti i campi prima di prenotare!');
-        return;
-      }
-
-      const canProceedWithBooking = await bookingGate.requestConfirmation(adsPolicyStore.getPolicy());
-      if (!canProceedWithBooking) return;
-
-      const btn = e.target.querySelector('.btn-submit');
-      btn.disabled = true;
-      btn.textContent = 'Invio in corso…';
-
-      const booking = { nome, canzone, artista };
-      if (currentSerataId) booking.serata_id = currentSerataId;
-
-      let pendingExpiresAt = null;
-      try {
-        const data = await submitBooking(booking);
-        const createdAtMs = Date.parse(data.created_at || '');
-        pendingExpiresAt = data.pending_expires_at
-          ? Date.parse(data.pending_expires_at)
-          : ((Number.isFinite(createdAtMs) ? createdAtMs : Date.now()) + PENDING_EXPIRY_MIN * 60 * 1000);
-        setCookie('last_booking', JSON.stringify({
-          id: data.id,
-          serataId: currentSerataId ?? null,
-          bookingNumber: normalizeBookingNumber(data.booking_number),
-          timestamp: Number.isFinite(createdAtMs) ? createdAtMs : Date.now(),
-          pendingExpiresAt,
-          canzone,
-          artista,
-        }), Math.max(PENDING_EXPIRY_MIN * 60, 60));
-      } catch (error) {
-        console.error('Booking error:', error);
-        btn.disabled = false;
-        btn.textContent = '🎙 Prenota';
-        if (error?.code === 'bookings_closed') {
-          await checkSerataAperta();
-        }
-        alert(error?.message || BOOKING_ERROR_MESSAGE);
-        return;
-      }
-
-      loadSongList();
-
-      showWaitingScreen(canzone, artista, false, pendingExpiresAt);
-      ind2.classList.remove('active');
-      ind2.classList.add('done');
-      requestNotificationPermissionAfterBookingSuccess();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    tabToSing.addEventListener('click', () => {
-      activeSongTab = 'to-sing';
-      renderSongList();
-    });
-    tabCompleted.addEventListener('click', () => {
-      activeSongTab = 'completed';
-      renderSongList();
-    });
   </script>
-  <script defer src="scripts/vendor/cookieconsent.umd.js"></script>
-  <script defer src="cookie-consent.js"></script>
 </body>
 </html>
