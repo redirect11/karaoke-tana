@@ -44,8 +44,27 @@ const config = {
   ADS_REQUIRE_BEFORE_BOOKING: parseBoolean(process.env.ADS_REQUIRE_BEFORE_BOOKING, false),
 };
 
+const runtimeShim = `if (typeof window !== 'undefined') {
+  // Dev LAN fix: se la pagina è servita da un IP della rete (es. telefono che
+  // si collega al PC su 192.168.x.x), "localhost" nelle URL Supabase punterebbe
+  // al device che apre la pagina, non al PC. Riscriviamo a runtime usando lo
+  // stesso hostname della pagina.
+  var __loc = window.location;
+  var __isLanHost = __loc && __loc.hostname && __loc.hostname !== 'localhost' && __loc.hostname !== '127.0.0.1';
+  if (__isLanHost) {
+    ['SUPABASE_URL', 'SUBMIT_BOOKING_FUNCTION_URL', 'BOOKING_STATUS_FUNCTION_URL'].forEach(function (k) {
+      var v = CONFIG[k];
+      if (typeof v === 'string' && /^https?:\\/\\/(localhost|127\\.0\\.0\\.1)(:|\\/|$)/.test(v)) {
+        CONFIG[k] = v.replace(/^(https?:\\/\\/)(localhost|127\\.0\\.0\\.1)/, '$1' + __loc.hostname);
+      }
+    });
+  }
+  window.CONFIG = CONFIG;
+}
+`;
+
 fs.writeFileSync(
   path.join(targetDir, 'config.js'),
-  `const CONFIG = ${JSON.stringify(config, null, 2)};\nif (typeof window !== 'undefined') { window.CONFIG = CONFIG; }\n`
+  `const CONFIG = ${JSON.stringify(config, null, 2)};\n${runtimeShim}`
 );
 console.log(`config.js generated in ${targetDir}`);

@@ -1,0 +1,12 @@
+-- =============================================================
+--  Seed dati locali (eseguito da "supabase db reset")
+--
+--  La creazione dell'utente admin (admin@tana.it) avviene tramite
+--  lo script scripts/seed-admin.mjs che usa le Supabase Admin API.
+--
+--  Dopo un db reset, riesegui il seed con:
+--    docker exec -it karaoke-tana-dev /workspace/scripts/dev-reset.sh
+--
+--  oppure manualmente:
+--    docker exec -it karaoke-tana-dev node /workspace/scripts/seed-admin.mjs
+-- =============================================================
