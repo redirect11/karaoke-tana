@@ -1321,6 +1321,21 @@
     let songListAvailability = 'loading';
     let songListCache = { toSing: [], completed: [] };
 
+    if (tabToSing) {
+      tabToSing.addEventListener('click', () => {
+        if (activeSongTab === 'to-sing') return;
+        activeSongTab = 'to-sing';
+        renderSongList();
+      });
+    }
+    if (tabCompleted) {
+      tabCompleted.addEventListener('click', () => {
+        if (activeSongTab === 'completed') return;
+        activeSongTab = 'completed';
+        renderSongList();
+      });
+    }
+
     const bookingGate = window.KaraokeBookingGate
       ? window.KaraokeBookingGate.createBookingGate({
         modalEl: bookingGateModalEl,
