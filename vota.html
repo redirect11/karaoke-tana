@@ -303,6 +303,19 @@
       text-shadow: 0 0 28px rgba(240,201,74,0.45);
       line-height: 1;
       letter-spacing: 0.03em;
+      transform: scale(1);
+      transition: transform 180ms ease-out, text-shadow 180ms ease-out;
+    }
+    #diretta-countdown.tick {
+      transform: scale(1.08);
+      text-shadow: 0 0 34px rgba(240,201,74,0.75);
+    }
+    #diretta-countdown.end {
+      animation: countdownEndPulse 1s ease-in-out infinite;
+    }
+    @keyframes countdownEndPulse {
+      0%, 100% { transform: scale(1); text-shadow: 0 0 28px rgba(240,201,74,0.45); }
+      50% { transform: scale(1.1); text-shadow: 0 0 40px rgba(240,201,74,0.85); }
     }
 
 
@@ -566,6 +579,8 @@
     let votingOpen   = false;
     let showTotalsPublic = false;
     let direttaCountdownTimer = null;
+    let direttaCountdownLastValue = null;
+    let votiRealtimeRefreshTimer = null;
     // localVotes: { [prenotazione_id]: { voto, db_id } }
     const localVotes = JSON.parse(localStorage.getItem('local_votes') || '{}');
 
@@ -635,6 +650,7 @@
         clearInterval(direttaCountdownTimer);
         direttaCountdownTimer = null;
       }
+      direttaCountdownLastValue = null;
     }
 
     function renderDiretta() {
@@ -649,6 +665,7 @@
         direttaWrap.style.display = 'none';
         content.style.display = '';
         direttaCountdownEl.classList.add('hidden');
+        direttaCountdownEl.classList.remove('tick', 'end');
         return;
       }
 
@@ -659,6 +676,7 @@
         direttaTitle.textContent = '⚡ Preparatevi… il momento è arrivato!';
         direttaText.textContent = 'Questa notte si scrive la storia del karaoke. Chi sarà il re o la regina del microfono? 👑';
         direttaCountdownEl.classList.add('hidden');
+        direttaCountdownEl.classList.remove('tick', 'end');
         return;
       }
 
@@ -668,15 +686,31 @@
 
       const tick = () => {
         const remaining = Math.max(0, Math.ceil((endsAtMs - Date.now()) / 1000));
-        direttaCountdownEl.textContent = String(remaining).padStart(2, '0');
+        if (remaining !== direttaCountdownLastValue) {
+          direttaCountdownLastValue = remaining;
+          direttaCountdownEl.textContent = String(remaining).padStart(2, '0');
+          direttaCountdownEl.classList.remove('tick');
+          window.requestAnimationFrame(() => direttaCountdownEl.classList.add('tick'));
+        }
         if (remaining === 0) {
           stopDirettaCountdown();
+          direttaCountdownEl.classList.remove('tick');
+          direttaCountdownEl.classList.add('end');
           direttaTitle.textContent = '🏆 È ORA DI SAPERE LA VERITÀ!';
           direttaText.textContent = 'Il vincitore sta per essere proclamato… trattenete il respiro! 😱';
         }
       };
       tick();
       direttaCountdownTimer = setInterval(tick, 500);
+    }
+
+    function scheduleRealtimeScoresRefresh() {
+      if (votiRealtimeRefreshTimer) clearTimeout(votiRealtimeRefreshTimer);
+      votiRealtimeRefreshTimer = setTimeout(async () => {
+        votiRealtimeRefreshTimer = null;
+        if (!serata || serata.winner_reveal_countdown_active) return;
+        await loadScores();
+      }, 150);
     }
 
     // ── Load songs ─────────────────────────────────────────────
@@ -987,6 +1021,9 @@
       db.channel('vota-live')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'prenotazioni' }, async () => {
           await loadSongs();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'voti' }, async () => {
+          scheduleRealtimeScoresRefresh();
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate',
           filter: `id=eq.${serata.id}` }, async payload => {
