@@ -50,7 +50,7 @@ Scopo:
 
 L'accesso admin usa ora **Supabase Auth** (email + password) invece del vecchio sistema password/hash custom.
 
-La vecchia migrazione `supabase/migrations/20260520150000_admin_credentials_pbkdf2.sql` non serve più e non va eseguita: il flusso admin attuale usa solo `auth.users` + `admin_users`.
+La vecchia migrazione `supabase/migrations/20260520150000_admin_credentials_pbkdf2.sql` è mantenuta solo per compatibilità con la history remota di Supabase (schema_migrations): il flusso admin attuale usa solo `auth.users` + `admin_users`.
 
 #### Setup iniziale (una tantum)
 
