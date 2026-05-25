@@ -50,6 +50,8 @@ Scopo:
 
 L'accesso admin usa ora **Supabase Auth** (email + password) invece del vecchio sistema password/hash custom.
 
+La vecchia migrazione `supabase/migrations/20260520150000_admin_credentials_pbkdf2.sql` non serve più e non va eseguita: il flusso admin attuale usa solo `auth.users` + `admin_users`.
+
 #### Setup iniziale (una tantum)
 
 1. **Crea l'utente admin su Supabase**
@@ -121,11 +123,9 @@ Esempio con Supabase CLI:
 supabase functions deploy submit-booking --project-ref <PROJECT_REF>
 ```
 
-### Deploy automatico su `develop`
+### Deploy automatico
 
-La repo include anche il workflow GitHub Actions `.github/workflows/deploy-supabase-functions-develop.yml`, che su push a `develop` deploya automaticamente tutte le funzioni trovate in `supabase/functions/` (esclusa `_shared`) verso il progetto test `jiqjklcnplxolyqeklxr`.
-
-Il workflow usa il secret GitHub `SUPABASE_ACCESS_TOKEN`, che deve contenere un personal access token Supabase. Se vuoi rendere modificabile il project ref senza toccare il file workflow, puoi impostare anche la variabile GitHub `SUPABASE_TEST_PROJECT_REF`.
+In questa repo il deploy automatico parte solo da `main`.
 
 ### Test endpoint pubblico
 
@@ -155,9 +155,9 @@ La UI gestisce loading/error sul bottone di submit.
 
 ## Deploy GitHub Pages
 
-### Deploy produzione (`main`)
+### Deploy sito test (`main`)
 
-La pipeline (`.github/workflows/deploy.yml`) genera `config.js` dai secrets:
+La pipeline (`.github/workflows/deploy.yml`) genera `config.js` dai secrets e pubblica il contenuto di questa repo sull'ambiente di test.
 
 - `IG_USERNAME`
 - `SUPABASE_URL`
@@ -173,32 +173,7 @@ La pipeline (`.github/workflows/deploy.yml`) genera `config.js` dai secrets:
 - `ADSENSE_BANNER_SLOT` (slot id banner)
 - `ADS_REQUIRE_BEFORE_BOOKING` (`true|false`)
 
-Sito produzione: `https://redirect11.github.io/karaoke-tana/`
-
-### Deploy test (`develop`)
-
-La pipeline (`.github/workflows/deploy-develop-test.yml`) parte su push a `develop` e pubblica:
-
-- root `/karaoke-tana/` = snapshot `main` (produzione)
-- path `/karaoke-tana/test/` = snapshot `develop` (test)
-
-URL test: `https://redirect11.github.io/karaoke-tana/test/`
-
-Secrets consigliati per ambiente test (workflow `develop`):
-
-- `TEST_IG_USERNAME`
-- `TEST_SUPABASE_URL`
-- `TEST_SUPABASE_ANON_KEY`
-- `TEST_SUBMIT_BOOKING_FUNCTION_URL` (opzionale)
-- `TEST_BOOKING_STATUS_FUNCTION_URL` (opzionale)
-- `TEST_BOOKING_PENDING_EXPIRY_MIN`
-- `TEST_BOOKING_COOLDOWN_MIN`
-- `TEST_ADS_ENABLED`
-- `TEST_ADS_MODE`
-- `TEST_ADS_PROVIDER`
-- `TEST_ADSENSE_CLIENT_ID`
-- `TEST_ADSENSE_BANNER_SLOT`
-- `TEST_ADS_REQUIRE_BEFORE_BOOKING`
+URL test: `https://test.ilkaraokedellatana.it/`
 
 ## Ads / monetizzazione (frontend)
 
