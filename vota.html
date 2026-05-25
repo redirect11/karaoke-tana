@@ -126,10 +126,6 @@
       position: relative;
       z-index: 1;
     }
-    .song-card.has-selfie .song-header,
-    .song-card.has-selfie .rating-row {
-      max-width: 62%;
-    }
 
     .song-index {
       position: absolute;
@@ -150,6 +146,33 @@
       border: 1px solid rgba(255,255,255,0.12);
       color: #fff;
       z-index: 2;
+    }
+    .selfie-open-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.46);
+      color: #fff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      backdrop-filter: blur(8px) saturate(140%);
+      -webkit-backdrop-filter: blur(8px) saturate(140%);
+      z-index: 2;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    }
+    .selfie-open-btn:hover {
+      background: rgba(0,0,0,0.65);
+      border-color: rgba(255,255,255,0.28);
+    }
+    .selfie-open-btn:active { transform: scale(0.97); }
+    .selfie-open-btn:focus-visible {
+      outline: 2px solid var(--gold-s);
+      outline-offset: 1px;
     }
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(8px); }
@@ -413,6 +436,60 @@
       text-align: right;
     }
 
+    .photo-modal[hidden] { display: none; }
+    .photo-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      background: rgba(5,3,10,0.88);
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+    .photo-modal-panel {
+      width: min(100%, 860px);
+      max-height: calc(100vh - 36px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .photo-modal-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .photo-modal-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .photo-modal-close {
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.38);
+      color: #fff;
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .photo-modal-close:focus-visible {
+      outline: 2px solid var(--gold-s);
+      outline-offset: 1px;
+    }
+    .photo-modal-image {
+      width: 100%;
+      max-height: calc(100vh - 110px);
+      object-fit: contain;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: #090512;
+      box-shadow: 0 12px 42px rgba(0,0,0,0.44);
+    }
+
   </style>
   <link rel="stylesheet" href="scripts/vendor/cookieconsent.css" />
 </head>
@@ -432,6 +509,15 @@
       <p>Caricamento…</p>
     </div>
   </div>
+  <div id="photo-modal" class="photo-modal" hidden role="dialog" aria-modal="true" aria-labelledby="photo-modal-title">
+    <div class="photo-modal-panel">
+      <div class="photo-modal-toolbar">
+        <div id="photo-modal-title" class="photo-modal-title">Foto esibizione</div>
+        <button id="photo-modal-close" class="photo-modal-close" type="button" aria-label="Chiudi foto">✕</button>
+      </div>
+      <img id="photo-modal-image" class="photo-modal-image" alt="" loading="lazy" />
+    </div>
+  </div>
 
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -445,6 +531,10 @@
 
     const content       = document.getElementById('content');
     const statusBanner  = document.getElementById('status-banner');
+    const photoModal = document.getElementById('photo-modal');
+    const photoModalImg = document.getElementById('photo-modal-image');
+    const photoModalTitle = document.getElementById('photo-modal-title');
+    const photoModalClose = document.getElementById('photo-modal-close');
 
     let serata       = null;
     let songs        = [];
@@ -609,9 +699,13 @@
       }).join('');
 
       const handsClass = myVote > 0 ? 'rating-hands has-vote' : 'rating-hands';
+      const selfieBtn = hasSelfie
+        ? `<button class="selfie-open-btn" type="button" aria-label="Apri foto di ${esc(s.nome)}">📷 Foto</button>`
+        : '';
 
       div.innerHTML = `
         ${hasSelfie ? `<div class="song-card-selfie-bg" style="background-image:url('${escapeCssUrl(selfieUrl)}')"></div>` : ''}
+        ${selfieBtn}
         <div class="song-index">#${Number.isInteger(s._displayIndex) ? s._displayIndex : '—'}</div>
         <div class="song-header">
           <div>
@@ -629,6 +723,11 @@
       if (votingOpen) {
         div.querySelectorAll('.btn-vote').forEach(btn => {
           btn.addEventListener('click', () => castVote(s.id, parseInt(btn.dataset.v, 10), div));
+        });
+      }
+      if (hasSelfie) {
+        div.querySelector('.selfie-open-btn')?.addEventListener('click', () => {
+          openPhotoModal(selfieUrl, `${s.nome} — ${s.canzone}`);
         });
       }
       return div;
@@ -773,6 +872,32 @@
     function showEmpty(msg) {
       content.innerHTML = `<div class="state-box"><div class="big">🌙</div><p>${esc(msg)}</p></div>`;
     }
+
+    function openPhotoModal(url, label) {
+      if (!photoModal || !photoModalImg || !photoModalTitle) return;
+      photoModalImg.src = url;
+      photoModalImg.alt = label || 'Foto esibizione';
+      photoModalTitle.textContent = label || 'Foto esibizione';
+      photoModal.hidden = false;
+      document.body.style.overflow = 'hidden';
+      photoModalClose?.focus();
+    }
+
+    function closePhotoModal() {
+      if (!photoModal || !photoModalImg) return;
+      photoModal.hidden = true;
+      photoModalImg.src = '';
+      photoModalImg.alt = '';
+      document.body.style.overflow = '';
+    }
+
+    photoModalClose?.addEventListener('click', closePhotoModal);
+    photoModal?.addEventListener('click', (event) => {
+      if (event.target === photoModal) closePhotoModal();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && photoModal && !photoModal.hidden) closePhotoModal();
+    });
 
     // ── Real-time ──────────────────────────────────────────────
     function subscribeRealtime() {
