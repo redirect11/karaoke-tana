@@ -167,7 +167,7 @@
     	border-radius: 50%;
     	flex-shrink: 0;
     	overflow: hidden;
-    	background-image: url('logo.svg');
+    	background-image: url('logo.png');
     	background-size: 86%;
     	background-position: center;
     	background-repeat: no-repeat;
@@ -1220,8 +1220,8 @@
   <div class="card" id="step-bookings-disabled" style="display:none;">
     <img
       class="booking-disabled-illustration"
-      src="logo.svg"
-      alt="Icona del karaoke"
+      src="bookings-closed.svg"
+      alt="Illustrazione prenotazioni chiuse"
       width="220"
       height="220"
       loading="lazy"
@@ -1383,7 +1383,7 @@
       customBookingStatusUrl || (supabaseReady ? `${edgeBaseUrl}/booking-status` : '');
     const BOOKING_CONFIG_ERROR_MESSAGE = 'Configurazione prenotazioni non disponibile.';
     const BOOKING_ERROR_MESSAGE = 'Errore durante la prenotazione. Riprova tra qualche secondo!';
-    const DEFAULT_SELFIE_URL = 'logo.svg';
+    const DEFAULT_SELFIE_URL = 'logo.png';
     const PENDING_EXPIRY_MIN = (() => {
       const parsed = parseInt(
         config.BOOKING_PENDING_EXPIRY_MIN ?? config.BOOKING_COOLDOWN_MIN ?? 30,
