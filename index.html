@@ -1037,7 +1037,7 @@
   </div>
 
   <!-- step indicator -->
-  <div class="steps">
+  <div class="steps" style="display:none">
     <div class="step active" id="ind-1">
       <div class="step-num" id="ind-1-num">1</div>
       <span>Segui</span>
@@ -2311,7 +2311,7 @@
             const pending = await checkPendingBooking();
             if (!pending) {
               const alreadyFollowed = getCookie('ig_followed') === 'true';
-              if (alreadyFollowed) showForm();
+              if (alreadyFollowed) showForm({ hideSteps: true });
               else stepFollow.style.display = 'block';
             }
           }
@@ -2377,7 +2377,7 @@
       if (pending) return;
       const alreadyFollowed = getCookie('ig_followed') === 'true';
       if (alreadyFollowed) {
-        showForm();
+        showForm({ hideSteps: true });
       } else {
         document.querySelector('.steps').style.display = '';
         stepClosed.style.display = 'none';
@@ -2643,7 +2643,7 @@
         const pending = await checkPendingBooking();
         if (!pending) {
           clearWaitingIntervals();
-          showForm();
+          showForm({ hideSteps: true });
         }
       }, 10000);
       waitTimerInterval = setInterval(async () => {
@@ -2654,7 +2654,7 @@
           expirySyncInFlight = false;
           if (!pending) {
             clearWaitingIntervals();
-            showForm();
+            showForm({ hideSteps: true });
           }
         }
       }, 1000);
@@ -2683,20 +2683,25 @@
       return false;
     }
 
-    function showForm() {
+    function showForm({ hideSteps = false } = {}) {
       if (!bookingsAreEnabled) {
         showBookingsDisabledState();
         return;
       }
       [stepFollow, stepSuccess, stepWaiting, stepClosed].forEach(s => s.style.display = 'none');
       stepBookingsDisabled.style.display = 'none';
-      document.querySelector('.steps').style.display = '';
+      const stepsEl = document.querySelector('.steps');
+      if (hideSteps) {
+        stepsEl.style.display = 'none';
+      } else {
+        stepsEl.style.display = '';
+        ind1.classList.remove('active'); ind1.classList.add('done');
+        ind1num.textContent = '✓';
+        ind2.classList.add('active');
+      }
       stepForm.style.display = 'block';
       showSongListCard(true);
       showLeaderboard(false);
-      ind1.classList.remove('active'); ind1.classList.add('done');
-      ind1num.textContent = '✓';
-      ind2.classList.add('active');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -2988,7 +2993,7 @@
       if (pending) return;
       const alreadyFollowed = getCookie('ig_followed') === 'true';
       if (alreadyFollowed) {
-        showForm();
+        showForm({ hideSteps: true });
       } else if (getCookie('ig_clicked')) {
         // Tab scartato da Android dopo aver aperto Instagram: il flag in
         // memoria è perso ma il cookie sopravvive — riprendi dal form.
