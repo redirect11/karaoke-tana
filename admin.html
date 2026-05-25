@@ -981,7 +981,6 @@
               <div>
                 <div class="voto-label">Votazioni: ${winnerDecreed ? '🏁 concluse con vincitore' : (votoOpen ? '🟢 aperte' : '⭕ chiuse')}</div>
                 <a class="vota-link" href="vota.html" target="_blank">Apri pagina voti ↗</a>
-                <a class="vota-link" href="winner-reveal.html" target="_blank">Apri pagina reveal vincitore ↗</a>
                 <div class="voto-label">Totali pubblici: ${showTotals ? '👁️ visibili' : '🙈 nascosti'}</div>
                 ${winnerRevealCountdownActive && !winnerDecreed
                   ? `<div class="reveal-status">⏳ Countdown reveal attivo · fine prevista ${revealCountdownLabel}</div>`
@@ -995,10 +994,14 @@
                   <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
                     ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
                   </button>
-                  ${!votoOpen && !winnerRevealCountdownActive
-                    ? '<button class="btn-serata btn-secondary" id="btn-start-winner-reveal">Avvia countdown reveal (30s)</button>'
+                  ${!votoOpen
+                    ? (winnerRevealCountdownActive
+                        ? '<button class="btn-serata btn-secondary" id="btn-disable-diretta">Disabilita diretta</button>'
+                        : '<button class="btn-serata btn-secondary" id="btn-enable-diretta">Abilita diretta</button>')
                     : ''}
-                  <button class="btn-serata btn-winner" id="btn-decree-winner">Decreta vincitore</button>
+                  <button class="btn-serata btn-winner" id="btn-decree-winner">
+                    ${winnerRevealCountdownActive && !revealCountdownEndsAtMs ? '🎬 Avvia countdown' : 'Decreta vincitore'}
+                  </button>
                 `}
               </div>
             </div>
@@ -1039,8 +1042,10 @@
       if (!winnerDecreed) {
         document.getElementById('btn-toggle-voto').addEventListener('click', toggleVoto);
         document.getElementById('btn-toggle-show-totals').addEventListener('click', toggleShowVoteTotals);
-        const startRevealBtn = document.getElementById('btn-start-winner-reveal');
-        if (startRevealBtn) startRevealBtn.addEventListener('click', startWinnerRevealCountdown);
+        const enableDirettaBtn = document.getElementById('btn-enable-diretta');
+        if (enableDirettaBtn) enableDirettaBtn.addEventListener('click', enableDiretta);
+        const disableDirettaBtn = document.getElementById('btn-disable-diretta');
+        if (disableDirettaBtn) disableDirettaBtn.addEventListener('click', disableDiretta);
         document.getElementById('btn-decree-winner').addEventListener('click', decreeWinner);
       }
     }
@@ -1125,35 +1130,63 @@
 
     async function decreeWinner() {
       if (!currentSerata) return;
-      if (!confirm('Conferma il decreto del vincitore. Dopo questa azione non sarà più possibile prenotare o modificare la coda.')) return;
+      const direttaActive = Boolean(currentSerata.winner_reveal_countdown_active);
+      const confirmMsg = direttaActive
+        ? 'Avviare il countdown diretta (30 secondi) per il reveal del vincitore?'
+        : 'Conferma il decreto del vincitore. Dopo questa azione non sarà più possibile prenotare o modificare la coda.';
+      if (!confirm(confirmMsg)) return;
       const btn = document.getElementById('btn-decree-winner');
       if (btn) btn.disabled = true;
       try {
-        const result = await callAdmin('decree_winner', { serataId: currentSerata.id });
-        currentSerata = result?.serata || currentSerata;
-        syncConnected = true;
-        await refreshState(true);
-        alert('Vincitore decretato. Da ora puoi solo chiudere il karaoke.');
+        const result = await callAdmin('decree_winner', { serataId: currentSerata.id, countdownSeconds: 30 });
+        if (result?.countdown_started) {
+          currentSerata = result?.serata || currentSerata;
+          syncConnected = true;
+          renderSerata();
+          updateLiveDot();
+        } else {
+          currentSerata = result?.serata || currentSerata;
+          syncConnected = true;
+          await refreshState(true);
+          alert('Vincitore decretato. Da ora puoi solo chiudere il karaoke.');
+        }
       } catch (error) {
         alert(error?.message || 'Non sono riuscito a decretare il vincitore.');
         if (btn) btn.disabled = false;
       }
+    }
 
-      async function startWinnerRevealCountdown() {
-        if (!currentSerata) return;
-        if (!confirm('Avviare il countdown pubblico reveal vincitore (30 secondi)?')) return;
-        const btn = document.getElementById('btn-start-winner-reveal');
-        if (btn) btn.disabled = true;
-        try {
-          await callAdmin('start_winner_reveal_countdown', {
-            serataId: currentSerata.id,
-            countdownSeconds: 30,
-          });
-          await refreshState(true);
-        } catch (error) {
-          alert(error?.message || 'Non sono riuscito ad avviare il countdown reveal.');
-          if (btn) btn.disabled = false;
-        }
+    async function enableDiretta() {
+      if (!currentSerata) return;
+      if (!confirm('Abilitare la schermata diretta su vota.html? Le votazioni devono essere chiuse.')) return;
+      const btn = document.getElementById('btn-enable-diretta');
+      if (btn) btn.disabled = true;
+      try {
+        const updated = await callAdmin('enable_diretta', { serataId: currentSerata.id });
+        currentSerata = updated;
+        syncConnected = true;
+        renderSerata();
+        updateLiveDot();
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito ad abilitare la diretta.');
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function disableDiretta() {
+      if (!currentSerata) return;
+      if (!confirm('Disabilitare la schermata diretta su vota.html?')) return;
+      const btn = document.getElementById('btn-disable-diretta');
+      if (btn) btn.disabled = true;
+      try {
+        const updated = await callAdmin('disable_diretta', { serataId: currentSerata.id });
+        currentSerata = updated;
+        syncConnected = true;
+        renderSerata();
+        updateLiveDot();
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito a disabilitare la diretta.');
+        if (btn) btn.disabled = false;
       }
     }
 

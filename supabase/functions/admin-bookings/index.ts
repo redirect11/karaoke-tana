@@ -976,6 +976,77 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       return { status: 200, data };
     }
 
+    case "enable_diretta": {
+      const currentSerata = body.serataId != null
+        ? await getSerataById(admin, toPositiveInt(body.serataId, "serataId"))
+        : await getOpenSerata(admin);
+
+      if (!currentSerata?.id) {
+        throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
+      }
+      if (currentSerata.vincitore_decretato) {
+        throw new ApiError(409, "winner_already_decreed", "Il vincitore è già stato decretato.");
+      }
+      if (currentSerata.voto_aperto) {
+        throw new ApiError(409, "voting_still_open", "Chiudi prima le votazioni per abilitare la diretta.");
+      }
+
+      const { data, error } = await admin
+        .from("serate")
+        .update({
+          winner_reveal_countdown_active: true,
+          winner_reveal_countdown_started_at: null,
+          winner_reveal_countdown_ends_at: null,
+          winner_reveal_countdown_seconds: null,
+        })
+        .eq("id", currentSerata.id)
+        .select("*")
+        .maybeSingle();
+
+      if (error) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito ad abilitare la diretta.");
+      }
+      if (!data) {
+        throw new ApiError(404, "not_found", "Serata non trovata.");
+      }
+
+      return { status: 200, data };
+    }
+
+    case "disable_diretta": {
+      const currentSerata = body.serataId != null
+        ? await getSerataById(admin, toPositiveInt(body.serataId, "serataId"))
+        : await getOpenSerata(admin);
+
+      if (!currentSerata?.id) {
+        throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
+      }
+      if (currentSerata.vincitore_decretato) {
+        throw new ApiError(409, "winner_already_decreed", "Il vincitore è già stato decretato.");
+      }
+
+      const { data, error } = await admin
+        .from("serate")
+        .update({
+          winner_reveal_countdown_active: false,
+          winner_reveal_countdown_started_at: null,
+          winner_reveal_countdown_ends_at: null,
+          winner_reveal_countdown_seconds: null,
+        })
+        .eq("id", currentSerata.id)
+        .select("*")
+        .maybeSingle();
+
+      if (error) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito a disabilitare la diretta.");
+      }
+      if (!data) {
+        throw new ApiError(404, "not_found", "Serata non trovata.");
+      }
+
+      return { status: 200, data };
+    }
+
     case "decree_winner":
     case "decreta_vincitore": {
       const currentSerata = body.serataId != null
@@ -1009,6 +1080,42 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       const top5 = buildRanking(approvedBookings, scoreMap).slice(0, 5);
       if (top5.length === 0) {
         throw new ApiError(409, "no_ranking_available", "Impossibile calcolare la classifica finale.");
+      }
+
+      // Se la diretta è abilitata e il countdown non è ancora partito → avvia countdown
+      if (
+        currentSerata.winner_reveal_countdown_active &&
+        !currentSerata.winner_reveal_countdown_ends_at
+      ) {
+        const countdownSeconds = parseCountdownSeconds(body.countdownSeconds ?? 30);
+        const startedAt = new Date();
+        const endsAt = new Date(startedAt.getTime() + countdownSeconds * 1000);
+        const { data: countdownSerata, error: countdownError } = await admin
+          .from("serate")
+          .update({
+            winner_reveal_countdown_started_at: startedAt.toISOString(),
+            winner_reveal_countdown_ends_at: endsAt.toISOString(),
+            winner_reveal_countdown_seconds: countdownSeconds,
+          })
+          .eq("id", currentSerata.id)
+          .select("*")
+          .maybeSingle();
+
+        if (countdownError) {
+          throw new ApiError(500, "update_failed", "Non sono riuscito ad avviare il countdown reveal.");
+        }
+        if (!countdownSerata) {
+          throw new ApiError(404, "not_found", "Serata non trovata.");
+        }
+
+        return {
+          status: 200,
+          data: {
+            serata: countdownSerata,
+            countdown_started: true,
+            top5_preview: top5,
+          },
+        };
       }
 
       const winnerBookingId = Number(top5[0].id);
