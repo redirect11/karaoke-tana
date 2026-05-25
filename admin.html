@@ -161,12 +161,12 @@
 
     #serata-wrap {
       padding: 16px 16px 0;
-      max-width: 560px;
+      max-width: 860px;
       margin: 0 auto;
     }
     #admin-extra-wrap {
       padding: 12px 16px 0;
-      max-width: 560px;
+      max-width: 860px;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -174,7 +174,7 @@
     }
     #admin-ranking-wrap {
       padding: 12px 16px 0;
-      max-width: 560px;
+      max-width: 860px;
       margin: 0 auto;
       display: none;
     }
@@ -260,25 +260,68 @@
 
     .serata-card {
       border-radius: var(--radius);
-      padding: 16px 18px;
+      padding: 18px;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 14px;
     }
     .serata-card.serata-open  { background: rgba(46,204,113,0.12); border: 1.5px solid var(--green); }
     .serata-card.serata-closed { background: var(--card); border: 1.5px solid #3d2366; }
 
+    .serata-main-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 14px;
+    }
     .serata-info .serata-status { font-weight: 700; font-size: 0.9rem; }
     .serata-info .serata-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
     .serata-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .serata-primary-action {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .status-badges {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,0.08);
+    }
+    .status-pill.is-open {
+      border-color: rgba(46,204,113,0.5);
+      background: rgba(46,204,113,0.16);
+      color: #baf3d2;
+    }
+    .status-pill.is-closed {
+      border-color: rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+      color: #d3c8d3;
+    }
+    .status-pill.is-highlight {
+      border-color: rgba(212,160,23,0.48);
+      background: rgba(212,160,23,0.16);
+      color: var(--gold-s);
+    }
     .btn-serata {
-      padding: 8px 16px;
+      padding: 10px 16px;
       border: none;
       border-radius: 50px;
       font-weight: 700;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       cursor: pointer;
       transition: background 0.15s;
       white-space: nowrap;
@@ -290,32 +333,45 @@
     .btn-winner { background: #ff6b6b; color: #12071f; }
     .btn-secondary { background: #4b356f; color: #fff; }
 
-    .serata-voto-row {
+    .control-section {
       width: 100%;
+      margin-top: 4px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.10);
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid rgba(255,255,255,0.08);
+      flex-direction: column;
+      gap: 8px;
     }
-    .serata-voto-row .serata-actions {
-      margin-left: auto;
-      justify-content: flex-end;
-      align-items: center;
+    .control-title {
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .control-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 8px;
+    }
+    .control-grid .btn-serata {
+      width: 100%;
+      text-align: center;
     }
     .voto-label { font-size: 0.8rem; color: var(--muted); }
     .vota-link {
-      font-size: 0.75rem;
+      font-size: 0.76rem;
       color: var(--gold);
       text-decoration: none;
       margin-top: 2px;
       display: inline-block;
+      font-weight: 600;
     }
     .reveal-status {
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       color: var(--gold-s);
-      margin-top: 4px;
+      margin-top: 8px;
       font-weight: 700;
     }
     .extra-card {
@@ -419,8 +475,17 @@
     .serata-collapsible[open] summary .chev { transform: rotate(180deg); }
     .serata-collapsible[open] summary { border-bottom: 1px solid rgba(255,255,255,0.06); }
     .serata-collapsible .summary-status {
-      display: inline-flex; align-items: center; gap: 8px;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
       flex: 1;
+    }
+    .serata-collapsible .summary-main {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.92rem;
     }
     .serata-collapsible .summary-dot {
       width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
@@ -430,8 +495,8 @@
     .serata-collapsible .summary-extra {
       font-weight: 500;
       color: var(--muted);
-      font-size: 0.78rem;
-      margin-left: 8px;
+      font-size: 0.76rem;
+      line-height: 1.35;
     }
     .serata-collapsible .collapsible-body {
       padding: 14px 16px 16px;
@@ -444,6 +509,60 @@
     /* serata-card all'interno del collapsible: niente padding doppio */
     .collapsible-body .serata-card {
       padding: 12px 14px;
+    }
+    .help-collapsible {
+      background: var(--card);
+      border: 1px solid #3d2366;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .help-collapsible summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--gold-s);
+    }
+    .help-collapsible summary::-webkit-details-marker { display: none; }
+    .help-collapsible .chev {
+      transition: transform 0.2s;
+      color: var(--muted);
+    }
+    .help-collapsible[open] .chev { transform: rotate(180deg); }
+    .help-collapsible .help-body {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 12px 16px 14px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+    }
+    .help-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .help-card h4 {
+      color: var(--text);
+      font-size: 0.8rem;
+      margin-bottom: 6px;
+    }
+    .help-card ul {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 5px;
+    }
+    .help-card li {
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.35;
     }
 
     #queue-wrap {
@@ -677,12 +796,20 @@
       .logout-btn {
         padding: 6px 10px;
       }
-      .serata-voto-row {
+      .serata-main-grid {
         flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
+        grid-template-columns: 1fr;
       }
-      .serata-voto-row .serata-actions {
+      .serata-primary-action {
+        align-items: stretch;
+      }
+      .serata-primary-action .btn-serata {
+        width: 100%;
+      }
+      .control-grid {
+        grid-template-columns: 1fr;
+      }
+      .serata-actions {
         width: 100%;
       }
       .booking-card { padding: 14px 14px 16px; min-height: 124px; }
@@ -729,6 +856,38 @@
     </header>
 
     <div id="serata-wrap"></div>
+    <div id="admin-extra-wrap">
+      <details class="help-collapsible">
+        <summary>
+          <span>📘 Istruzioni pannello karaoke</span>
+          <span class="chev">▾</span>
+        </summary>
+        <div class="help-body">
+          <section class="help-card">
+            <h4>Stati possibili</h4>
+            <ul>
+              <li><strong>Nessun karaoke aperto</strong>: solo apertura nuova serata disponibile.</li>
+              <li><strong>Karaoke aperto</strong>: gestione coda e prenotazioni attiva.</li>
+              <li><strong>Votazioni aperte</strong>: il pubblico può votare su <code>vota.html</code>.</li>
+              <li><strong>Modalità proclamazione</strong>: voti/prenotazioni chiusi, pronta la fase finale.</li>
+              <li><strong>Vincitore decretato</strong>: risultati finali bloccati, resta solo la chiusura serata.</li>
+            </ul>
+          </section>
+          <section class="help-card">
+            <h4>Cosa fanno i pulsanti</h4>
+            <ul>
+              <li><strong>Apri/Chiudi karaoke</strong>: avvia o termina la serata corrente.</li>
+              <li><strong>Abilita/Disabilita prenotazioni</strong>: apre/chiude le nuove richieste canzoni.</li>
+              <li><strong>Apri/Chiudi votazioni</strong>: consente o blocca i voti dal pubblico.</li>
+              <li><strong>Termina votazioni</strong>: chiude voti e prenotazioni, attiva proclamazione.</li>
+              <li><strong>Mostra/Nascondi totali pubblici</strong>: rende visibili o no i punteggi aggregati.</li>
+              <li><strong>Avvia countdown / Decreta vincitore</strong>: avvia reveal o proclama il vincitore.</li>
+              <li><strong>Annulla proclamazione</strong>: esce dalla modalità diretta prima del decreto finale.</li>
+            </ul>
+          </section>
+        </div>
+      </details>
+    </div>
     <div id="admin-ranking-wrap"></div>
 
     <div id="current-song-wrap" style="display:none;">
@@ -1097,24 +1256,33 @@
         summarySub = `${dateStr} · ${prenLabel} · voti ${votiLabel}${inProclamazioneMode ? ' · 🎬 proclamazione' : ''}`;
         innerCard = `
           <div class="serata-card serata-open">
-            <div class="serata-info">
-              <div class="serata-status">🟢 Karaoke aperto</div>
-              <div class="serata-sub">${dateStr}</div>
-            </div>
-            <div class="serata-actions">
-              <button class="btn-serata btn-close" id="btn-close-serata">Chiudi karaoke</button>
-            </div>
-            <div class="serata-voto-row">
-              <div>
-                <div class="voto-label">Prenotazioni: ${prenOpen ? '🟢 abilitate' : '⭕ disabilitate'}</div>
-                <div class="voto-label">Votazioni: ${winnerDecreed ? '🏁 concluse con vincitore' : (votoOpen ? '🟢 aperte' : '⭕ chiuse')}</div>
-                <a class="vota-link" href="vota.html" target="_blank">Apri pagina voti ↗</a>
-                <div class="voto-label">Totali pubblici: ${showTotals ? '👁️ visibili' : '🙈 nascosti'}</div>
+            <div class="serata-main-grid">
+              <div class="serata-info">
+                <div class="serata-status">🟢 Karaoke aperto</div>
+                <div class="serata-sub">${dateStr}</div>
+                <div class="status-badges">
+                  <span class="status-pill ${prenOpen ? 'is-open' : 'is-closed'}">
+                    ${prenOpen ? '🟢 Prenotazioni abilitate' : '⭕ Prenotazioni disabilitate'}
+                  </span>
+                  <span class="status-pill ${(votoOpen && !winnerDecreed) ? 'is-open' : 'is-closed'}">
+                    ${winnerDecreed ? '🏁 Votazioni concluse' : (votoOpen ? '🟢 Votazioni aperte' : '⭕ Votazioni chiuse')}
+                  </span>
+                  <span class="status-pill ${showTotals ? 'is-highlight' : 'is-closed'}">
+                    ${showTotals ? '👁️ Totali pubblici visibili' : '🙈 Totali pubblici nascosti'}
+                  </span>
+                </div>
                 ${inProclamazioneMode
                   ? `<div class="reveal-status">🎬 Modalità proclamazione${revealCountdownEndsAtMs ? ` · countdown fine ${revealCountdownLabel}` : ''}</div>`
                   : ''}
               </div>
-              <div class="serata-actions">
+              <div class="serata-primary-action">
+                <button class="btn-serata btn-close" id="btn-close-serata">Chiudi karaoke</button>
+                <a class="vota-link" href="vota.html" target="_blank">Apri pagina voti ↗</a>
+              </div>
+            </div>
+            <div class="control-section">
+              <div class="control-title">Azioni serata</div>
+              <div class="control-grid">
                 ${winnerDecreed ? '' : (inProclamazioneMode ? `
                   <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
                     ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
@@ -1145,8 +1313,10 @@
         <details class="serata-collapsible ${dotClass}"${serataPanelOpen ? ' open' : ''}>
           <summary>
             <span class="summary-status">
-              <span class="summary-dot"></span>
-              ${summaryStatus}
+              <span class="summary-main">
+                <span class="summary-dot"></span>
+                ${summaryStatus}
+              </span>
               <span class="summary-extra">${summarySub}</span>
             </span>
             <span class="chev">▾</span>
