@@ -1644,23 +1644,13 @@
         ? `<div class="leaderboard-hero-bg" style="background-image:url('${escapeCssUrl(winnerSelfieUrl)}')"></div>`
         : '<div class="leaderboard-hero-bg placeholder"></div>';
 
-      const podiumChips = ranking.slice(1);
-      const top5Html = podiumChips.length
-        ? `<div class="leaderboard-top5">${podiumChips.map((item, index) => `
-        <span class="leaderboard-top5-chip">
-          <span class="leaderboard-top5-chip-rank">${index + 2}°</span>
-          <span class="leaderboard-top5-chip-name">${escapeHtml(item.nome)}</span>
-        </span>
-      `).join('')}</div>`
-        : '';
-
       const rankingRowsHtml = ranking.map((item, index) => {
-        const isWinner = Number(item.id) === Number(winnerItem.id);
+        if (Number(item.id) === Number(winnerItem.id)) return '';
         return `
-          <div class="leaderboard-item${isWinner ? ' winner' : ''}">
+          <div class="leaderboard-item">
             <div class="leaderboard-rank">${index + 1}</div>
             <div class="leaderboard-song">
-              <div class="leaderboard-song-title">${escapeHtml(item.nome)} ${isWinner ? '👑' : ''}</div>
+              <div class="leaderboard-song-title">${escapeHtml(item.nome)}</div>
               <div class="leaderboard-song-meta">${escapeHtml(item.canzone)} · ${escapeHtml(item.artista)}</div>
             </div>
             <div class="leaderboard-points">${item.scoreTotal} pt</div>
@@ -1677,7 +1667,6 @@
             <div class="leaderboard-winner-name">${escapeHtml(winnerItem.nome)}</div>
             <div class="leaderboard-winner-song">${escapeHtml(winnerSongLabel)}</div>
             <div class="leaderboard-winner-points">${winnerItem.scoreTotal} pt · ${winnerItem.scoreCount} voti</div>
-            ${top5Html}
             <a class="leaderboard-more-link" href="vota.html">Vedi classifica completa →</a>
           </div>
         </article>

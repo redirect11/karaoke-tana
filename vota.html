@@ -864,12 +864,12 @@
         : '<div class="leaderboard-hero-bg placeholder"></div>';
 
       const rows = ranking.map((item, index) => {
-        const isWinner = Number(item.id) === Number(winner.id);
+        if (Number(item.id) === Number(winner.id)) return '';
         return `
-          <div class="leaderboard-item${isWinner ? ' winner' : ''}">
+          <div class="leaderboard-item">
             <div class="leaderboard-rank">${index + 1}</div>
             <div class="leaderboard-song">
-              <div class="leaderboard-song-title">${esc(item.nome)} ${isWinner ? '👑' : ''}</div>
+              <div class="leaderboard-song-title">${esc(item.nome)}</div>
               <div class="leaderboard-song-meta">${esc(item.canzone)} · ${esc(item.artista || '')}</div>
             </div>
             <div class="leaderboard-points">${item.scoreTotal} pt<br><span style="font-size:0.68rem;color:var(--muted);font-weight:600;">${item.scoreCount} vot${item.scoreCount === 1 ? 'o' : 'i'}</span></div>
