@@ -100,6 +100,9 @@ ALTER TABLE serate
 ALTER TABLE serate
   ADD COLUMN IF NOT EXISTS notifiche_browser_abilitate BOOLEAN NOT NULL DEFAULT TRUE;
 
+ALTER TABLE prenotazioni
+  ADD COLUMN IF NOT EXISTS selfie_url TEXT;
+
 -- tavolo non è più raccolto dal form; rende la colonna opzionale
 ALTER TABLE prenotazioni ALTER COLUMN tavolo DROP NOT NULL;
 ALTER TABLE prenotazioni ALTER COLUMN tavolo SET DEFAULT 0;
