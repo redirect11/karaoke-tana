@@ -370,6 +370,20 @@
     .leaderboard-song-title { font-size: 0.86rem; font-weight: 700; color: var(--text); }
     .leaderboard-song-meta { font-size: 0.76rem; color: var(--muted); }
     .leaderboard-points { font-size: 0.8rem; font-weight: 800; color: var(--gold-soft); white-space: nowrap; }
+    .leaderboard-more-link {
+      margin-top: 6px;
+      display: inline-flex;
+      align-self: flex-start;
+      color: var(--gold-soft);
+      border: 1px solid rgba(212,160,23,0.35);
+      background: rgba(18,7,31,0.35);
+      border-radius: 999px;
+      padding: 5px 11px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .leaderboard-more-link:hover { background: rgba(212,160,23,0.2); }
     @media (max-width: 520px) {
       .leaderboard-hero { min-height: 162px; }
       .leaderboard-hero-content { min-height: 162px; padding: 14px; }
@@ -733,7 +747,14 @@
     }
     .selfie-lightbox-close:hover { background: rgba(255,255,255,0.25); }
     /* ── Selfie upload form ── */
-    .selfie-upload-wrap { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+    .selfie-upload-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 4px;
+      width: 100%;
+    }
     .selfie-preview {
       width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
       border: 2px solid var(--gold); display: none; flex-shrink: 0;
@@ -742,10 +763,11 @@
     .selfie-label {
       display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
       background: rgba(212,160,23,0.12); border: 1px dashed rgba(212,160,23,0.45);
-      border-radius: 8px; padding: 8px 14px; font-size: 0.85rem;
+      border-radius: 10px; padding: 12px 18px; font-size: 1rem;
       color: var(--gold-soft); transition: background 0.18s; user-select: none;
     }
     .selfie-label:hover { background: rgba(212,160,23,0.2); }
+    .selfie-controls { display: flex; flex-direction: column; align-items: center; }
     .selfie-remove {
       font-size: 0.78rem; color: var(--muted); cursor: pointer;
       text-decoration: underline; display: none; margin-top: 4px;
@@ -1047,7 +1069,7 @@
         <label>Selfie <span style="color:var(--muted);font-weight:400;font-size:0.8rem;">(opzionale)</span></label>
         <div class="selfie-upload-wrap">
           <img id="selfie-preview" class="selfie-preview" alt="anteprima" />
-          <div>
+          <div class="selfie-controls">
             <label class="selfie-label" for="selfie-input">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
@@ -1315,6 +1337,21 @@
     let songListAvailability = 'loading';
     let songListCache = { toSing: [], completed: [] };
 
+    if (tabToSing) {
+      tabToSing.addEventListener('click', () => {
+        if (activeSongTab === 'to-sing') return;
+        activeSongTab = 'to-sing';
+        renderSongList();
+      });
+    }
+    if (tabCompleted) {
+      tabCompleted.addEventListener('click', () => {
+        if (activeSongTab === 'completed') return;
+        activeSongTab = 'completed';
+        renderSongList();
+      });
+    }
+
     const bookingGate = window.KaraokeBookingGate
       ? window.KaraokeBookingGate.createBookingGate({
         modalEl: bookingGateModalEl,
@@ -1577,7 +1614,7 @@
         totals[key].avg = totals[key].count > 0 ? totals[key].total / totals[key].count : 0;
       });
 
-      const ranking = items
+      const rankingAll = items
         .map((item) => {
           const score = totals[item.id] || { total: 0, count: 0, avg: 0 };
           return { ...item, scoreTotal: score.total, scoreCount: score.count, scoreAvg: score.avg };
@@ -1587,8 +1624,8 @@
           if (b.scoreAvg !== a.scoreAvg) return b.scoreAvg - a.scoreAvg;
           if (b.scoreCount !== a.scoreCount) return b.scoreCount - a.scoreCount;
           return String(a.created_at || '').localeCompare(String(b.created_at || ''));
-        })
-        .slice(0, 5);
+        });
+      const ranking = rankingAll.slice(0, 5);
 
       if (!ranking.length) {
         leaderboardStatus.textContent = 'Classifica non disponibile.';
@@ -1597,8 +1634,8 @@
 
       leaderboardStatus.textContent = '';
       leaderboardStatus.style.display = 'none';
-      const winnerId = Number(winnerBookingId) || Number(ranking[0].id);
-      const winnerItem = ranking.find((item) => Number(item.id) === winnerId) || ranking[0];
+      const winnerId = Number(winnerBookingId) || Number(rankingAll[0].id);
+      const winnerItem = rankingAll.find((item) => Number(item.id) === winnerId) || rankingAll[0];
       const winnerSongLabel = winnerItem?.artista
         ? `${winnerItem.canzone} — ${winnerItem.artista}`
         : winnerItem?.canzone || '';
@@ -1641,6 +1678,7 @@
             <div class="leaderboard-winner-song">${escapeHtml(winnerSongLabel)}</div>
             <div class="leaderboard-winner-points">${winnerItem.scoreTotal} pt · ${winnerItem.scoreCount} voti</div>
             ${top5Html}
+            <a class="leaderboard-more-link" href="vota.html">Vedi classifica completa →</a>
           </div>
         </article>
         ${rankingRowsHtml}

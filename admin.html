@@ -172,6 +172,91 @@
       flex-direction: column;
       gap: 12px;
     }
+    #admin-ranking-wrap {
+      padding: 12px 16px 0;
+      max-width: 560px;
+      margin: 0 auto;
+      display: none;
+    }
+    .admin-ranking-card {
+      background: linear-gradient(160deg, rgba(30,15,53,0.95) 0%, rgba(21,10,37,0.96) 100%);
+      border: 1px solid rgba(212,160,23,0.24);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    }
+    .admin-ranking-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .admin-ranking-head h3 {
+      color: var(--gold-s);
+      font-size: 0.95rem;
+      margin-bottom: 2px;
+    }
+    .admin-ranking-head p {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+    .admin-ranking-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px;
+    }
+    .admin-ranking-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: rgba(42,22,80,0.85);
+      border: 1px solid #3d2366;
+      border-radius: 10px;
+      padding: 9px 10px;
+    }
+    .admin-ranking-row.winner {
+      border-color: rgba(212,160,23,0.7);
+      background: linear-gradient(135deg, rgba(212,160,23,0.16) 0%, rgba(42,22,80,0.92) 100%);
+    }
+    .admin-ranking-rank {
+      min-width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(212,160,23,0.18);
+      color: var(--gold-s);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.74rem;
+      font-weight: 800;
+    }
+    .admin-ranking-row.winner .admin-ranking-rank {
+      background: var(--gold);
+      color: #12071f;
+    }
+    .admin-ranking-song {
+      flex: 1;
+      min-width: 0;
+    }
+    .admin-ranking-song-title {
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .admin-ranking-song-meta {
+      font-size: 0.74rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .admin-ranking-points {
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--gold-s);
+      text-align: right;
+      white-space: nowrap;
+    }
 
     .serata-card {
       border-radius: var(--radius);
@@ -638,6 +723,7 @@
     </header>
 
     <div id="serata-wrap"></div>
+    <div id="admin-ranking-wrap"></div>
 
     <div id="current-song-wrap" style="display:none;">
       <div class="current-song-label">
@@ -687,6 +773,7 @@
     const emptyStateText = document.getElementById('empty-state-text');
     const queueCount = document.getElementById('queue-count');
     const serataWrap = document.getElementById('serata-wrap');
+    const adminRankingWrap = document.getElementById('admin-ranking-wrap');
     const tabPending = document.getElementById('tab-pending');
     const tabApproved = document.getElementById('tab-approved');
     const tabCompleted = document.getElementById('tab-completed');
@@ -875,6 +962,7 @@
         syncConnected = true;
         renderSerata();
         renderQueue(bookings);
+        renderAdminFinalRanking();
         updateLiveDot();
       } catch (error) {
         syncConnected = false;
@@ -1032,6 +1120,10 @@
       }
 
       if (!currentSerata) {
+        if (adminRankingWrap) {
+          adminRankingWrap.style.display = 'none';
+          adminRankingWrap.innerHTML = '';
+        }
         const btn = document.getElementById('btn-open-serata');
         if (btn) btn.addEventListener('click', openSerata);
         return;
@@ -1048,6 +1140,7 @@
         if (disableDirettaBtn) disableDirettaBtn.addEventListener('click', disableDiretta);
         document.getElementById('btn-decree-winner').addEventListener('click', decreeWinner);
       }
+      renderAdminFinalRanking();
     }
 
     async function openSerata() {
@@ -1206,6 +1299,72 @@
         if (Number.isInteger(id) && id > 0) progressiveIndexMap.set(id, index + 1);
       });
       return progressiveIndexMap;
+    }
+
+    function buildAdminFinalRanking(list) {
+      return (Array.isArray(list) ? list : [])
+        .filter((item) => Boolean(item?.approvata) && Boolean(item?.cantata))
+        .map((item) => ({
+          ...item,
+          score_total: Number(item?.score_total) || 0,
+          score_count: Number(item?.score_count) || 0,
+          score_average: Number(item?.score_average) || 0,
+        }))
+        .sort((a, b) => {
+          if (b.score_total !== a.score_total) return b.score_total - a.score_total;
+          if (b.score_average !== a.score_average) return b.score_average - a.score_average;
+          if (b.score_count !== a.score_count) return b.score_count - a.score_count;
+          return String(a.created_at || '').localeCompare(String(b.created_at || ''));
+        });
+    }
+
+    function renderAdminFinalRanking() {
+      if (!adminRankingWrap) return;
+      const winnerDecreed = Boolean(currentSerata?.vincitore_decretato);
+      if (!winnerDecreed) {
+        adminRankingWrap.style.display = 'none';
+        adminRankingWrap.innerHTML = '';
+        return;
+      }
+      const ranking = buildAdminFinalRanking(bookings);
+      if (!ranking.length) {
+        adminRankingWrap.style.display = 'block';
+        adminRankingWrap.innerHTML = `
+          <section class="admin-ranking-card">
+            <div class="admin-ranking-head">
+              <h3>🏆 Classifica finale completa</h3>
+              <p>Nessuna esibizione classificabile al momento.</p>
+            </div>
+          </section>
+        `;
+        return;
+      }
+      const winnerId = Number(currentSerata?.vincitore_prenotazione_id) || Number(ranking[0].id);
+      const winner = ranking.find((item) => Number(item.id) === winnerId) || ranking[0];
+      const rows = ranking.map((item, index) => {
+        const isWinner = Number(item.id) === Number(winner.id);
+        return `
+          <div class="admin-ranking-row${isWinner ? ' winner' : ''}">
+            <div class="admin-ranking-rank">${index + 1}</div>
+            <div class="admin-ranking-song">
+              <div class="admin-ranking-song-title">${esc(item.nome)} ${isWinner ? '👑' : ''}</div>
+              <div class="admin-ranking-song-meta">${esc(item.canzone)} · ${esc(item.artista || '')}</div>
+            </div>
+            <div class="admin-ranking-points">${item.score_total} pt<br><span style="font-size:0.66rem;color:var(--muted);font-weight:600;">${item.score_count} vot${item.score_count === 1 ? 'o' : 'i'}</span></div>
+          </div>
+        `;
+      }).join('');
+
+      adminRankingWrap.style.display = 'block';
+      adminRankingWrap.innerHTML = `
+        <section class="admin-ranking-card">
+          <div class="admin-ranking-head">
+            <h3>🏆 Classifica finale completa</h3>
+            <p>Vincitore decretato: ${esc(winner.nome)}</p>
+          </div>
+          <div class="admin-ranking-list">${rows}</div>
+        </section>
+      `;
     }
 
     function renderQueue(list) {

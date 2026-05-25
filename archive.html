@@ -328,6 +328,43 @@
     .podium-score-pts { font-size: 1.05rem; color: var(--gold-soft); }
     .podium-score-votes { font-size: 0.7rem; color: var(--muted); font-weight: 500; }
 
+    .full-ranking-list { display: flex; flex-direction: column; gap: 8px; }
+    .full-ranking-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .full-ranking-row.winner {
+      border-color: rgba(212,160,23,0.45);
+      background: linear-gradient(90deg, rgba(212,160,23,0.16) 0%, rgba(212,160,23,0.04) 100%);
+    }
+    .full-ranking-rank {
+      min-width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(212,160,23,0.2);
+      color: var(--gold-soft);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.76rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .full-ranking-row.winner .full-ranking-rank {
+      background: var(--gold);
+      color: #1a0a00;
+    }
+    .full-ranking-info { flex: 1; min-width: 0; }
+    .full-ranking-name { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+    .full-ranking-song { font-size: 0.78rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .full-ranking-score { font-size: 0.78rem; font-weight: 800; color: var(--gold-soft); text-align: right; white-space: nowrap; }
+
     /* Song list */
     .songlist { display: flex; flex-direction: column; gap: 8px; }
     .songlist-row {
@@ -866,6 +903,18 @@
             </div>
           `).join('')}</div>`
         : '<div class="empty-section">Nessuna canzone segnata come cantata.</div>';
+      const fullRankingHtml = view.ranking.length
+        ? `<div class="full-ranking-list">${view.ranking.map((item, idx) => `
+            <div class="full-ranking-row${Number(item.id) === Number(winner?.id) ? ' winner' : ''}">
+              <div class="full-ranking-rank">${idx + 1}</div>
+              <div class="full-ranking-info">
+                <div class="full-ranking-name">${esc(item.nome)}${Number(item.id) === Number(winner?.id) ? ' 👑' : ''}</div>
+                <div class="full-ranking-song">${esc(item.canzone)}${item.artista ? ' — ' + esc(item.artista) : ''}</div>
+              </div>
+              <div class="full-ranking-score">${Number(item.score_total) || 0} pt<br><span style="font-size:0.68rem;color:var(--muted);font-weight:500;">${Number(item.score_count) || 0} vot${Number(item.score_count) === 1 ? 'o' : 'i'}</span></div>
+            </div>
+          `).join('')}</div>`
+        : '<div class="empty-section">Classifica non disponibile.</div>';
 
       modalContent.innerHTML = `
         <div class="modal-hero">
@@ -884,6 +933,10 @@
           <div class="modal-section">
             <div class="modal-section-title">Top 5</div>
             ${podiumHtml}
+          </div>
+          <div class="modal-section">
+            <div class="modal-section-title">Classifica completa</div>
+            ${fullRankingHtml}
           </div>
           <div class="modal-section">
             <div class="modal-section-title">Canzoni cantate (${totalSongs})</div>

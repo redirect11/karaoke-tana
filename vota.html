@@ -60,12 +60,21 @@
 
     /* ── main content ── */
     #content {
-      max-width: 520px;
+      max-width: 1120px;
       margin: 0 auto;
       padding: 20px 16px;
-      display: flex;
-      flex-direction: column;
+    }
+
+    .vote-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
+    }
+
+    @media (max-width: 840px) {
+      .vote-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     /* ── empty / loading states ── */
@@ -85,32 +94,98 @@
     .song-card {
       background: var(--card);
       border-radius: var(--radius);
-      padding: 22px 24px;
+      padding: 56px 24px 22px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       animation: slideIn 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      min-height: 208px;
+    }
+
+    .song-card-selfie-bg {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 56%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0.52;
+      filter: blur(1px) saturate(0.8) brightness(0.88);
+      -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
+              mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
+      z-index: 0;
+      transition: opacity 0.2s, filter 0.2s;
+    }
+    .song-card.has-selfie:hover .song-card-selfie-bg {
+      opacity: 0.82;
+      filter: blur(0) saturate(1) brightness(1);
+    }
+    .song-card.has-selfie > *:not(.song-card-selfie-bg):not(.song-index) {
+      position: relative;
+      z-index: 1;
+    }
+
+    .song-index {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      min-width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px) saturate(140%);
+      -webkit-backdrop-filter: blur(8px) saturate(140%);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #fff;
+      z-index: 2;
+    }
+    .selfie-open-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.46);
+      color: #fff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      backdrop-filter: blur(8px) saturate(140%);
+      -webkit-backdrop-filter: blur(8px) saturate(140%);
+      z-index: 2;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    }
+    .selfie-open-btn:hover {
+      background: rgba(0,0,0,0.65);
+      border-color: rgba(255,255,255,0.28);
+    }
+    .selfie-open-btn:active { transform: scale(0.97); }
+    .selfie-open-btn:focus-visible {
+      outline: 2px solid var(--gold-s);
+      outline-offset: 1px;
     }
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    .song-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
+    .song-header { margin-bottom: 12px; }
     .song-title { font-weight: 700; font-size: 1.1rem; color: var(--gold-s); }
     .song-artist { font-size: 0.85rem; color: var(--muted); margin-top: 3px; }
     .song-singer {
-      font-size: 0.78rem;
+      font-size: 0.8rem;
       color: var(--muted);
-      background: var(--bg2);
-      border-radius: 50px;
-      padding: 3px 10px;
-      white-space: nowrap;
-      flex-shrink: 0;
+      margin-top: 6px;
     }
 
     /* ── applause rating ── */
@@ -224,6 +299,206 @@
       line-height: 1;
       letter-spacing: 0.03em;
     }
+
+
+    .leaderboard-card {
+      background: linear-gradient(160deg, rgba(30,15,53,0.95) 0%, rgba(21,10,37,0.96) 100%);
+      border: 1px solid rgba(212,160,23,0.24);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 10px 36px rgba(0,0,0,0.35);
+    }
+    .leaderboard-header {
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .leaderboard-header h2 {
+      color: var(--gold-s);
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+    .leaderboard-header p {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px;
+    }
+    .leaderboard-hero {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(212,160,23,0.35);
+      min-height: 172px;
+      background: linear-gradient(145deg, #2a1650 0%, #1a0e2d 100%);
+    }
+    .leaderboard-hero-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      transform: scale(1.04);
+    }
+    .leaderboard-hero-bg.placeholder {
+      background:
+        radial-gradient(circle at 30% 30%, rgba(212,160,23,0.18), transparent 60%),
+        radial-gradient(circle at 70% 70%, rgba(140,40,180,0.3), transparent 60%),
+        linear-gradient(135deg, #2a1650 0%, #1d1430 100%);
+    }
+    .leaderboard-hero-gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(14,5,24,0.12) 0%, rgba(14,5,24,0.84) 78%, rgba(14,5,24,0.96) 100%);
+    }
+    .leaderboard-hero-content {
+      position: relative;
+      z-index: 1;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-height: 172px;
+      gap: 4px;
+    }
+    .leaderboard-winner-badge {
+      display: inline-flex;
+      align-items: center;
+      align-self: flex-start;
+      background: linear-gradient(135deg, var(--gold) 0%, #b07a00 100%);
+      color: #1a0a00;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .leaderboard-winner-name {
+      font-size: clamp(1.1rem, 3.6vw, 1.45rem);
+      font-weight: 800;
+      color: #fff;
+    }
+    .leaderboard-winner-song {
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.9);
+      line-height: 1.25;
+    }
+    .leaderboard-winner-points {
+      font-size: 0.75rem;
+      color: var(--gold-s);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: rgba(42,22,80,0.85);
+      border: 1px solid #3d2366;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .leaderboard-item.winner {
+      border-color: rgba(212,160,23,0.7);
+      background: linear-gradient(135deg, rgba(212,160,23,0.16) 0%, rgba(42,22,80,0.92) 100%);
+    }
+    .leaderboard-rank {
+      min-width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(212,160,23,0.18);
+      color: var(--gold-s);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+    .leaderboard-item.winner .leaderboard-rank {
+      background: var(--gold);
+      color: #12071f;
+    }
+    .leaderboard-song {
+      flex: 1;
+      min-width: 0;
+    }
+    .leaderboard-song-title {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .leaderboard-song-meta {
+      font-size: 0.76rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .leaderboard-points {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--gold-s);
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    .photo-modal[hidden] { display: none; }
+    .photo-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      background: rgba(5,3,10,0.88);
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+    .photo-modal-panel {
+      width: min(100%, 860px);
+      max-height: calc(100vh - 36px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .photo-modal-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .photo-modal-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .photo-modal-close {
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.38);
+      color: #fff;
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .photo-modal-close:focus-visible {
+      outline: 2px solid var(--gold-s);
+      outline-offset: 1px;
+    }
+    .photo-modal-image {
+      width: 100%;
+      max-height: calc(100vh - 110px);
+      object-fit: contain;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: #090512;
+      box-shadow: 0 12px 42px rgba(0,0,0,0.44);
+    }
   </style>
   <link rel="stylesheet" href="scripts/vendor/cookieconsent.css" />
 </head>
@@ -250,6 +525,15 @@
       <p>Caricamento…</p>
     </div>
   </div>
+  <div id="photo-modal" class="photo-modal" hidden role="dialog" aria-modal="true" aria-labelledby="photo-modal-title">
+    <div class="photo-modal-panel">
+      <div class="photo-modal-toolbar">
+        <div id="photo-modal-title" class="photo-modal-title">Foto esibizione</div>
+        <button id="photo-modal-close" class="photo-modal-close" type="button" aria-label="Chiudi foto">✕</button>
+      </div>
+      <img id="photo-modal-image" class="photo-modal-image" alt="" loading="lazy" />
+    </div>
+  </div>
 
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -267,6 +551,10 @@
     const direttaTitle  = document.getElementById('diretta-title');
     const direttaText   = document.getElementById('diretta-text');
     const direttaCountdownEl = document.getElementById('diretta-countdown');
+    const photoModal = document.getElementById('photo-modal');
+    const photoModalImg = document.getElementById('photo-modal-image');
+    const photoModalTitle = document.getElementById('photo-modal-title');
+    const photoModalClose = document.getElementById('photo-modal-close');
 
     let serata       = null;
     let songs        = [];
@@ -390,20 +678,20 @@
     async function loadSongs() {
       let { data, error } = await db
         .from('prenotazioni')
-        .select('id, nome, canzone, artista')
+        .select('id, nome, canzone, artista, created_at, selfie_url')
         .eq('approvata', true)
         .eq('cantata', true)
         .eq('serata_id', serata.id)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false });
 
       if (error || !data || data.length === 0) {
         const fallback = await db
           .from('prenotazioni')
-          .select('id, nome, canzone, artista')
+          .select('id, nome, canzone, artista, created_at, selfie_url')
           .eq('approvata', true)
           .eq('cantata', true)
           .is('serata_id', null)
-          .order('created_at', { ascending: true });
+          .order('created_at', { ascending: false });
         if (!fallback.error && fallback.data?.length) {
           data = fallback.data;
           error = null;
@@ -414,6 +702,7 @@
 
       if (error) { console.error(error); return; }
       songs = data || [];
+      setDisplayIndexes(songs);
       await loadScores();
     }
 
@@ -444,19 +733,29 @@
       if (songs.length === 0) {
         content.innerHTML = `
           <div class="state-box">
-            <div class="big">🎤</div>
+            <div class="big">��</div>
             <p>Nessuna esibizione conclusa ancora.<br>Torna dopo la prima canzone completata!</p>
           </div>
         `;
         return;
       }
 
-      songs.forEach(s => content.appendChild(makeSongCard(s)));
+      if (serata?.vincitore_decretato) {
+        renderFinalLeaderboard();
+        return;
+      }
+
+      const grid = document.createElement('div');
+      grid.className = 'vote-grid';
+      songs.forEach((s) => grid.appendChild(makeSongCard(s)));
+      content.appendChild(grid);
     }
 
     function makeSongCard(s) {
-      const div      = document.createElement('div');
-      div.className  = 'song-card';
+      const div = document.createElement('div');
+      const selfieUrl = resolveLanUrl(typeof s.selfie_url === 'string' ? s.selfie_url : '');
+      const hasSelfie = Boolean(selfieUrl);
+      div.className = `song-card${hasSelfie ? ' has-selfie' : ''}`;
       div.dataset.id = s.id;
 
       const myVote   = getLocalVote(s.id)?.voto || 0;
@@ -476,14 +775,20 @@
       }).join('');
 
       const handsClass = myVote > 0 ? 'rating-hands has-vote' : 'rating-hands';
+      const selfieBtn = hasSelfie
+        ? `<button class="selfie-open-btn" type="button" aria-label="Apri foto di ${esc(s.nome)}">📷 Foto</button>`
+        : '';
 
       div.innerHTML = `
+        ${hasSelfie ? `<div class="song-card-selfie-bg" style="background-image:url('${escapeCssUrl(selfieUrl)}')"></div>` : ''}
+        ${selfieBtn}
+        <div class="song-index">#${Number.isInteger(s._displayIndex) ? s._displayIndex : '—'}</div>
         <div class="song-header">
           <div>
             <div class="song-title">${esc(s.canzone)}</div>
             <div class="song-artist">${esc(s.artista)}</div>
+            <div class="song-singer">Cantata da ${esc(s.nome)}</div>
           </div>
-          <div class="song-singer">👤 ${esc(s.nome)}</div>
         </div>
         <div class="rating-row">
           <div class="${handsClass}" role="radiogroup" aria-label="Voto per ${esc(s.canzone)}">${btns}</div>
@@ -493,10 +798,99 @@
 
       if (votingOpen) {
         div.querySelectorAll('.btn-vote').forEach(btn => {
-          btn.addEventListener('click', () => castVote(s.id, parseInt(btn.dataset.v), div));
+          btn.addEventListener('click', () => castVote(s.id, parseInt(btn.dataset.v, 10), div));
+        });
+      }
+      if (hasSelfie) {
+        div.querySelector('.selfie-open-btn')?.addEventListener('click', () => {
+          openPhotoModal(selfieUrl, `${s.nome} — ${s.canzone}`);
         });
       }
       return div;
+    }
+
+
+    function setDisplayIndexes(list) {
+      const chronological = [...list].sort((a, b) => {
+        const aTime = Date.parse(String(a?.created_at || ''));
+        const bTime = Date.parse(String(b?.created_at || ''));
+        if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) return aTime - bTime;
+        return Number(a?.id || 0) - Number(b?.id || 0);
+      });
+      const idxMap = new Map();
+      chronological.forEach((item, idx) => {
+        idxMap.set(Number(item.id), idx + 1);
+      });
+      list.forEach((item) => {
+        item._displayIndex = idxMap.get(Number(item.id)) || null;
+      });
+    }
+
+    function buildRanking() {
+      return [...songs]
+        .map((song) => {
+          const score = song._scores || { sum: 0, count: 0 };
+          const avg = score.count > 0 ? score.sum / score.count : 0;
+          return { ...song, scoreTotal: score.sum, scoreCount: score.count, scoreAvg: avg };
+        })
+        .sort((a, b) => {
+          if (b.scoreTotal !== a.scoreTotal) return b.scoreTotal - a.scoreTotal;
+          if (b.scoreAvg !== a.scoreAvg) return b.scoreAvg - a.scoreAvg;
+          if (b.scoreCount !== a.scoreCount) return b.scoreCount - a.scoreCount;
+          return String(a.created_at || '').localeCompare(String(b.created_at || ''));
+        });
+    }
+
+    function renderFinalLeaderboard() {
+      const ranking = buildRanking();
+      if (!ranking.length) {
+        showEmpty('Classifica non disponibile.');
+        return;
+      }
+
+      const winnerId = Number(serata?.vincitore_prenotazione_id) || Number(ranking[0].id);
+      const winner = ranking.find((item) => Number(item.id) === winnerId) || ranking[0];
+      const winnerSongLabel = winner?.artista ? `${winner.canzone} — ${winner.artista}` : winner?.canzone || '';
+      const winnerSelfieUrl = resolveLanUrl(winner?.selfie_url || '');
+      const winnerBgHtml = winnerSelfieUrl
+        ? `<div class="leaderboard-hero-bg" style="background-image:url('${escapeCssUrl(winnerSelfieUrl)}')"></div>`
+        : '<div class="leaderboard-hero-bg placeholder"></div>';
+
+      const rows = ranking.map((item, index) => {
+        const isWinner = Number(item.id) === Number(winner.id);
+        return `
+          <div class="leaderboard-item${isWinner ? ' winner' : ''}">
+            <div class="leaderboard-rank">${index + 1}</div>
+            <div class="leaderboard-song">
+              <div class="leaderboard-song-title">${esc(item.nome)} ${isWinner ? '👑' : ''}</div>
+              <div class="leaderboard-song-meta">${esc(item.canzone)} · ${esc(item.artista || '')}</div>
+            </div>
+            <div class="leaderboard-points">${item.scoreTotal} pt<br><span style="font-size:0.68rem;color:var(--muted);font-weight:600;">${item.scoreCount} vot${item.scoreCount === 1 ? 'o' : 'i'}</span></div>
+          </div>
+        `;
+      }).join('');
+
+      content.innerHTML = `
+        <section class="leaderboard-card">
+          <div class="leaderboard-header">
+            <h2>🏆 Vincitore e classifica finale</h2>
+            <p>Classifica completa della serata.</p>
+          </div>
+          <div class="leaderboard-list">
+            <article class="leaderboard-hero">
+              ${winnerBgHtml}
+              <div class="leaderboard-hero-gradient"></div>
+              <div class="leaderboard-hero-content">
+                <span class="leaderboard-winner-badge">🏆 Vincitore</span>
+                <div class="leaderboard-winner-name">${esc(winner.nome)}</div>
+                <div class="leaderboard-winner-song">${esc(winnerSongLabel)}</div>
+                <div class="leaderboard-winner-points">${winner.scoreTotal} pt · ${winner.scoreCount} voti</div>
+              </div>
+            </article>
+            ${rows}
+          </div>
+        </section>
+      `;
     }
 
     async function castVote(songId, voto, card) {
@@ -555,6 +949,32 @@
       content.innerHTML = `<div class="state-box"><div class="big">🌙</div><p>${esc(msg)}</p></div>`;
     }
 
+    function openPhotoModal(url, label) {
+      if (!photoModal || !photoModalImg || !photoModalTitle) return;
+      photoModalImg.src = url;
+      photoModalImg.alt = label || 'Foto esibizione';
+      photoModalTitle.textContent = label || 'Foto esibizione';
+      photoModal.hidden = false;
+      document.body.style.overflow = 'hidden';
+      photoModalClose?.focus();
+    }
+
+    function closePhotoModal() {
+      if (!photoModal || !photoModalImg) return;
+      photoModal.hidden = true;
+      photoModalImg.src = '';
+      photoModalImg.alt = '';
+      document.body.style.overflow = '';
+    }
+
+    photoModalClose?.addEventListener('click', closePhotoModal);
+    photoModal?.addEventListener('click', (event) => {
+      if (event.target === photoModal) closePhotoModal();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && photoModal && !photoModal.hidden) closePhotoModal();
+    });
+
     // ── Real-time ──────────────────────────────────────────────
     function subscribeRealtime() {
       db.channel('vota-live')
@@ -573,6 +993,22 @@
           }
         })
         .subscribe();
+    }
+
+    function resolveLanUrl(url) {
+      if (typeof url !== 'string' || !url) return '';
+      const host = typeof window !== 'undefined' && window.location && window.location.hostname;
+      if (!host || host === 'localhost' || host === '127.0.0.1') return url;
+      return url.replace(/^(https?:\/\/)(localhost|127\.0\.0\.1)(:|\/|$)/, `$1${host}$3`);
+    }
+
+    function escapeCssUrl(value) {
+      return String(value || '')
+        .replaceAll('\\', '\\\\')
+        .replaceAll('"', '\\"')
+        .replaceAll("'", "\\'")
+        .replaceAll('(', '\\(')
+        .replaceAll(')', '\\)');
     }
 
     function esc(str) {
