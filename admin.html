@@ -644,6 +644,7 @@
     }
     .btn-approve { background: var(--gold); color: #12071f; }
     .btn-done { background: var(--green); color: #12071f; }
+    .btn-selfie-toggle { background: #2f86ff; color: #fff; }
     .btn-edit { background: #4b356f; color: #fff; }
     .btn-delete { background: var(--red); color: #fff; }
 
@@ -1463,8 +1464,10 @@
       const rawSelfieUrl = typeof booking.selfie_url === 'string' && booking.selfie_url.length > 0
         ? resolveLanUrl(booking.selfie_url)
         : '';
-      const selfieUrl = rawSelfieUrl || DEFAULT_SELFIE_URL;
+      const selfieHidden = Boolean(booking.selfie_nascosta);
       const hasRealSelfie = Boolean(rawSelfieUrl);
+      const canOpenSelfie = hasRealSelfie && !selfieHidden;
+      const selfieUrl = canOpenSelfie ? rawSelfieUrl : DEFAULT_SELFIE_URL;
       const hasSelfie = Boolean(selfieUrl);
       card.className = `booking-card${isApproved && index === 0 ? ' next' : ''}${hasSelfie ? ' has-selfie' : ''}`;
       card.dataset.id = booking.id;
@@ -1494,9 +1497,12 @@
                   : '<button class="btn-action btn-approve" data-action="approve">Approva</button>')),
             isCurrent || isCompleted ? '' : '<button class="btn-action btn-edit" data-action="edit">Modifica</button>',
             isCurrent || isCompleted ? '' : '<button class="btn-action btn-delete" data-action="delete">Elimina</button>',
+            hasRealSelfie && !isCompleted
+              ? `<button class="btn-action btn-selfie-toggle" data-action="toggle-selfie">${selfieHidden ? 'Mostra foto' : 'Nascondi foto'}</button>`
+              : '',
           ].filter(Boolean).join('');
       const selfieBgHtml = hasSelfie
-        ? `<div class="booking-card-selfie-bg${hasRealSelfie ? '' : ' is-default'}" style="background-image:url('${esc(selfieUrl)}')"${hasRealSelfie ? ` data-selfie-full="${esc(selfieUrl)}" role="button" aria-label="ingrandisci selfie di ${esc(booking.nome)}"` : ' aria-hidden="true"'}></div>`
+        ? `<div class="booking-card-selfie-bg${canOpenSelfie ? '' : ' is-default'}" style="background-image:url('${esc(selfieUrl)}')"${canOpenSelfie ? ` data-selfie-full="${esc(selfieUrl)}" role="button" aria-label="ingrandisci selfie di ${esc(booking.nome)}"` : ' aria-hidden="true"'}></div>`
         : '';
 
       card.innerHTML = `
@@ -1518,11 +1524,13 @@
       const doneBtn = card.querySelector('[data-action="done"]');
       const editBtn = card.querySelector('[data-action="edit"]');
       const deleteBtn = card.querySelector('[data-action="delete"]');
+      const selfieToggleBtn = card.querySelector('[data-action="toggle-selfie"]');
 
       if (approveBtn) approveBtn.addEventListener('click', () => approveBooking(booking.id, card));
       if (doneBtn) doneBtn.addEventListener('click', () => markDone(booking.id, card));
       if (editBtn) editBtn.addEventListener('click', () => editBooking(booking, card));
       if (deleteBtn) deleteBtn.addEventListener('click', () => deleteBooking(booking, card));
+      if (selfieToggleBtn) selfieToggleBtn.addEventListener('click', () => toggleSelfieVisibility(booking, card));
 
       return card;
     }
@@ -1603,6 +1611,18 @@
       }, 280);
     }
 
+    async function toggleSelfieVisibility(booking, card) {
+      const nextHidden = !Boolean(booking.selfie_nascosta);
+      setCardBusy(card, true);
+      try {
+        const updated = await callAdmin('update_booking', { bookingId: booking.id, selfie_nascosta: nextHidden });
+        bookings = bookings.map((item) => item.id === booking.id ? { ...item, ...updated } : item);
+        renderQueue(bookings);
+      } catch (error) {
+        restoreCardAfterError(card, error?.message || 'Non sono riuscito ad aggiornare la visibilità della foto.');
+      }
+    }
+
     function setCardBusy(card, busy) {
       card.querySelectorAll('.btn-action').forEach((btn) => {
         btn.disabled = busy;
@@ -1643,7 +1663,10 @@
       if (!lb || !lbImg) return;
       function close() { lb.classList.remove('open'); lbImg.src = ''; }
       document.addEventListener('click', (e) => {
-        const t = e.target.closest('[data-selfie-full]');
+        const target = e.target;
+        if (!(target instanceof Element)) return;
+        if (target.closest('.btn-action')) return;
+        const t = target.closest('[data-selfie-full]');
         if (t) {
           const url = t.getAttribute('data-selfie-full');
           if (!url) return;
