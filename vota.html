@@ -585,6 +585,7 @@
     let forceWinnerReveal = false;
     let votiRealtimeRefreshTimer = null;
     let refreshingSerata = false;
+    const HOME_PAGE_PATH = 'index.html';
     // localVotes: { [prenotazione_id]: { voto, db_id } }
     const localVotes = JSON.parse(localStorage.getItem('local_votes') || '{}');
 
@@ -604,6 +605,12 @@
       else if (previousDbId) localVotes[key].db_id = previousDbId;
     }
 
+    function redirectToHome() {
+      if (typeof window === 'undefined') return;
+      const targetUrl = new URL(HOME_PAGE_PATH, window.location.href);
+      window.location.replace(targetUrl.toString());
+    }
+
     // ── Load serata ────────────────────────────────────────────
     async function loadSerata() {
       if (!db) {
@@ -618,8 +625,8 @@
         .limit(1)
         .maybeSingle();
 
-      if (!data) {
-        showEmpty('Nessuna serata trovata.');
+      if (!data || data.aperta !== true) {
+        redirectToHome();
         return;
       }
       serata     = data;
@@ -648,7 +655,10 @@
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
-        if (!data) return;
+        if (!data || data.aperta !== true) {
+          redirectToHome();
+          return;
+        }
 
         const currentId       = Number(serata?.id) || 0;
         const nextId          = Number(data.id) || 0;

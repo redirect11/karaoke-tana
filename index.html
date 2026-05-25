@@ -1143,6 +1143,17 @@
     </a>
   </div>
 
+  <!-- STEP bookings-disabled: karaoke aperto ma prenotazioni disabilitate -->
+  <div class="card" id="step-bookings-disabled" style="display:none;">
+    <div class="big-icon">⏸️</div>
+    <h2>Prenotazioni non disponibili</h2>
+    <p>Da questo momento non è più possibile prenotarsi.</p>
+    <p style="font-size:0.86rem; color:var(--muted);">Attendi aggiornamenti dallo staff.</p>
+    <p id="bookings-disabled-vote-msg" style="display:none; margin-top:8px;">
+      <a href="vota.html" style="color:var(--gold); font-weight:700; text-decoration:underline;">🗳️ Vota la tua esibizione preferita →</a>
+    </p>
+  </div>
+
   <div class="notification-modal" id="notification-modal" role="dialog" aria-modal="true" aria-labelledby="notification-modal-title">
     <div class="notification-modal-card">
       <h3 id="notification-modal-title">Attiva le notifiche</h3>
@@ -1280,6 +1291,8 @@
     const stepSuccess  = document.getElementById('step-success');
     const stepWaiting  = document.getElementById('step-waiting');
     const stepClosed   = document.getElementById('step-closed');
+    const stepBookingsDisabled = document.getElementById('step-bookings-disabled');
+    const bookingsDisabledVoteMsg = document.getElementById('bookings-disabled-vote-msg');
     const stepClosedTitle = stepClosed.querySelector('h2');
     const stepClosedText = document.getElementById('closed-state-message');
     const closedStateNextDate = document.getElementById('closed-state-next-date');
@@ -2087,7 +2100,7 @@
       await loadPublicSettings();
       const { data } = await db
         .from('serate')
-        .select('id, aperta, voto_aperto, vincitore_decretato, vincitore_prenotazione_id, winner_reveal_countdown_active, winner_reveal_countdown_ends_at, notifiche_browser_abilitate')
+        .select('id, aperta, voto_aperto, prenotazioni_abilitate, vincitore_decretato, vincitore_prenotazione_id, winner_reveal_countdown_active, winner_reveal_countdown_ends_at, notifiche_browser_abilitate')
         .eq('aperta', true)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -2096,7 +2109,7 @@
         browserNotificationsEnabled = false;
         currentSerataId = null;
         clearSongListPolling();
-        [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+        [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
         showSongListCard(false);
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
@@ -2116,7 +2129,7 @@
         clearRevealCountdownWatcher();
         clearWaitingIntervals();
         clearSongListPolling();
-        [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+        [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
         showSongListCard(false);
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
@@ -2135,12 +2148,21 @@
       clearRevealCountdownWatcher();
       showLeaderboard(false);
       stepClosed.style.display = 'none';
-      document.querySelector('.steps').style.display = '';
       subscribeSerata(data.id);
       subscribeSongList(data.id);
       ensureSongListPolling();
       showSongListCard(true);
       loadSongList();
+      const bookingsEnabled = data.prenotazioni_abilitate !== false;
+      if (!bookingsEnabled) {
+        [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+        document.querySelector('.steps').style.display = 'none';
+        if (bookingsDisabledVoteMsg) bookingsDisabledVoteMsg.style.display = Boolean(data.voto_aperto) ? 'block' : 'none';
+        stepBookingsDisabled.style.display = 'block';
+        return false;
+      }
+      stepBookingsDisabled.style.display = 'none';
+      document.querySelector('.steps').style.display = '';
       return true;
     }
 
@@ -2158,11 +2180,11 @@
             currentSerataId = null;
             clearRevealCountdownWatcher();
             clearSongListPolling();
-            [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+            [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
             showSongListCard(false);
             stepClosed.style.display = 'flex';
             document.querySelector('.steps').style.display = 'none';
-            setClosedState('Prenotazioni chiuse', 'Per ora non c’è nessun karaoke in corso.<br>Segui la pagina Instagram per conoscere le ultime novità.');
+            setClosedState('Prenotazioni chiuse', 'Per ora non c\'è nessun karaoke in corso.<br>Segui la pagina Instagram per conoscere le ultime novità.');
             updateClosedPromoContent();
             showLeaderboard(false);
             return;
@@ -2172,7 +2194,7 @@
             clearRevealCountdownWatcher();
             clearWaitingIntervals();
             clearSongListPolling();
-            [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+            [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
             showSongListCard(false);
             stepClosed.style.display = 'flex';
             document.querySelector('.steps').style.display = 'none';
@@ -2189,6 +2211,27 @@
           }
           clearRevealCountdownWatcher();
           showLeaderboard(false);
+          // Handle bookings enabled/disabled changes in realtime.
+          const bookingsEnabled = payload.new.prenotazioni_abilitate !== false;
+          if (!bookingsEnabled) {
+            [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+            document.querySelector('.steps').style.display = 'none';
+            if (bookingsDisabledVoteMsg) bookingsDisabledVoteMsg.style.display = Boolean(payload.new.voto_aperto) ? 'block' : 'none';
+            stepBookingsDisabled.style.display = 'block';
+          } else {
+            stepBookingsDisabled.style.display = 'none';
+            // Only restore the steps/form if not in waiting mode already.
+            if (stepWaiting.style.display !== 'flex' && stepSuccess.style.display !== 'flex') {
+              document.querySelector('.steps').style.display = '';
+              // Check if there's a pending booking, otherwise show form.
+              const pending = await checkPendingBooking();
+              if (!pending) {
+                const alreadyFollowed = getCookie('ig_followed') === 'true';
+                if (alreadyFollowed) showForm();
+                else stepFollow.style.display = 'block';
+              }
+            }
+          }
         })
         .subscribe();
     }
@@ -2225,7 +2268,9 @@
       clearGlobalSerataSubscription();
       const open = await checkSerataAperta();
       if (!open) {
-        // Non ancora aperta (race condition): riattiva subscription
+        // If currentSerataId is set, serata IS open but bookings are disabled — don't re-subscribe globally.
+        if (currentSerataId) return;
+        // No serata open (race condition): riattiva subscription
         subscribeGlobalSerata();
         return;
       }
