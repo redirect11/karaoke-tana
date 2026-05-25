@@ -88,6 +88,7 @@
       padding: 22px 24px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       animation: slideIn 0.3s ease;
+      position: relative;
     }
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(8px); }
@@ -203,6 +204,19 @@
       font-size: 1rem;
       font-weight: 700;
       color: var(--gold-s);
+    }
+
+    .song-card.with-photo-btn {
+      padding-bottom: 72px;
+    }
+    .song-photo-wrap {
+      position: absolute;
+      right: 24px;
+      bottom: 18px;
+      z-index: 2;
+    }
+    .song-photo-wrap > button {
+      margin: 0;
     }
   </style>
   <link rel="stylesheet" href="scripts/vendor/cookieconsent.css" />
@@ -409,7 +423,24 @@
           btn.addEventListener('click', () => castVote(s.id, parseInt(btn.dataset.v), div));
         });
       }
+      relocatePhotoButton(div);
       return div;
+    }
+
+    function relocatePhotoButton(card) {
+      const buttons = Array.from(card.querySelectorAll('button'));
+      const photoBtn = buttons.find((btn) => {
+        const label = `${btn.textContent || ''} ${btn.getAttribute('aria-label') || ''}`.trim();
+        return /\bfoto\b/i.test(label);
+      });
+      if (!photoBtn || photoBtn.classList.contains('btn-vote')) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'song-photo-wrap';
+      photoBtn.classList.add('song-photo-btn');
+      photoBtn.remove();
+      wrap.appendChild(photoBtn);
+      card.appendChild(wrap);
+      card.classList.add('with-photo-btn');
     }
 
     async function castVote(songId, voto, card) {
