@@ -576,8 +576,10 @@
       background: rgba(212,160,23,0.12);
     }
     .song-item.current-song {
-      border-color: #ff6b6b;
-      background: rgba(155,28,46,0.22);
+      border-color: #2fc66c;
+      background: rgba(16, 103, 52, 0.24);
+      box-shadow: 0 0 0 0 rgba(47, 198, 108, 0.4);
+      animation: currentSongRing 1.8s ease-out infinite;
     }
     .song-item-top {
       flex: 1;
@@ -600,7 +602,7 @@
       color: var(--gold-soft);
     }
     .song-item.current-song .song-item-index {
-      color: #ff9e9e;
+      color: #89f2b7;
     }
     .song-item-title {
       font-weight: 700;
@@ -653,8 +655,12 @@
       color: #ff8f8f;
     }
     .song-item.current-song .song-item-order {
-      background: rgba(255,107,107,0.24);
-      color: #ff9e9e;
+      background: rgba(47,198,108,0.24);
+      color: #9dffca;
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      min-width: 58px;
+      padding: 0 12px;
     }
     .song-list-section {
       margin-top: 4px;
@@ -664,6 +670,33 @@
       letter-spacing: 0.03em;
       text-transform: uppercase;
       color: var(--muted);
+    }
+    .song-list-section.current-song-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      letter-spacing: 0.08em;
+      color: #89f2b7;
+      margin-top: 6px;
+    }
+    .song-list-section.current-song-live .live-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #2fc66c;
+      box-shadow: 0 0 8px rgba(47,198,108,0.55);
+    }
+    @keyframes currentSongRing {
+      0% {
+        box-shadow: 0 0 0 0 rgba(47,198,108,0.4);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(47,198,108,0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(47,198,108,0);
+      }
     }
     /* ── Selfie integrato nella card ──
        La foto è ancorata a destra, dimensionata in altezza alla card
@@ -711,6 +744,16 @@
       -webkit-backdrop-filter: blur(8px) saturate(140%);
       border: 1px solid rgba(255,255,255,0.12);
       color: #fff;
+    }
+    .song-item.current-song.has-selfie .song-item-order {
+      background: rgba(24,138,73,0.5);
+      border: 1px solid rgba(137,242,183,0.55);
+      color: #d7ffe9;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .song-item.current-song {
+        animation: none;
+      }
     }
 
     /* ── Selfie lightbox ── */
@@ -1853,7 +1896,7 @@
       const currentSong = items[0];
       const queueItems = items.slice(1);
       const currentSongHtml = currentSong
-        ? `<div class="song-list-section">In esecuzione ora</div>${renderSongItem(currentSong, 'LIVE', { currentSong: true })}`
+        ? `<div class="song-list-section current-song-live"><span class="live-dot" aria-hidden="true"></span>ON AIR</div>${renderSongItem(currentSong, 'ON AIR', { currentSong: true })}`
         : '';
       const queueHtml = queueItems.length
         ? `<div class="song-list-section">In attesa</div>${queueItems.map((item, index) => renderSongItem(item, String(index + 1), {
