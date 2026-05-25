@@ -132,7 +132,7 @@ async function validateUserToken(req: Request): Promise<{ ok: true } | { ok: fal
 async function getOpenSerata(admin: ReturnType<typeof createClient>) {
   const { data, error } = await admin
     .from("serate")
-    .select("id, vincitore_decretato, notifiche_telegram_abilitate")
+    .select("id, vincitore_decretato, winner_reveal_countdown_active, notifiche_telegram_abilitate")
     .eq("aperta", true)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -302,6 +302,13 @@ serve(async (req) => {
       success: false,
       data: null,
       error: { code: "bookings_closed", message: "Le prenotazioni sono chiuse: vincitore già decretato." },
+    });
+  }
+  if (currentOpenSerata.winner_reveal_countdown_active) {
+    return jsonResponse(req, 409, {
+      success: false,
+      data: null,
+      error: { code: "bookings_closed", message: "Le prenotazioni sono chiuse: countdown reveal vincitore in corso." },
     });
   }
 

@@ -223,6 +223,14 @@
       flex-direction: column;
       gap: 10px;
     }
+    .leaderboard-more-link {
+      margin-top: 2px;
+      align-self: flex-start;
+      font-size: 0.82rem;
+      color: var(--gold-s);
+      text-decoration: underline;
+      font-weight: 700;
+    }
     .leaderboard-hero {
       position: relative;
       border-radius: 14px;
@@ -1636,6 +1644,7 @@
           </div>
         </article>
         ${rankingRowsHtml}
+        <a class="leaderboard-more-link" href="vota.html">Apri classifica completa su Vota →</a>
       `;
     }
 

@@ -117,6 +117,15 @@ function normalizeOptionalDate(value: unknown, fieldName: string): string | null
   return trimmed;
 }
 
+function parseCountdownSeconds(value: unknown): number {
+  if (value === null || value === undefined || value === "") return 30;
+  const parsed = toPositiveInt(value, "countdownSeconds");
+  if (parsed < 5 || parsed > 300) {
+    throw new ApiError(400, "invalid_payload", "countdownSeconds deve essere compreso tra 5 e 300 secondi.");
+  }
+  return parsed;
+}
+
 function toIsoDateFromTimestamp(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const parsed = Date.parse(value);
@@ -711,6 +720,10 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           aperta: true,
           voto_aperto: false,
           mostra_voti_totali: false,
+          winner_reveal_countdown_active: false,
+          winner_reveal_countdown_started_at: null,
+          winner_reveal_countdown_ends_at: null,
+          winner_reveal_countdown_seconds: null,
           notifiche_telegram_abilitate: true,
           notifiche_browser_abilitate: true,
           vincitore_decretato: false,
@@ -738,7 +751,15 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
 
       const { data, error } = await admin
         .from("serate")
-        .update({ aperta: false, voto_aperto: false, mostra_voti_totali: false })
+        .update({
+          aperta: false,
+          voto_aperto: false,
+          mostra_voti_totali: false,
+          winner_reveal_countdown_active: false,
+          winner_reveal_countdown_started_at: null,
+          winner_reveal_countdown_ends_at: null,
+          winner_reveal_countdown_seconds: null,
+        })
         .eq("id", serataId)
         .select("*")
         .maybeSingle();
@@ -769,6 +790,9 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       const votoAperto = typeof body.votoAperto === "boolean"
         ? body.votoAperto
         : !currentSerata?.voto_aperto;
+      if (votoAperto && currentSerata.winner_reveal_countdown_active) {
+        throw new ApiError(409, "winner_reveal_countdown_active", "Countdown reveal attivo: non puoi riaprire le votazioni.");
+      }
 
       const { data, error } = await admin
         .from("serate")
@@ -816,6 +840,78 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       }
 
       return { status: 200, data };
+    }
+
+    case "start_winner_reveal_countdown":
+    case "start_winner_reveal": {
+      const currentSerata = body.serataId != null
+        ? await getSerataById(admin, toPositiveInt(body.serataId, "serataId"))
+        : await getOpenSerata(admin);
+
+      if (!currentSerata?.id) {
+        throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
+      }
+      if (currentSerata.vincitore_decretato) {
+        throw new ApiError(409, "winner_already_decreed", "Il vincitore è già stato decretato.");
+      }
+      if (currentSerata.voto_aperto) {
+        throw new ApiError(409, "voting_still_open", "Chiudi prima le votazioni per avviare il countdown reveal.");
+      }
+
+      const countdownSeconds = parseCountdownSeconds(body.countdownSeconds);
+
+      const { data: serataBookings, error: bookingsError } = await admin
+        .from("prenotazioni")
+        .select("*")
+        .eq("serata_id", currentSerata.id)
+        .order("created_at", { ascending: true });
+
+      if (bookingsError) {
+        throw new ApiError(500, "query_failed", "Errore durante il caricamento delle prenotazioni.");
+      }
+
+      const allBookings = (serataBookings ?? []) as Array<Record<string, unknown>>;
+      const approvedBookings = allBookings.filter((booking) => Boolean(booking.approvata));
+      if (approvedBookings.length === 0) {
+        throw new ApiError(409, "no_approved_bookings", "Servono prenotazioni approvate per avviare il reveal.");
+      }
+
+      const scoreMap = await getBookingScores(admin, allBookings);
+      const top5 = buildRanking(approvedBookings, scoreMap).slice(0, 5);
+      if (top5.length === 0) {
+        throw new ApiError(409, "no_ranking_available", "Impossibile calcolare la classifica finale.");
+      }
+
+      const startedAt = new Date();
+      const endsAt = new Date(startedAt.getTime() + countdownSeconds * 1000);
+      const { data: updatedSerata, error: updateError } = await admin
+        .from("serate")
+        .update({
+          voto_aperto: false,
+          mostra_voti_totali: false,
+          winner_reveal_countdown_active: true,
+          winner_reveal_countdown_started_at: startedAt.toISOString(),
+          winner_reveal_countdown_ends_at: endsAt.toISOString(),
+          winner_reveal_countdown_seconds: countdownSeconds,
+        })
+        .eq("id", currentSerata.id)
+        .select("*")
+        .maybeSingle();
+
+      if (updateError) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito ad avviare il countdown reveal.");
+      }
+      if (!updatedSerata) {
+        throw new ApiError(404, "not_found", "Serata non trovata.");
+      }
+
+      return {
+        status: 200,
+        data: {
+          serata: updatedSerata,
+          top5_preview: top5,
+        },
+      };
     }
 
     case "set_browser_notifications":
@@ -927,6 +1023,10 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           vincitore_prenotazione_id: winnerBookingId,
           voto_aperto: false,
           mostra_voti_totali: true,
+          winner_reveal_countdown_active: false,
+          winner_reveal_countdown_started_at: null,
+          winner_reveal_countdown_ends_at: null,
+          winner_reveal_countdown_seconds: null,
         })
         .eq("id", currentSerata.id)
         .select("*")

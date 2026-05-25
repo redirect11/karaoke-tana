@@ -227,6 +227,12 @@
       margin-top: 2px;
       display: inline-block;
     }
+    .reveal-status {
+      font-size: 0.78rem;
+      color: var(--gold-s);
+      margin-top: 4px;
+      font-weight: 700;
+    }
     .extra-card {
       background: var(--card);
       border: 1px solid #3d2366;
@@ -700,6 +706,7 @@
     let activeQueueTab = 'pending';
     let adminToken = '';
     let pollingTimer = null;
+    let winnerAutoDecreeInFlight = false;
 
     document.getElementById('pwd-btn').addEventListener('click', loginAdmin);
     pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAdmin(); });
@@ -863,6 +870,7 @@
       try {
         const state = await callAdmin('get_state');
         currentSerata = state?.serata || null;
+        await maybeAutoDecreeWinner();
         bookings = Array.isArray(state?.bookings) ? state.bookings : [];
         syncConnected = true;
         renderSerata();
@@ -873,6 +881,32 @@
         updateLiveDot();
         if (!silent) {
           alert(error?.message || 'Errore durante il caricamento del pannello admin.');
+        }
+      }
+
+      function getWinnerRevealEndsAtMs(serata) {
+        const iso = typeof serata?.winner_reveal_countdown_ends_at === 'string'
+          ? serata.winner_reveal_countdown_ends_at
+          : '';
+        const ts = Date.parse(iso);
+        return Number.isFinite(ts) ? ts : null;
+      }
+
+      async function maybeAutoDecreeWinner() {
+        if (!currentSerata || winnerAutoDecreeInFlight) return;
+        if (currentSerata.vincitore_decretato) return;
+        if (!currentSerata.winner_reveal_countdown_active) return;
+        const endsAtMs = getWinnerRevealEndsAtMs(currentSerata);
+        if (!endsAtMs || endsAtMs > Date.now()) return;
+        winnerAutoDecreeInFlight = true;
+        try {
+          await callAdmin('decree_winner', { serataId: currentSerata.id });
+          const state = await callAdmin('get_state');
+          currentSerata = state?.serata || null;
+        } catch (error) {
+          console.warn('Auto decreto vincitore non riuscito:', error);
+        } finally {
+          winnerAutoDecreeInFlight = false;
         }
       }
     }
@@ -925,10 +959,15 @@
         const votoOpen = Boolean(currentSerata.voto_aperto);
         const showTotals = Boolean(currentSerata.mostra_voti_totali);
         const winnerDecreed = Boolean(currentSerata.vincitore_decretato);
+        const winnerRevealCountdownActive = Boolean(currentSerata.winner_reveal_countdown_active);
+        const revealCountdownEndsAtMs = getWinnerRevealEndsAtMs(currentSerata);
+        const revealCountdownLabel = revealCountdownEndsAtMs
+          ? new Date(revealCountdownEndsAtMs).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          : 'in corso';
 
         dotClass = 'is-open';
         summaryStatus = '🟢 Karaoke aperto';
-        summarySub = `${dateStr} · voti ${winnerDecreed ? 'conclusi' : (votoOpen ? 'aperti' : 'chiusi')}`;
+        summarySub = `${dateStr} · voti ${winnerDecreed ? 'conclusi' : (votoOpen ? 'aperti' : 'chiusi')}${winnerRevealCountdownActive && !winnerDecreed ? ' · reveal in corso' : ''}`;
         innerCard = `
           <div class="serata-card serata-open">
             <div class="serata-info">
@@ -942,7 +981,11 @@
               <div>
                 <div class="voto-label">Votazioni: ${winnerDecreed ? '🏁 concluse con vincitore' : (votoOpen ? '🟢 aperte' : '⭕ chiuse')}</div>
                 <a class="vota-link" href="vota.html" target="_blank">Apri pagina voti ↗</a>
+                <a class="vota-link" href="winner-reveal.html" target="_blank">Apri pagina reveal vincitore ↗</a>
                 <div class="voto-label">Totali pubblici: ${showTotals ? '👁️ visibili' : '🙈 nascosti'}</div>
+                ${winnerRevealCountdownActive && !winnerDecreed
+                  ? `<div class="reveal-status">⏳ Countdown reveal attivo · fine prevista ${revealCountdownLabel}</div>`
+                  : ''}
               </div>
               <div class="serata-actions">
                 ${winnerDecreed ? '' : `
@@ -952,6 +995,9 @@
                   <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
                     ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
                   </button>
+                  ${!votoOpen && !winnerRevealCountdownActive
+                    ? '<button class="btn-serata btn-secondary" id="btn-start-winner-reveal">Avvia countdown reveal (30s)</button>'
+                    : ''}
                   <button class="btn-serata btn-winner" id="btn-decree-winner">Decreta vincitore</button>
                 `}
               </div>
@@ -993,6 +1039,8 @@
       if (!winnerDecreed) {
         document.getElementById('btn-toggle-voto').addEventListener('click', toggleVoto);
         document.getElementById('btn-toggle-show-totals').addEventListener('click', toggleShowVoteTotals);
+        const startRevealBtn = document.getElementById('btn-start-winner-reveal');
+        if (startRevealBtn) startRevealBtn.addEventListener('click', startWinnerRevealCountdown);
         document.getElementById('btn-decree-winner').addEventListener('click', decreeWinner);
       }
     }
@@ -1089,6 +1137,23 @@
       } catch (error) {
         alert(error?.message || 'Non sono riuscito a decretare il vincitore.');
         if (btn) btn.disabled = false;
+      }
+
+      async function startWinnerRevealCountdown() {
+        if (!currentSerata) return;
+        if (!confirm('Avviare il countdown pubblico reveal vincitore (30 secondi)?')) return;
+        const btn = document.getElementById('btn-start-winner-reveal');
+        if (btn) btn.disabled = true;
+        try {
+          await callAdmin('start_winner_reveal_countdown', {
+            serataId: currentSerata.id,
+            countdownSeconds: 30,
+          });
+          await refreshState(true);
+        } catch (error) {
+          alert(error?.message || 'Non sono riuscito ad avviare il countdown reveal.');
+          if (btn) btn.disabled = false;
+        }
       }
     }
 

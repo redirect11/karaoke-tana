@@ -153,6 +153,14 @@ Il form in `index.html` ora chiama la Edge Function:
 
 La UI gestisce loading/error sul bottone di submit.
 
+### Reveal pubblico vincitore
+
+- `winner-reveal.html` è la pagina pubblica per il reveal del vincitore.
+- È consultabile solo durante una serata aperta e con votazioni chiuse:
+  - se le votazioni sono ancora aperte mostra il messaggio "torna quando le votazioni saranno chiuse";
+  - se il karaoke è chiuso fa redirect a `index.html`.
+- Il countdown reveal viene avviato dallo staff panel (`admin.html`) con azione admin `start_winner_reveal_countdown`.
+
 ## Deploy GitHub Pages
 
 ### Deploy sito test (`main`)
