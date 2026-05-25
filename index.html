@@ -1599,12 +1599,15 @@
         ? `<div class="leaderboard-hero-bg" style="background-image:url('${escapeCssUrl(winnerSelfieUrl)}')"></div>`
         : '<div class="leaderboard-hero-bg placeholder"></div>';
 
-      const top5Html = `<div class="leaderboard-top5">${ranking.map((item, index) => `
+      const podiumChips = ranking.slice(1);
+      const top5Html = podiumChips.length
+        ? `<div class="leaderboard-top5">${podiumChips.map((item, index) => `
         <span class="leaderboard-top5-chip">
-          <span class="leaderboard-top5-chip-rank">${index + 1}°</span>
+          <span class="leaderboard-top5-chip-rank">${index + 2}°</span>
           <span class="leaderboard-top5-chip-name">${escapeHtml(item.nome)}</span>
         </span>
-      `).join('')}</div>`;
+      `).join('')}</div>`
+        : '';
 
       const rankingRowsHtml = ranking.map((item, index) => {
         const isWinner = Number(item.id) === Number(winnerItem.id);
