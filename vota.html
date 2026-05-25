@@ -239,8 +239,8 @@
 
   <section id="diretta-wrap">
     <div class="diretta-icon">🎬</div>
-    <h2 id="diretta-title">Il vincitore sta per essere rivelato…</h2>
-    <p id="diretta-text">In attesa del countdown. Tieni gli occhi aperti!</p>
+    <h2 id="diretta-title">⚡ Preparatevi… il momento è arrivato!</h2>
+    <p id="diretta-text">Questa notte si scrive la storia del karaoke. Chi sarà il re o la regina del microfono? 👑</p>
     <div id="diretta-countdown" class="hidden"></div>
   </section>
 
@@ -363,14 +363,14 @@
       content.style.display = 'none';
 
       if (!hasCountdown) {
-        direttaTitle.textContent = 'Il vincitore sta per essere rivelato…';
-        direttaText.textContent = 'In attesa del countdown. Tieni gli occhi aperti!';
+        direttaTitle.textContent = '⚡ Preparatevi… il momento è arrivato!';
+        direttaText.textContent = 'Questa notte si scrive la storia del karaoke. Chi sarà il re o la regina del microfono? 👑';
         direttaCountdownEl.classList.add('hidden');
         return;
       }
 
-      direttaTitle.textContent = '🏆 Reveal in corso!';
-      direttaText.textContent = 'Il vincitore verrà annunciato al termine del countdown.';
+      direttaTitle.textContent = '🔥 IL MOMENTO È ADESSO!';
+      direttaText.textContent = 'Il conto alla rovescia è partito. Chi salirà sul trono del karaoke? 🎤👑';
       direttaCountdownEl.classList.remove('hidden');
 
       const tick = () => {
@@ -378,8 +378,8 @@
         direttaCountdownEl.textContent = String(remaining).padStart(2, '0');
         if (remaining === 0) {
           stopDirettaCountdown();
-          direttaTitle.textContent = '🏁 Countdown terminato!';
-          direttaText.textContent = 'Il vincitore sta per essere proclamato…';
+          direttaTitle.textContent = '🏆 È ORA DI SAPERE LA VERITÀ!';
+          direttaText.textContent = 'Il vincitore sta per essere proclamato… trattenete il respiro! 😱';
         }
       };
       tick();
