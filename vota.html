@@ -148,9 +148,6 @@
       z-index: 2;
     }
     .selfie-open-btn {
-      position: absolute;
-      top: 10px;
-      left: 10px;
       border: 1px solid rgba(255,255,255,0.16);
       background: rgba(0,0,0,0.46);
       color: #fff;
@@ -159,10 +156,12 @@
       font-size: 0.72rem;
       font-weight: 700;
       line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
       cursor: pointer;
       backdrop-filter: blur(8px) saturate(140%);
       -webkit-backdrop-filter: blur(8px) saturate(140%);
-      z-index: 2;
       transition: background 0.15s, border-color 0.15s, transform 0.1s;
     }
     .selfie-open-btn:hover {
@@ -191,9 +190,16 @@
     /* ── applause rating ── */
     .rating-row {
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       gap: 8px;
       flex-wrap: wrap;
+    }
+    .rating-side {
+      margin-left: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
     }
 
     .rating-hands {
@@ -267,7 +273,6 @@
     }
 
     .vote-score {
-      margin-left: auto;
       font-size: 0.75rem;
       color: var(--muted);
       text-align: right;
@@ -695,7 +700,6 @@
 
       div.innerHTML = `
         ${hasSelfie ? `<div class="song-card-selfie-bg" style="background-image:url('${escapeCssUrl(selfieUrl)}')"></div>` : ''}
-        ${selfieBtn}
         <div class="song-index">#${Number.isInteger(s._displayIndex) ? s._displayIndex : '—'}</div>
         <div class="song-header">
           <div>
@@ -706,7 +710,10 @@
         </div>
         <div class="rating-row">
           <div class="${handsClass}" role="radiogroup" aria-label="Voto per ${esc(s.canzone)}">${btns}</div>
-          ${scoreBlock}
+          <div class="rating-side">
+            ${scoreBlock}
+            ${selfieBtn}
+          </div>
         </div>
       `;
 
