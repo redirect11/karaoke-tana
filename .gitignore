@@ -5,3 +5,6 @@ config.js
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
+
+# Node / npm
+node_modules/
