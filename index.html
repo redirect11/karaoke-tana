@@ -739,7 +739,14 @@
     }
     .selfie-lightbox-close:hover { background: rgba(255,255,255,0.25); }
     /* ── Selfie upload form ── */
-    .selfie-upload-wrap { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+    .selfie-upload-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 4px;
+      width: 100%;
+    }
     .selfie-preview {
       width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
       border: 2px solid var(--gold); display: none; flex-shrink: 0;
@@ -748,10 +755,11 @@
     .selfie-label {
       display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
       background: rgba(212,160,23,0.12); border: 1px dashed rgba(212,160,23,0.45);
-      border-radius: 8px; padding: 8px 14px; font-size: 0.85rem;
+      border-radius: 10px; padding: 12px 18px; font-size: 1rem;
       color: var(--gold-soft); transition: background 0.18s; user-select: none;
     }
     .selfie-label:hover { background: rgba(212,160,23,0.2); }
+    .selfie-controls { display: flex; flex-direction: column; align-items: center; }
     .selfie-remove {
       font-size: 0.78rem; color: var(--muted); cursor: pointer;
       text-decoration: underline; display: none; margin-top: 4px;
@@ -1053,7 +1061,7 @@
         <label>Selfie <span style="color:var(--muted);font-weight:400;font-size:0.8rem;">(opzionale)</span></label>
         <div class="selfie-upload-wrap">
           <img id="selfie-preview" class="selfie-preview" alt="anteprima" />
-          <div>
+          <div class="selfie-controls">
             <label class="selfie-label" for="selfie-input">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
