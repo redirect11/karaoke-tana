@@ -581,6 +581,8 @@
     let showTotalsPublic = false;
     let direttaCountdownTimer = null;
     let direttaCountdownLastValue = null;
+    let direttaRevealPreloadPromise = null;
+    let forceWinnerReveal = false;
     let votiRealtimeRefreshTimer = null;
     let refreshingSerata = false;
     // localVotes: { [prenotazione_id]: { voto, db_id } }
@@ -623,9 +625,12 @@
       serata     = data;
       votingOpen = data.voto_aperto;
       showTotalsPublic = Boolean(data.mostra_voti_totali);
+      forceWinnerReveal = false;
       updateBanner();
       renderDiretta();
-      if (!data.winner_reveal_countdown_active || data.vincitore_decretato) {
+      if (data.winner_reveal_countdown_active && !data.vincitore_decretato) {
+        void preloadDirettaFinalView();
+      } else {
         await loadSongs();
       }
       subscribeRealtime();
@@ -662,15 +667,21 @@
           || Boolean(data.mostra_voti_totali)             !== showTotalsPublic
           || Boolean(data.winner_reveal_countdown_active) !== Boolean(serata?.winner_reveal_countdown_active)
           || Boolean(data.vincitore_decretato)            !== Boolean(serata?.vincitore_decretato)
-          || (data.winner_reveal_countdown_ends_at ?? null) !== (serata?.winner_reveal_countdown_ends_at ?? null);
+          || (data.winner_reveal_countdown_ends_at ?? null) !== (serata?.winner_reveal_countdown_ends_at ?? null)
+          || Number(data.vincitore_prenotazione_id || 0) !== Number(serata?.vincitore_prenotazione_id || 0);
         if (!changed) return;
 
         serata           = data;
         votingOpen       = Boolean(data.voto_aperto);
         showTotalsPublic = Boolean(data.mostra_voti_totali);
+        if (!serata.winner_reveal_countdown_active && !serata.vincitore_decretato) {
+          forceWinnerReveal = false;
+        }
         updateBanner();
         renderDiretta();
-        if (!serata.winner_reveal_countdown_active || serata.vincitore_decretato) {
+        if (serata.winner_reveal_countdown_active && !serata.vincitore_decretato) {
+          void preloadDirettaFinalView();
+        } else {
           await loadSongs();
         }
       } finally {
@@ -702,6 +713,19 @@
       direttaCountdownLastValue = null;
     }
 
+    async function preloadDirettaFinalView() {
+      if (!serata?.id) return;
+      if (direttaRevealPreloadPromise) return direttaRevealPreloadPromise;
+      direttaRevealPreloadPromise = (async () => {
+        await loadSongs();
+      })();
+      try {
+        await direttaRevealPreloadPromise;
+      } finally {
+        direttaRevealPreloadPromise = null;
+      }
+    }
+
     function renderDiretta() {
       const direttaActive = Boolean(serata?.winner_reveal_countdown_active);
       const winnerDecreed = Boolean(serata?.vincitore_decretato);
@@ -711,6 +735,7 @@
       stopDirettaCountdown();
 
       if (!direttaActive || winnerDecreed) {
+        if (!winnerDecreed) forceWinnerReveal = false;
         direttaWrap.style.display = 'none';
         content.style.display = '';
         direttaCountdownEl.classList.add('hidden');
@@ -732,9 +757,16 @@
       direttaTitle.textContent = '🔥 IL MOMENTO È ADESSO!';
       direttaText.textContent = 'Il conto alla rovescia è partito. Chi salirà sul trono del karaoke? 🎤👑';
       direttaCountdownEl.classList.remove('hidden');
+      void preloadDirettaFinalView();
+
+      const configuredSeconds = Number(serata?.winner_reveal_countdown_seconds);
+      if (Number.isInteger(configuredSeconds) && configuredSeconds > 0) {
+        direttaCountdownEl.textContent = String(configuredSeconds).padStart(2, '0');
+      }
 
       const tick = () => {
-        const remaining = Math.max(0, Math.ceil((endsAtMs - Date.now()) / 1000));
+        const msLeft = endsAtMs - Date.now();
+        const remaining = Math.max(0, Math.ceil(msLeft / 1000));
         if (remaining !== direttaCountdownLastValue) {
           direttaCountdownLastValue = remaining;
           direttaCountdownEl.textContent = String(remaining).padStart(2, '0');
@@ -743,14 +775,18 @@
         }
         if (remaining === 0) {
           stopDirettaCountdown();
-          direttaCountdownEl.classList.remove('tick');
-          direttaCountdownEl.classList.add('end');
-          direttaTitle.textContent = '🏆 È ORA DI SAPERE LA VERITÀ!';
-          direttaText.textContent = 'Il vincitore sta per essere proclamato… trattenete il respiro! 😱';
+          forceWinnerReveal = true;
+          renderContent();
+          direttaWrap.style.display = 'none';
+          content.style.display = '';
+          void refreshSerata();
+          return;
         }
+        const nextChangeInMs = msLeft - ((remaining - 1) * 1000);
+        const nextDelay = Math.max(45, Math.min(220, nextChangeInMs + 18));
+        direttaCountdownTimer = setTimeout(tick, nextDelay);
       };
       tick();
-      direttaCountdownTimer = setInterval(tick, 500);
     }
 
     function scheduleRealtimeScoresRefresh() {
@@ -828,7 +864,7 @@
         return;
       }
 
-      if (serata?.vincitore_decretato) {
+      if (serata?.vincitore_decretato || forceWinnerReveal) {
         renderFinalLeaderboard();
         return;
       }
