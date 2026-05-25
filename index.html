@@ -1136,6 +1136,17 @@
     <p id="waiting-timer"></p>
   </div>
 
+  <!-- STEP bookings-disabled: karaoke aperto ma prenotazioni disabilitate -->
+  <div class="card" id="step-bookings-disabled" style="display:none;">
+    <div class="big-icon" aria-hidden="true">⏸️</div>
+    <h2>Prenotazioni non disponibili</h2>
+    <p>Da questo momento non è più possibile prenotarsi.</p>
+    <p style="font-size:0.86rem; color:var(--muted);">Attendi aggiornamenti dallo staff.</p>
+    <p id="bookings-disabled-vote-msg" style="display:none; margin-top:8px;">
+      <a href="vota.html" style="color:var(--gold); font-weight:700; text-decoration:underline;">🗳️ Vota la tua esibizione preferita →</a>
+    </p>
+  </div>
+
   <!-- song list -->
   <div class="card" id="song-list-card">
     <h3>Lista canzoni</h3>
@@ -1171,17 +1182,6 @@
     <a id="closed-archive-link" href="archive.html" style="display:inline-block; margin-top:6px; color:var(--gold); text-decoration:underline; font-size:0.86rem;">
       Consulta archivio karaoke
     </a>
-  </div>
-
-  <!-- STEP bookings-disabled: karaoke aperto ma prenotazioni disabilitate -->
-  <div class="card" id="step-bookings-disabled" style="display:none;">
-    <div class="big-icon" aria-hidden="true">⏸️</div>
-    <h2>Prenotazioni non disponibili</h2>
-    <p>Da questo momento non è più possibile prenotarsi.</p>
-    <p style="font-size:0.86rem; color:var(--muted);">Attendi aggiornamenti dallo staff.</p>
-    <p id="bookings-disabled-vote-msg" style="display:none; margin-top:8px;">
-      <a href="vota.html" style="color:var(--gold); font-weight:700; text-decoration:underline;">🗳️ Vota la tua esibizione preferita →</a>
-    </p>
   </div>
 
   <div class="notification-modal" id="notification-modal" role="dialog" aria-modal="true" aria-labelledby="notification-modal-title">
@@ -1380,6 +1380,8 @@
     let activeSongTab = 'to-sing';
     let notificationPermissionRequested = false;
     let browserNotificationsEnabled = true;
+    let bookingsAreEnabled = true;
+    let voteOpen = false;
     let songListPollInterval = null;
     let songListAvailability = 'loading';
     let songListCache = { toSing: [], completed: [] };
@@ -1482,6 +1484,19 @@
       songListCard.style.display = show ? 'block' : 'none';
     }
 
+    function updateBookingsDisabledVoteMessage() {
+      if (bookingsDisabledVoteMsg) bookingsDisabledVoteMsg.style.display = voteOpen ? 'block' : 'none';
+    }
+
+    function showBookingsDisabledState() {
+      [stepFollow, stepForm, stepSuccess, stepWaiting, stepClosed].forEach(s => s.style.display = 'none');
+      document.querySelector('.steps').style.display = 'none';
+      updateBookingsDisabledVoteMessage();
+      stepBookingsDisabled.style.display = 'block';
+      showSongListCard(true);
+      showLeaderboard(false);
+    }
+
     function getWinnerRevealEndsAtMs(serata) {
       const iso = typeof serata?.winner_reveal_countdown_ends_at === 'string'
         ? serata.winner_reveal_countdown_ends_at
@@ -1506,7 +1521,7 @@
       if (!serataData?.id) return;
       clearWaitingIntervals();
       clearSongListPolling();
-      [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+      [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
       showSongListCard(false);
       stepClosed.style.display = 'flex';
       document.querySelector('.steps').style.display = 'none';
@@ -2139,6 +2154,8 @@
         .maybeSingle();
       if (!data) {
         browserNotificationsEnabled = false;
+        bookingsAreEnabled = false;
+        voteOpen = false;
         currentSerataId = null;
         clearSongListPolling();
         [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
@@ -2154,10 +2171,13 @@
       }
       currentSerataId = data.id;
       browserNotificationsEnabled = data.notifiche_browser_abilitate !== false;
+      voteOpen = Boolean(data.voto_aperto);
       const winnerDecreed = Boolean(data.vincitore_decretato);
       const revealCountdownActive = Boolean(data.winner_reveal_countdown_active);
       setVotaBanner(Boolean(data.voto_aperto) && !winnerDecreed);
       if (winnerDecreed) {
+        bookingsAreEnabled = false;
+        voteOpen = false;
         clearRevealCountdownWatcher();
         clearWaitingIntervals();
         clearSongListPolling();
@@ -2172,6 +2192,7 @@
         return false;
       }
       if (revealCountdownActive) {
+        bookingsAreEnabled = false;
         await showRevealCountdownState(data);
         scheduleRevealCountdownWatcher(data);
         subscribeSerata(data.id);
@@ -2185,14 +2206,11 @@
       ensureSongListPolling();
       showSongListCard(true);
       loadSongList();
-      const bookingsEnabled = data.prenotazioni_abilitate !== false;
-      if (!bookingsEnabled) {
-        [stepFollow, stepForm].forEach(s => s.style.display = 'none');
-        document.querySelector('.steps').style.display = 'none';
-        if (bookingsDisabledVoteMsg) bookingsDisabledVoteMsg.style.display = Boolean(data.voto_aperto) ? 'block' : 'none';
+      bookingsAreEnabled = data.prenotazioni_abilitate !== false;
+      if (!bookingsAreEnabled) {
         const pending = await checkPendingBooking();
         if (!pending) {
-          stepBookingsDisabled.style.display = 'block';
+          showBookingsDisabledState();
         } else {
           stepBookingsDisabled.style.display = 'none';
         }
@@ -2209,10 +2227,13 @@
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate',
           filter: `id=eq.${serataId}` }, async (payload) => {
           browserNotificationsEnabled = payload.new.notifiche_browser_abilitate !== false;
+          voteOpen = Boolean(payload.new.voto_aperto);
           const winnerDecreed = Boolean(payload.new.vincitore_decretato);
           const revealCountdownActive = Boolean(payload.new.winner_reveal_countdown_active);
           setVotaBanner(Boolean(payload.new.voto_aperto) && !winnerDecreed);
           if (!payload.new.aperta) {
+            bookingsAreEnabled = false;
+            voteOpen = false;
             await loadPublicSettings();
             currentSerataId = null;
             clearRevealCountdownWatcher();
@@ -2227,6 +2248,8 @@
             return;
           }
           if (winnerDecreed) {
+            bookingsAreEnabled = false;
+            voteOpen = false;
             await loadPublicSettings();
             clearRevealCountdownWatcher();
             clearWaitingIntervals();
@@ -2242,6 +2265,7 @@
             return;
           }
           if (revealCountdownActive) {
+            bookingsAreEnabled = false;
             await showRevealCountdownState(payload.new);
             scheduleRevealCountdownWatcher(payload.new);
             return;
@@ -2249,14 +2273,11 @@
           clearRevealCountdownWatcher();
           showLeaderboard(false);
           // Handle bookings enabled/disabled changes in realtime.
-          const bookingsEnabled = payload.new.prenotazioni_abilitate !== false;
-          if (!bookingsEnabled) {
-            [stepFollow, stepForm].forEach(s => s.style.display = 'none');
-            document.querySelector('.steps').style.display = 'none';
-            if (bookingsDisabledVoteMsg) bookingsDisabledVoteMsg.style.display = Boolean(payload.new.voto_aperto) ? 'block' : 'none';
+          bookingsAreEnabled = payload.new.prenotazioni_abilitate !== false;
+          if (!bookingsAreEnabled) {
             // Only show the disabled notice when the user has no active booking state
             if (stepWaiting.style.display !== 'flex') {
-              stepBookingsDisabled.style.display = 'block';
+              showBookingsDisabledState();
             } else {
               stepBookingsDisabled.style.display = 'none';
             }
@@ -2567,7 +2588,7 @@
     }
 
     function showWaitingScreen(canzone, artista, approvata, pendingExpiryAt) {
-      [stepFollow, stepForm, stepSuccess].forEach(s => s.style.display = 'none');
+      [stepFollow, stepForm, stepSuccess, stepBookingsDisabled, stepClosed].forEach(s => s.style.display = 'none');
       stepWaiting.style.display = 'flex';
       showSongListCard(true);
       document.getElementById('waiting-song').textContent = `${canzone} – ${artista}`;
@@ -2627,7 +2648,13 @@
     }
 
     function showForm() {
-      [stepFollow, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+      if (!bookingsAreEnabled) {
+        showBookingsDisabledState();
+        return;
+      }
+      [stepFollow, stepSuccess, stepWaiting, stepClosed].forEach(s => s.style.display = 'none');
+      stepBookingsDisabled.style.display = 'none';
+      document.querySelector('.steps').style.display = '';
       stepForm.style.display = 'block';
       showSongListCard(true);
       showLeaderboard(false);
