@@ -1254,6 +1254,7 @@
       customBookingStatusUrl || (supabaseReady ? `${edgeBaseUrl}/booking-status` : '');
     const BOOKING_CONFIG_ERROR_MESSAGE = 'Configurazione prenotazioni non disponibile.';
     const BOOKING_ERROR_MESSAGE = 'Errore durante la prenotazione. Riprova tra qualche secondo!';
+    const DEFAULT_SELFIE_URL = 'logo.png';
     const PENDING_EXPIRY_MIN = (() => {
       const parsed = parseInt(
         config.BOOKING_PENDING_EXPIRY_MIN ?? config.BOOKING_COOLDOWN_MIN ?? 30,
@@ -1459,7 +1460,7 @@
 
       let { data, error } = await db
         .from('prenotazioni')
-        .select('id, nome, canzone, artista, created_at, cantata, approvata, selfie_url')
+        .select('id, nome, canzone, artista, created_at, cantata, approvata, selfie_url, selfie_nascosta')
         .eq('serata_id', currentSerataId)
         .eq('approvata', true)
         .order('created_at', { ascending: true });
@@ -1467,7 +1468,7 @@
       if (error || !data || data.length === 0) {
         const fallback = await db
           .from('prenotazioni')
-          .select('id, nome, canzone, artista, created_at, cantata, approvata, selfie_url')
+          .select('id, nome, canzone, artista, created_at, cantata, approvata, selfie_url, selfie_nascosta')
           .is('serata_id', null)
           .eq('approvata', true)
           .order('created_at', { ascending: true });
@@ -1580,7 +1581,7 @@
       }
       const { data: rows, error } = await db
         .from('prenotazioni')
-        .select('id, nome, canzone, artista, created_at, approvata, selfie_url')
+        .select('id, nome, canzone, artista, created_at, approvata, selfie_url, selfie_nascosta')
         .eq('serata_id', serataId)
         .eq('approvata', true)
         .order('created_at', { ascending: true });
@@ -1639,7 +1640,10 @@
       const winnerSongLabel = winnerItem?.artista
         ? `${winnerItem.canzone} — ${winnerItem.artista}`
         : winnerItem?.canzone || '';
-      const winnerSelfieUrl = resolveLanUrl(winnerItem?.selfie_url || '');
+      const winnerSelfieRawUrl = resolveLanUrl(winnerItem?.selfie_url || '');
+      const winnerSelfieUrl = winnerSelfieRawUrl && !winnerItem?.selfie_nascosta
+        ? winnerSelfieRawUrl
+        : (winnerSelfieRawUrl ? DEFAULT_SELFIE_URL : '');
       const winnerBgHtml = winnerSelfieUrl
         ? `<div class="leaderboard-hero-bg" style="background-image:url('${escapeCssUrl(winnerSelfieUrl)}')"></div>`
         : '<div class="leaderboard-hero-bg placeholder"></div>';
@@ -1697,10 +1701,16 @@
         const progressiveLabel = Number.isInteger(progressiveIndex) && progressiveIndex > 0
           ? String(progressiveIndex)
           : '?';
-        const hasSelfie = typeof item.selfie_url === 'string' && item.selfie_url.length > 0;
+        const rawSelfieUrl = typeof item.selfie_url === 'string' && item.selfie_url.length > 0
+          ? resolveLanUrl(item.selfie_url)
+          : '';
+        const selfieHidden = Boolean(item.selfie_nascosta);
+        const selfieUrl = rawSelfieUrl && selfieHidden ? DEFAULT_SELFIE_URL : rawSelfieUrl;
+        const hasSelfie = Boolean(selfieUrl);
+        const canOpenSelfie = Boolean(rawSelfieUrl) && !selfieHidden;
         return `
         <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}${currentSong ? ' current-song' : ''}${hasSelfie ? ' has-selfie' : ''}" data-id="${item.id}">
-          ${hasSelfie ? (() => { const resolved = resolveLanUrl(item.selfie_url); return `<div class="song-item-selfie-bg" style="background-image:url('${escapeHtml(resolved)}')" data-selfie-full="${escapeHtml(resolved)}" role="button" aria-label="ingrandisci selfie di ${escapeHtml(item.nome)}"></div>`; })() : ''}
+          ${hasSelfie ? `<div class="song-item-selfie-bg" style="background-image:url('${escapeHtml(selfieUrl)}')"${canOpenSelfie ? ` data-selfie-full="${escapeHtml(rawSelfieUrl)}" role="button" aria-label="ingrandisci selfie di ${escapeHtml(item.nome)}"` : ' aria-hidden="true"'}></div>` : ''}
           ${showOrder ? `<div class="song-item-order${alert ? ' alert' : ''}">${orderLabel}</div>` : ''}
           <div class="song-item-index">${progressiveLabel}</div>
           <div class="song-item-top">

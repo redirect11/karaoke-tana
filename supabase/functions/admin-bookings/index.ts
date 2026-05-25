@@ -75,7 +75,7 @@ function normalizeBookingText(value: unknown, fieldName: string, maxLength: numb
 }
 
 function parseBookingUpdatePayload(body: Record<string, unknown>) {
-  const updates: Record<string, string> = {};
+  const updates: Record<string, string | boolean> = {};
   const hasOwn = (field: string) => Object.prototype.hasOwnProperty.call(body, field);
 
   if (hasOwn("nome")) {
@@ -87,9 +87,15 @@ function parseBookingUpdatePayload(body: Record<string, unknown>) {
   if (hasOwn("artista")) {
     updates.artista = normalizeBookingText(body.artista, "artista", 140);
   }
+  if (hasOwn("selfie_nascosta")) {
+    if (typeof body.selfie_nascosta !== "boolean") {
+      throw new ApiError(400, "invalid_payload", "selfie_nascosta deve essere true o false.");
+    }
+    updates.selfie_nascosta = body.selfie_nascosta;
+  }
 
   if (Object.keys(updates).length === 0) {
-    throw new ApiError(400, "invalid_payload", "Specifica almeno un campo da aggiornare: nome, canzone o artista.");
+    throw new ApiError(400, "invalid_payload", "Specifica almeno un campo da aggiornare: nome, canzone, artista o selfie_nascosta.");
   }
 
   return updates;
@@ -618,7 +624,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         .from("prenotazioni")
         .update(updates)
         .eq("id", bookingId)
-        .select("id, nome, canzone, artista, approvata, cantata")
+        .select("id, nome, canzone, artista, approvata, cantata, selfie_nascosta")
         .maybeSingle();
 
       if (error) {

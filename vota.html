@@ -562,6 +562,7 @@
     const db = supabaseReady
       ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY)
       : null;
+    const DEFAULT_SELFIE_URL = 'logo.png';
 
     const content       = document.getElementById('content');
     const statusBanner  = document.getElementById('status-banner');
@@ -717,7 +718,7 @@
     async function loadSongs() {
       let { data, error } = await db
         .from('prenotazioni')
-        .select('id, nome, canzone, artista, created_at, selfie_url')
+        .select('id, nome, canzone, artista, created_at, selfie_url, selfie_nascosta')
         .eq('approvata', true)
         .eq('cantata', true)
         .eq('serata_id', serata.id)
@@ -726,7 +727,7 @@
       if (error || !data || data.length === 0) {
         const fallback = await db
           .from('prenotazioni')
-          .select('id, nome, canzone, artista, created_at, selfie_url')
+          .select('id, nome, canzone, artista, created_at, selfie_url, selfie_nascosta')
           .eq('approvata', true)
           .eq('cantata', true)
           .is('serata_id', null)
@@ -792,8 +793,11 @@
 
     function makeSongCard(s) {
       const div = document.createElement('div');
-      const selfieUrl = resolveLanUrl(typeof s.selfie_url === 'string' ? s.selfie_url : '');
+      const rawSelfieUrl = resolveLanUrl(typeof s.selfie_url === 'string' ? s.selfie_url : '');
+      const selfieHidden = Boolean(s.selfie_nascosta);
+      const selfieUrl = rawSelfieUrl && selfieHidden ? DEFAULT_SELFIE_URL : rawSelfieUrl;
       const hasSelfie = Boolean(selfieUrl);
+      const canOpenSelfie = Boolean(rawSelfieUrl) && !selfieHidden;
       div.className = `song-card${hasSelfie ? ' has-selfie' : ''}`;
       div.dataset.id = s.id;
 
@@ -842,9 +846,9 @@
           btn.addEventListener('click', () => castVote(s.id, parseInt(btn.dataset.v, 10), div));
         });
       }
-      if (hasSelfie) {
+      if (canOpenSelfie) {
         div.querySelector('.selfie-open-btn')?.addEventListener('click', () => {
-          openPhotoModal(selfieUrl, `${s.nome} — ${s.canzone}`);
+          openPhotoModal(rawSelfieUrl, `${s.nome} — ${s.canzone}`);
         });
       }
       return div;
@@ -892,7 +896,10 @@
       const winnerId = Number(serata?.vincitore_prenotazione_id) || Number(ranking[0].id);
       const winner = ranking.find((item) => Number(item.id) === winnerId) || ranking[0];
       const winnerSongLabel = winner?.artista ? `${winner.canzone} — ${winner.artista}` : winner?.canzone || '';
-      const winnerSelfieUrl = resolveLanUrl(winner?.selfie_url || '');
+      const winnerSelfieRawUrl = resolveLanUrl(winner?.selfie_url || '');
+      const winnerSelfieUrl = winnerSelfieRawUrl && !winner?.selfie_nascosta
+        ? winnerSelfieRawUrl
+        : (winnerSelfieRawUrl ? DEFAULT_SELFIE_URL : '');
       const winnerBgHtml = winnerSelfieUrl
         ? `<div class="leaderboard-hero-bg" style="background-image:url('${escapeCssUrl(winnerSelfieUrl)}')"></div>`
         : '<div class="leaderboard-hero-bg placeholder"></div>';
