@@ -1279,6 +1279,7 @@
     let serataChannel   = null;
     let songListChannel = null;
     let usingLegacySongFallback = false;
+    let revealCountdownWatcherTimer = null;
     let publicSettings = {
       archivio_pubblico_abilitato: false,
       prossima_serata_data: null,
@@ -1447,6 +1448,61 @@
 
     function showSongListCard(show) {
       songListCard.style.display = show ? 'block' : 'none';
+    }
+
+    function getWinnerRevealEndsAtMs(serata) {
+      const iso = typeof serata?.winner_reveal_countdown_ends_at === 'string'
+        ? serata.winner_reveal_countdown_ends_at
+        : '';
+      const ts = Date.parse(iso);
+      return Number.isFinite(ts) ? ts : null;
+    }
+
+    function clearRevealCountdownWatcher() {
+      if (revealCountdownWatcherTimer) {
+        clearTimeout(revealCountdownWatcherTimer);
+        revealCountdownWatcherTimer = null;
+      }
+    }
+
+    async function preloadRevealLeaderboard(serataData) {
+      if (!serataData?.id) return;
+      await loadFinalLeaderboard(serataData.id, serataData.vincitore_prenotazione_id);
+    }
+
+    async function showRevealCountdownState(serataData) {
+      if (!serataData?.id) return;
+      clearWaitingIntervals();
+      clearSongListPolling();
+      [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+      showSongListCard(false);
+      stepClosed.style.display = 'flex';
+      document.querySelector('.steps').style.display = 'none';
+      setClosedState('🎬 Reveal in corso', 'Il countdown è iniziato: la classifica finale verrà mostrata subito allo 0.');
+      updateClosedPromoContent();
+      showLeaderboard(false);
+      await preloadRevealLeaderboard(serataData);
+    }
+
+    function scheduleRevealCountdownWatcher(serataData) {
+      clearRevealCountdownWatcher();
+      if (!serataData?.id) return;
+      const endsAtMs = getWinnerRevealEndsAtMs(serataData);
+      if (!endsAtMs) return;
+      const delay = Math.max(0, endsAtMs - Date.now());
+      revealCountdownWatcherTimer = setTimeout(async () => {
+        if (currentSerataId !== serataData.id) return;
+        clearWaitingIntervals();
+        clearSongListPolling();
+        [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+        showSongListCard(false);
+        stepClosed.style.display = 'flex';
+        document.querySelector('.steps').style.display = 'none';
+        setClosedState('🏆 Classifica finale', 'Countdown terminato: ecco subito il risultato finale della serata.');
+        updateClosedPromoContent();
+        showLeaderboard(true);
+        await loadFinalLeaderboard(serataData.id, serataData.vincitore_prenotazione_id);
+      }, delay + 25);
     }
 
     function hasCachedSongListItems() {
@@ -2044,7 +2100,7 @@
       await loadPublicSettings();
       const { data } = await db
         .from('serate')
-        .select('id, aperta, voto_aperto, prenotazioni_abilitate, vincitore_decretato, vincitore_prenotazione_id, notifiche_browser_abilitate')
+        .select('id, aperta, voto_aperto, prenotazioni_abilitate, vincitore_decretato, vincitore_prenotazione_id, winner_reveal_countdown_active, winner_reveal_countdown_ends_at, notifiche_browser_abilitate')
         .eq('aperta', true)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -2061,13 +2117,16 @@
         updateClosedPromoContent();
         showLeaderboard(false);
         setVotaBanner(false);
+        clearRevealCountdownWatcher();
         return false;
       }
       currentSerataId = data.id;
       browserNotificationsEnabled = data.notifiche_browser_abilitate !== false;
       const winnerDecreed = Boolean(data.vincitore_decretato);
+      const revealCountdownActive = Boolean(data.winner_reveal_countdown_active);
       setVotaBanner(Boolean(data.voto_aperto) && !winnerDecreed);
       if (winnerDecreed) {
+        clearRevealCountdownWatcher();
         clearWaitingIntervals();
         clearSongListPolling();
         [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
@@ -2080,6 +2139,13 @@
         await loadFinalLeaderboard(data.id, data.vincitore_prenotazione_id);
         return false;
       }
+      if (revealCountdownActive) {
+        await showRevealCountdownState(data);
+        scheduleRevealCountdownWatcher(data);
+        subscribeSerata(data.id);
+        return false;
+      }
+      clearRevealCountdownWatcher();
       showLeaderboard(false);
       stepClosed.style.display = 'none';
       subscribeSerata(data.id);
@@ -2107,10 +2173,12 @@
           filter: `id=eq.${serataId}` }, async (payload) => {
           browserNotificationsEnabled = payload.new.notifiche_browser_abilitate !== false;
           const winnerDecreed = Boolean(payload.new.vincitore_decretato);
+          const revealCountdownActive = Boolean(payload.new.winner_reveal_countdown_active);
           setVotaBanner(Boolean(payload.new.voto_aperto) && !winnerDecreed);
           if (!payload.new.aperta) {
             await loadPublicSettings();
             currentSerataId = null;
+            clearRevealCountdownWatcher();
             clearSongListPolling();
             [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
             showSongListCard(false);
@@ -2123,6 +2191,7 @@
           }
           if (winnerDecreed) {
             await loadPublicSettings();
+            clearRevealCountdownWatcher();
             clearWaitingIntervals();
             clearSongListPolling();
             [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
@@ -2135,6 +2204,12 @@
             loadFinalLeaderboard(serataId, payload.new.vincitore_prenotazione_id);
             return;
           }
+          if (revealCountdownActive) {
+            await showRevealCountdownState(payload.new);
+            scheduleRevealCountdownWatcher(payload.new);
+            return;
+          }
+          clearRevealCountdownWatcher();
           showLeaderboard(false);
           // Handle bookings enabled/disabled changes in realtime.
           const bookingsEnabled = payload.new.prenotazioni_abilitate !== false;

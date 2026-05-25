@@ -801,6 +801,7 @@
     let adminToken = '';
     let pollingTimer = null;
     let winnerAutoDecreeInFlight = false;
+    let winnerAutoDecreeTimer = null;
 
     document.getElementById('pwd-btn').addEventListener('click', loginAdmin);
     pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAdmin(); });
@@ -938,6 +939,7 @@
         clearInterval(pollingTimer);
         pollingTimer = null;
       }
+      clearWinnerAutoDecreeTimer();
       overlay.classList.remove('hidden');
       panel.style.display = 'none';
       pwdInput.value = '';
@@ -968,40 +970,66 @@
       return Number.isFinite(ts) ? ts : null;
     }
 
+    function clearWinnerAutoDecreeTimer() {
+      if (winnerAutoDecreeTimer) {
+        clearTimeout(winnerAutoDecreeTimer);
+        winnerAutoDecreeTimer = null;
+      }
+    }
+
+    function scheduleWinnerAutoDecree() {
+      clearWinnerAutoDecreeTimer();
+      if (!currentSerata || currentSerata.vincitore_decretato || !currentSerata.winner_reveal_countdown_active) return;
+      const endsAtMs = getWinnerRevealEndsAtMs(currentSerata);
+      if (!endsAtMs) return;
+      const delay = Math.max(0, endsAtMs - Date.now());
+      winnerAutoDecreeTimer = setTimeout(() => {
+        void maybeAutoDecreeWinner();
+      }, delay + 20);
+    }
+
+    async function maybeAutoDecreeWinner() {
+      if (!currentSerata || winnerAutoDecreeInFlight) return;
+      if (currentSerata.vincitore_decretato) return;
+      if (!currentSerata.winner_reveal_countdown_active) return;
+      const endsAtMs = getWinnerRevealEndsAtMs(currentSerata);
+      if (!endsAtMs) return;
+      if (endsAtMs > Date.now()) {
+        scheduleWinnerAutoDecree();
+        return;
+      }
+      winnerAutoDecreeInFlight = true;
+      try {
+        await callAdmin('decree_winner', { serataId: currentSerata.id });
+        const state = await callAdmin('get_state');
+        currentSerata = state?.serata || null;
+        bookings = Array.isArray(state?.bookings) ? state.bookings : bookings;
+      } catch (error) {
+        console.warn('Auto decreto vincitore non riuscito:', error);
+      } finally {
+        winnerAutoDecreeInFlight = false;
+        scheduleWinnerAutoDecree();
+      }
+    }
+
     async function refreshState(silent = false) {
       try {
         const state = await callAdmin('get_state');
         currentSerata = state?.serata || null;
-        await maybeAutoDecreeWinner();
         bookings = Array.isArray(state?.bookings) ? state.bookings : [];
+        await maybeAutoDecreeWinner();
         syncConnected = true;
         renderSerata();
         renderQueue(bookings);
         renderAdminFinalRanking();
         updateLiveDot();
+        scheduleWinnerAutoDecree();
       } catch (error) {
         syncConnected = false;
         updateLiveDot();
+        clearWinnerAutoDecreeTimer();
         if (!silent) {
           alert(error?.message || 'Errore durante il caricamento del pannello admin.');
-        }
-      }
-
-      async function maybeAutoDecreeWinner() {
-        if (!currentSerata || winnerAutoDecreeInFlight) return;
-        if (currentSerata.vincitore_decretato) return;
-        if (!currentSerata.winner_reveal_countdown_active) return;
-        const endsAtMs = getWinnerRevealEndsAtMs(currentSerata);
-        if (!endsAtMs || endsAtMs > Date.now()) return;
-        winnerAutoDecreeInFlight = true;
-        try {
-          await callAdmin('decree_winner', { serataId: currentSerata.id });
-          const state = await callAdmin('get_state');
-          currentSerata = state?.serata || null;
-        } catch (error) {
-          console.warn('Auto decreto vincitore non riuscito:', error);
-        } finally {
-          winnerAutoDecreeInFlight = false;
         }
       }
     }
