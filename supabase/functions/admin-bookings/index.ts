@@ -1087,7 +1087,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         currentSerata.winner_reveal_countdown_active &&
         !currentSerata.winner_reveal_countdown_ends_at
       ) {
-        const countdownSeconds = parseCountdownSeconds(body.countdownSeconds ?? 30);
+        const countdownSeconds = parseCountdownSeconds(body.countdownSeconds ?? 5);
         const startedAt = new Date();
         const endsAt = new Date(startedAt.getTime() + countdownSeconds * 1000);
         const { data: countdownSerata, error: countdownError } = await admin

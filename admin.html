@@ -1132,13 +1132,13 @@
       if (!currentSerata) return;
       const direttaActive = Boolean(currentSerata.winner_reveal_countdown_active);
       const confirmMsg = direttaActive
-        ? 'Avviare il countdown diretta (30 secondi) per il reveal del vincitore?'
+        ? 'Avviare il countdown diretta (5 secondi) per il reveal del vincitore?'
         : 'Conferma il decreto del vincitore. Dopo questa azione non sarà più possibile prenotare o modificare la coda.';
       if (!confirm(confirmMsg)) return;
       const btn = document.getElementById('btn-decree-winner');
       if (btn) btn.disabled = true;
       try {
-        const result = await callAdmin('decree_winner', { serataId: currentSerata.id, countdownSeconds: 30 });
+        const result = await callAdmin('decree_winner', { serataId: currentSerata.id, countdownSeconds: 5 });
         if (result?.countdown_started) {
           currentSerata = result?.serata || currentSerata;
           syncConnected = true;
