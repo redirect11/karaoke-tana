@@ -582,6 +582,7 @@
     let direttaCountdownTimer = null;
     let direttaCountdownLastValue = null;
     let votiRealtimeRefreshTimer = null;
+    let refreshingSerata = false;
     // localVotes: { [prenotazione_id]: { voto, db_id } }
     const localVotes = JSON.parse(localStorage.getItem('local_votes') || '{}');
 
@@ -628,6 +629,53 @@
         await loadSongs();
       }
       subscribeRealtime();
+      setInterval(refreshSerata, 8000);
+    }
+
+    // ── Refresh serata (used by realtime handler and polling) ──
+    async function refreshSerata() {
+      if (refreshingSerata) return;
+      refreshingSerata = true;
+      try {
+        const { data } = await db
+          .from('serate')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!data) return;
+
+        const currentId       = Number(serata?.id) || 0;
+        const nextId          = Number(data.id) || 0;
+        const currentCreatedAt = Date.parse(String(serata?.created_at || ''));
+        const nextCreatedAt    = Date.parse(String(data.created_at || ''));
+        const sameSerata = currentId > 0 && currentId === nextId;
+
+        // Ignore if this is an older serata than the one we already have
+        if (!sameSerata && serata
+            && Number.isFinite(currentCreatedAt) && Number.isFinite(nextCreatedAt)
+            && nextCreatedAt < currentCreatedAt) return;
+
+        // Only update the UI when something relevant has actually changed
+        const changed = !sameSerata
+          || Boolean(data.voto_aperto)                    !== votingOpen
+          || Boolean(data.mostra_voti_totali)             !== showTotalsPublic
+          || Boolean(data.winner_reveal_countdown_active) !== Boolean(serata?.winner_reveal_countdown_active)
+          || Boolean(data.vincitore_decretato)            !== Boolean(serata?.vincitore_decretato)
+          || (data.winner_reveal_countdown_ends_at ?? null) !== (serata?.winner_reveal_countdown_ends_at ?? null);
+        if (!changed) return;
+
+        serata           = data;
+        votingOpen       = Boolean(data.voto_aperto);
+        showTotalsPublic = Boolean(data.mostra_voti_totali);
+        updateBanner();
+        renderDiretta();
+        if (!serata.winner_reveal_countdown_active || serata.vincitore_decretato) {
+          await loadSongs();
+        }
+      } finally {
+        refreshingSerata = false;
+      }
     }
 
     function updateBanner() {
@@ -1034,31 +1082,8 @@
           if (!serata) return;
           scheduleRealtimeScoresRefresh();
         })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'serate' }, async payload => {
-          if (!payload?.new || typeof payload.new !== 'object') return;
-          const nextSerata = payload.new;
-          const currentId = Number(serata?.id) || 0;
-          const nextId = Number(nextSerata.id) || 0;
-          const currentCreatedAt = Date.parse(String(serata?.created_at || ''));
-          const nextCreatedAt = Date.parse(String(nextSerata.created_at || ''));
-          const sameSerata = currentId > 0 && currentId === nextId;
-          const shouldSwitchSerata = !serata
-            || sameSerata
-            || payload.eventType === 'INSERT'
-            || (
-              Number.isFinite(currentCreatedAt)
-              && Number.isFinite(nextCreatedAt)
-              && nextCreatedAt >= currentCreatedAt
-            );
-          if (!shouldSwitchSerata) return;
-          serata     = nextSerata;
-          votingOpen = serata.voto_aperto;
-          showTotalsPublic = Boolean(serata.mostra_voti_totali);
-          updateBanner();
-          renderDiretta();
-          if (!serata.winner_reveal_countdown_active || serata.vincitore_decretato) {
-            await loadSongs();
-          }
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'serate' }, async () => {
+          await refreshSerata();
         })
         .subscribe();
     }
