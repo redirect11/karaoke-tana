@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Vota le esibizioni del Karaoke de La Tana del Coniglio a Nola. Dai le tue preferenze e segui la classifica in tempo reale!" />
   <title>Vota le esibizioni – La Tana del Coniglio</title>
+  <link rel="manifest" href="manifest.json" />
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6652706779509567" crossorigin="anonymous"></script>
   <style>
     :root {
@@ -16,7 +18,7 @@
       --red:    #9b1c2e;
       --green:  #2ecc71;
       --text:   #f0e6d3;
-      --muted:  #a08ca0;
+      --muted:  #bfaabf;
       --vote-border: 2px;
       --vote-border-overlap: -2px;
       --radius: 14px;
@@ -517,31 +519,143 @@
       background: #090512;
       box-shadow: 0 12px 42px rgba(0,0,0,0.44);
     }
+
+    /* ── global focus style ── */
+    :focus-visible {
+      outline: 2px solid var(--gold-s);
+      outline-offset: 3px;
+    }
+
+    /* ── toast notification ── */
+    #vote-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #2a1650;
+      border: 1px solid rgba(212,160,23,0.4);
+      border-radius: 999px;
+      color: var(--text);
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 12px 22px;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.28s ease, opacity 0.28s ease;
+      white-space: nowrap;
+    }
+    #vote-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    #vote-toast.error {
+      border-color: rgba(231,76,60,0.6);
+      background: #3a0f1f;
+    }
+
+    /* ── skeleton loading ── */
+    .skeleton-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 56px 24px 22px;
+      min-height: 208px;
+      position: relative;
+      overflow: hidden;
+    }
+    .skeleton-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+      animation: shimmer 1.4s ease-in-out infinite;
+    }
+    @keyframes shimmer {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    .skeleton-line {
+      background: rgba(255,255,255,0.08);
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    .skeleton-line.w-60 { width: 60%; height: 16px; }
+    .skeleton-line.w-40 { width: 40%; height: 12px; }
+    .skeleton-line.w-30 { width: 30%; height: 12px; }
+    .skeleton-btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 24px;
+    }
+    .skeleton-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.07);
+    }
+
+    /* ── offline banner ── */
+    #offline-banner {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #9b1c2e;
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 10px 20px;
+      text-align: center;
+      z-index: 999;
+      animation: slideUp 0.25s ease;
+    }
+    #offline-banner.visible { display: block; }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
   </style>
   <link rel="stylesheet" href="scripts/vendor/cookieconsent.css" />
 </head>
 <body>
 
   <header>
-    <div class="logo">🐰🎤</div>
+    <div class="logo" aria-hidden="true">🐰🎤</div>
     <h1>Vota le esibizioni</h1>
     <p>La Tana del Coniglio · Nola</p>
+    <a href="index.html" style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:0.78rem;color:var(--muted);text-decoration:none;" aria-label="Torna alla home">← Home</a>
   </header>
 
   <div id="status-banner"></div>
 
   <section id="diretta-wrap">
-    <div class="diretta-icon">🎬</div>
+    <div class="diretta-icon" aria-hidden="true">🎬</div>
     <h2 id="diretta-title">⚡ Preparatevi… il momento è arrivato!</h2>
     <p id="diretta-text">Questa notte si scrive la storia del karaoke. Chi sarà il re o la regina del microfono? 👑</p>
     <div id="diretta-countdown" class="hidden"></div>
   </section>
 
   <div id="content">
-    <div class="state-box" id="loading-state">
-      <div class="big">⏳</div>
-      <p>Caricamento…</p>
+    <div class="vote-grid" id="loading-state">
+      <div class="skeleton-card" aria-hidden="true">
+        <div class="skeleton-line w-60"></div>
+        <div class="skeleton-line w-40"></div>
+        <div class="skeleton-line w-30"></div>
+        <div class="skeleton-btn-row">
+          <div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div>
+        </div>
+      </div>
+      <div class="skeleton-card" aria-hidden="true">
+        <div class="skeleton-line w-60"></div>
+        <div class="skeleton-line w-40"></div>
+        <div class="skeleton-line w-30"></div>
+        <div class="skeleton-btn-row">
+          <div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div>
+        </div>
+      </div>
     </div>
+    <p style="text-align:center;color:var(--muted);font-size:0.82rem;margin-top:12px;" id="loading-text" aria-live="polite">Caricamento esibizioni…</p>
   </div>
   <div id="photo-modal" class="photo-modal" hidden role="dialog" aria-modal="true" aria-labelledby="photo-modal-title">
     <div class="photo-modal-panel">
@@ -552,6 +666,9 @@
       <img id="photo-modal-image" class="photo-modal-image" alt="" loading="lazy" />
     </div>
   </div>
+
+  <div id="vote-toast" role="status" aria-live="polite"></div>
+  <div id="offline-banner" role="status" aria-live="polite">⚠️ Connessione assente — i dati potrebbero non essere aggiornati</div>
 
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -574,6 +691,29 @@
     const photoModalImg = document.getElementById('photo-modal-image');
     const photoModalTitle = document.getElementById('photo-modal-title');
     const photoModalClose = document.getElementById('photo-modal-close');
+    const voteToast = document.getElementById('vote-toast');
+    const offlineBanner = document.getElementById('offline-banner');
+
+    // ── Toast helper ───────────────────────────────────────────
+    let toastTimer = null;
+    function showToast(msg, isError = false) {
+      if (!voteToast) return;
+      clearTimeout(toastTimer);
+      voteToast.textContent = msg;
+      voteToast.classList.toggle('error', isError);
+      voteToast.classList.add('show');
+      toastTimer = setTimeout(() => voteToast.classList.remove('show'), 2800);
+    }
+
+    // ── Offline indicator ──────────────────────────────────────
+    if (offlineBanner) {
+      function updateOffline() {
+        offlineBanner.classList.toggle('visible', !navigator.onLine);
+      }
+      window.addEventListener('online',  updateOffline);
+      window.addEventListener('offline', updateOffline);
+      updateOffline();
+    }
 
     let serata       = null;
     let songs        = [];
@@ -826,12 +966,16 @@
 
     // ── Render ─────────────────────────────────────────────────
     function renderContent() {
+      // hide skeleton loading text on first render
+      const loadingText = document.getElementById('loading-text');
+      if (loadingText) loadingText.style.display = 'none';
+
       content.innerHTML = '';
 
       if (songs.length === 0) {
         content.innerHTML = `
           <div class="state-box">
-            <div class="big">��</div>
+            <div class="big" aria-hidden="true">🌙</div>
             <p>Nessuna esibizione conclusa ancora.<br>Torna dopo la prima canzone completata!</p>
           </div>
         `;
@@ -1015,6 +1159,7 @@
 
       if (error) {
         console.error(error);
+        showToast('❌ Errore nell\'invio del voto. Riprova.', true);
         card.querySelectorAll('.btn-vote').forEach(b => b.disabled = false);
         return;
       }
@@ -1022,6 +1167,7 @@
       if (existing?.db_id) setLocalVote(songId, voto, existing.db_id);
       saveLocalVotes();
       setCardVoteSelection(card, voto);
+      showToast(`👏 Voto inviato: ${voto}/5`);
 
       // refresh scores for this card
       const song = songs.find(s => s.id === songId);
@@ -1052,7 +1198,7 @@
     }
 
     function showEmpty(msg) {
-      content.innerHTML = `<div class="state-box"><div class="big">🌙</div><p>${esc(msg)}</p></div>`;
+      content.innerHTML = `<div class="state-box"><div class="big" aria-hidden="true">🌙</div><p>${esc(msg)}</p></div>`;
     }
 
     function openPhotoModal(url, label) {
