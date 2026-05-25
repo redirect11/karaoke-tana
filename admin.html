@@ -959,6 +959,14 @@
       }
     }
 
+    function getWinnerRevealEndsAtMs(serata) {
+      const iso = typeof serata?.winner_reveal_countdown_ends_at === 'string'
+        ? serata.winner_reveal_countdown_ends_at
+        : '';
+      const ts = Date.parse(iso);
+      return Number.isFinite(ts) ? ts : null;
+    }
+
     async function refreshState(silent = false) {
       try {
         const state = await callAdmin('get_state');
@@ -976,14 +984,6 @@
         if (!silent) {
           alert(error?.message || 'Errore durante il caricamento del pannello admin.');
         }
-      }
-
-      function getWinnerRevealEndsAtMs(serata) {
-        const iso = typeof serata?.winner_reveal_countdown_ends_at === 'string'
-          ? serata.winner_reveal_countdown_ends_at
-          : '';
-        const ts = Date.parse(iso);
-        return Number.isFinite(ts) ? ts : null;
       }
 
       async function maybeAutoDecreeWinner() {
