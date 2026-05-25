@@ -153,6 +153,16 @@ Il form in `index.html` ora chiama la Edge Function:
 
 La UI gestisce loading/error sul bottone di submit.
 
+### Reveal pubblico vincitore
+
+- La schermata diretta/countdown per il reveal vincitore è integrata in `vota.html`.
+- Con votazioni chiuse l'admin può premere **"Abilita diretta"** dallo staff panel (`admin.html`):
+  - la pagina `vota.html` mostra la schermata "Il vincitore sta per essere rivelato…";
+  - premendo **"Avvia countdown"** (=tasto Decreta vincitore con diretta attiva) parte un countdown di 30 s;
+  - al termine del countdown il vincitore viene decretato automaticamente.
+- Con diretta disabilitata, **"Decreta vincitore"** dichiara subito il vincitore (comportamento precedente).
+- Se si vuole annullare la diretta prima del countdown, premere **"Disabilita diretta"**.
+
 ## Deploy GitHub Pages
 
 ### Deploy sito test (`main`)

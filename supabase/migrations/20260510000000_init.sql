@@ -38,11 +38,19 @@ CREATE TABLE IF NOT EXISTS serate (
   mostra_voti_totali           BOOLEAN      NOT NULL DEFAULT FALSE,
   vincitore_decretato          BOOLEAN      NOT NULL DEFAULT FALSE,
   vincitore_prenotazione_id    BIGINT,
+  winner_reveal_countdown_active     BOOLEAN      NOT NULL DEFAULT FALSE,
+  winner_reveal_countdown_started_at TIMESTAMPTZ,
+  winner_reveal_countdown_ends_at    TIMESTAMPTZ,
+  winner_reveal_countdown_seconds    INTEGER,
   notifiche_telegram_abilitate BOOLEAN      NOT NULL DEFAULT TRUE,
   notifiche_browser_abilitate  BOOLEAN      NOT NULL DEFAULT TRUE,
   note                         TEXT,
   created_at                   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE serate
+  ADD CONSTRAINT serate_winner_reveal_countdown_seconds_check
+  CHECK (winner_reveal_countdown_seconds IS NULL OR winner_reveal_countdown_seconds BETWEEN 5 AND 300);
 
 CREATE UNIQUE INDEX IF NOT EXISTS one_open_serata
   ON serate (aperta) WHERE aperta = TRUE;
