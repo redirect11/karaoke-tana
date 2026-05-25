@@ -442,7 +442,7 @@
     .btn-submit:active { transform: scale(0.98); }
 
     /* ── success / waiting / closed ── */
-    #step-success, #step-waiting, #step-closed {
+    #step-success, #step-waiting, #step-closed, #step-bookings-disabled {
       display: none;
       flex-direction: column;
       align-items: center;
@@ -450,9 +450,18 @@
       gap: 12px;
     }
     #step-success .big-icon, #step-waiting .big-icon, #step-closed .big-icon { font-size: 3.5rem; }
-    #step-success h2, #step-waiting h2, #step-closed h2 { color: var(--gold-soft); font-size: 1.3rem; }
+    #step-success h2, #step-waiting h2, #step-closed h2, #step-bookings-disabled h2 { color: var(--gold-soft); font-size: 1.3rem; }
     #step-waiting h2.is-critical { color: #ff4d4f; }
-    #step-success p,  #step-waiting p,  #step-closed p  { font-size: 0.88rem; }
+    #step-success p,  #step-waiting p,  #step-closed p, #step-bookings-disabled p  { font-size: 0.88rem; }
+    .booking-disabled-illustration {
+      width: min(220px, 65vw);
+      border-radius: 24px;
+      display: block;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 10px;
+    }
     #waiting-song  { font-size: 0.95rem !important; font-weight: 700; color: var(--text) !important; }
     #waiting-timer { font-size: 0.75rem !important; color: var(--muted) !important; }
     #waiting-status, #success-status { margin-bottom: 0; }
@@ -1181,10 +1190,16 @@
 
   <!-- STEP bookings-disabled: karaoke aperto ma prenotazioni disabilitate -->
   <div class="card" id="step-bookings-disabled" style="display:none;">
-    <div class="big-icon" aria-hidden="true">⏸️</div>
+    <img
+      class="booking-disabled-illustration"
+      src="logo.png"
+      alt="Logo del karaoke"
+      width="220"
+      height="220"
+      loading="lazy"
+    />
     <h2>Prenotazioni non disponibili</h2>
-    <p>Da questo momento non è più possibile prenotarsi.</p>
-    <p style="font-size:0.86rem; color:var(--muted);">Attendi aggiornamenti dallo staff.</p>
+    <p>Le prenotazioni sono al momento chiuse.</p>
     <p id="bookings-disabled-vote-msg" style="display:none; margin-top:8px;">
       <a href="vota.html" style="color:var(--gold); font-weight:700; text-decoration:underline;">🗳️ Vota la tua esibizione preferita →</a>
     </p>
