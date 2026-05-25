@@ -1383,6 +1383,7 @@
     let bookingsAreEnabled = true;
     let voteOpen = false;
     let songListPollInterval = null;
+    let serataPollInterval = null;
     let songListAvailability = 'loading';
     let songListCache = { toSing: [], completed: [] };
 
@@ -2107,6 +2108,13 @@
       }
     }
 
+    function clearSerataPollInterval() {
+      if (serataPollInterval) {
+        clearInterval(serataPollInterval);
+        serataPollInterval = null;
+      }
+    }
+
     function ensureSongListPolling() {
       clearSongListPolling();
       songListPollInterval = setInterval(() => {
@@ -2221,82 +2229,110 @@
       return true;
     }
 
+    // ── Refresh serata state (usato dal realtime handler e dal polling) ──
+    // Re-fetches fresh serata data from the DB so that the UI is always
+    // consistent regardless of whether REPLICA IDENTITY FULL is set on the
+    // serate table (without it, payload.new only contains changed columns).
+    let refreshingSerataState = false;
+    async function refreshSerataState(serataId) {
+      if (refreshingSerataState) return;
+      refreshingSerataState = true;
+      try {
+        const { data } = await db
+          .from('serate')
+          .select('id, aperta, voto_aperto, prenotazioni_abilitate, vincitore_decretato, vincitore_prenotazione_id, winner_reveal_countdown_active, winner_reveal_countdown_ends_at, notifiche_browser_abilitate')
+          .eq('id', serataId)
+          .maybeSingle();
+        if (!data || !data.aperta) {
+          bookingsAreEnabled = false;
+          voteOpen = false;
+          await loadPublicSettings();
+          currentSerataId = null;
+          clearRevealCountdownWatcher();
+          clearSongListPolling();
+          clearSerataPollInterval();
+          [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
+          showSongListCard(false);
+          stepClosed.style.display = 'flex';
+          document.querySelector('.steps').style.display = 'none';
+          setClosedState('Prenotazioni chiuse', 'Per ora non c\'è nessun karaoke in corso.<br>Segui la pagina Instagram per conoscere le ultime novità.');
+          updateClosedPromoContent();
+          showLeaderboard(false);
+          setVotaBanner(false);
+          subscribeGlobalSerata();
+          return;
+        }
+        browserNotificationsEnabled = data.notifiche_browser_abilitate !== false;
+        voteOpen = Boolean(data.voto_aperto);
+        const winnerDecreed = Boolean(data.vincitore_decretato);
+        const revealCountdownActive = Boolean(data.winner_reveal_countdown_active);
+        setVotaBanner(Boolean(data.voto_aperto) && !winnerDecreed);
+        if (winnerDecreed) {
+          bookingsAreEnabled = false;
+          voteOpen = false;
+          await loadPublicSettings();
+          clearRevealCountdownWatcher();
+          clearWaitingIntervals();
+          clearSongListPolling();
+          clearSerataPollInterval();
+          [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
+          showSongListCard(false);
+          stepClosed.style.display = 'flex';
+          document.querySelector('.steps').style.display = 'none';
+          setClosedState('🏁 Karaoke concluso', 'Il vincitore è stato decretato e le prenotazioni sono chiuse per questa serata.');
+          updateClosedPromoContent();
+          showLeaderboard(true);
+          loadFinalLeaderboard(serataId, data.vincitore_prenotazione_id);
+          return;
+        }
+        if (revealCountdownActive) {
+          bookingsAreEnabled = false;
+          await showRevealCountdownState(data);
+          scheduleRevealCountdownWatcher(data);
+          return;
+        }
+        clearRevealCountdownWatcher();
+        showLeaderboard(false);
+        // Handle bookings enabled/disabled changes in realtime.
+        bookingsAreEnabled = data.prenotazioni_abilitate !== false;
+        if (!bookingsAreEnabled) {
+          // Only show the disabled notice when the user has no active booking state
+          if (stepWaiting.style.display !== 'flex') {
+            showBookingsDisabledState();
+          } else {
+            stepBookingsDisabled.style.display = 'none';
+          }
+        } else {
+          stepBookingsDisabled.style.display = 'none';
+          // Only restore the steps/form if not in waiting mode already.
+          if (stepWaiting.style.display !== 'flex' && stepSuccess.style.display !== 'flex') {
+            document.querySelector('.steps').style.display = '';
+            // Check if there's a pending booking, otherwise show form.
+            const pending = await checkPendingBooking();
+            if (!pending) {
+              const alreadyFollowed = getCookie('ig_followed') === 'true';
+              if (alreadyFollowed) showForm();
+              else stepFollow.style.display = 'block';
+            }
+          }
+        }
+      } finally {
+        refreshingSerataState = false;
+      }
+    }
+
     function subscribeSerata(serataId) {
       if (!db || serataChannel) return;
       serataChannel = db.channel('index-serata')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate',
-          filter: `id=eq.${serataId}` }, async (payload) => {
-          browserNotificationsEnabled = payload.new.notifiche_browser_abilitate !== false;
-          voteOpen = Boolean(payload.new.voto_aperto);
-          const winnerDecreed = Boolean(payload.new.vincitore_decretato);
-          const revealCountdownActive = Boolean(payload.new.winner_reveal_countdown_active);
-          setVotaBanner(Boolean(payload.new.voto_aperto) && !winnerDecreed);
-          if (!payload.new.aperta) {
-            bookingsAreEnabled = false;
-            voteOpen = false;
-            await loadPublicSettings();
-            currentSerataId = null;
-            clearRevealCountdownWatcher();
-            clearSongListPolling();
-            [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
-            showSongListCard(false);
-            stepClosed.style.display = 'flex';
-            document.querySelector('.steps').style.display = 'none';
-            setClosedState('Prenotazioni chiuse', 'Per ora non c\'è nessun karaoke in corso.<br>Segui la pagina Instagram per conoscere le ultime novità.');
-            updateClosedPromoContent();
-            showLeaderboard(false);
-            return;
-          }
-          if (winnerDecreed) {
-            bookingsAreEnabled = false;
-            voteOpen = false;
-            await loadPublicSettings();
-            clearRevealCountdownWatcher();
-            clearWaitingIntervals();
-            clearSongListPolling();
-            [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
-            showSongListCard(false);
-            stepClosed.style.display = 'flex';
-            document.querySelector('.steps').style.display = 'none';
-            setClosedState('🏁 Karaoke concluso', 'Il vincitore è stato decretato e le prenotazioni sono chiuse per questa serata.');
-            updateClosedPromoContent();
-            showLeaderboard(true);
-            loadFinalLeaderboard(serataId, payload.new.vincitore_prenotazione_id);
-            return;
-          }
-          if (revealCountdownActive) {
-            bookingsAreEnabled = false;
-            await showRevealCountdownState(payload.new);
-            scheduleRevealCountdownWatcher(payload.new);
-            return;
-          }
-          clearRevealCountdownWatcher();
-          showLeaderboard(false);
-          // Handle bookings enabled/disabled changes in realtime.
-          bookingsAreEnabled = payload.new.prenotazioni_abilitate !== false;
-          if (!bookingsAreEnabled) {
-            // Only show the disabled notice when the user has no active booking state
-            if (stepWaiting.style.display !== 'flex') {
-              showBookingsDisabledState();
-            } else {
-              stepBookingsDisabled.style.display = 'none';
-            }
-          } else {
-            stepBookingsDisabled.style.display = 'none';
-            // Only restore the steps/form if not in waiting mode already.
-            if (stepWaiting.style.display !== 'flex' && stepSuccess.style.display !== 'flex') {
-              document.querySelector('.steps').style.display = '';
-              // Check if there's a pending booking, otherwise show form.
-              const pending = await checkPendingBooking();
-              if (!pending) {
-                const alreadyFollowed = getCookie('ig_followed') === 'true';
-                if (alreadyFollowed) showForm();
-                else stepFollow.style.display = 'block';
-              }
-            }
-          }
+          filter: `id=eq.${serataId}` }, async () => {
+          await refreshSerataState(serataId);
         })
         .subscribe();
+      // Polling fallback: handles the case where realtime events are missed or
+      // payload.new is empty because REPLICA IDENTITY FULL is not set.
+      clearSerataPollInterval();
+      serataPollInterval = setInterval(() => refreshSerataState(serataId), 8000);
     }
 
     // ── Subscription globale: rileva apertura nuova serata ───
