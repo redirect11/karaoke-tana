@@ -864,35 +864,28 @@
         </summary>
         <div class="help-body">
           <section class="help-card">
-            <h4>Stati possibili</h4>
-            <ul>
-              <li><strong>Nessun karaoke aperto</strong>: solo apertura nuova serata disponibile.</li>
-              <li><strong>Karaoke aperto</strong>: gestione coda e prenotazioni attiva.</li>
-              <li><strong>Votazioni aperte</strong>: il pubblico può votare su <code>vota.html</code> mentre la coda continua.</li>
-              <li><strong>Modalità proclamazione</strong>: voti e prenotazioni chiusi, compare la schermata diretta su <code>vota.html</code>.</li>
-              <li><strong>Vincitore decretato</strong>: risultati finali bloccati, resta solo la chiusura serata.</li>
-            </ul>
-          </section>
-          <section class="help-card">
-            <h4>Cosa fanno i pulsanti</h4>
-            <ul>
-              <li><strong>Apri/Chiudi karaoke</strong>: avvia o termina la serata corrente.</li>
-              <li><strong>Abilita/Disabilita prenotazioni</strong>: apre/chiude le nuove richieste canzoni.</li>
-              <li><strong>Apri/Chiudi votazioni</strong>: consente o blocca i voti dal pubblico.</li>
-              <li><strong>Termina votazioni</strong>: chiude voti e prenotazioni, attiva proclamazione.</li>
-              <li><strong>Mostra/Nascondi totali pubblici</strong>: rende visibili o no i punteggi aggregati.</li>
-              <li><strong>Avvia countdown</strong>: con proclamazione attiva avvia il conto alla rovescia pubblico (5s) prima del decreto.</li>
-              <li><strong>Decreta vincitore</strong>: senza countdown proclama subito il vincitore finale.</li>
-              <li><strong>Annulla proclamazione</strong>: esce dalla modalità diretta prima del decreto finale.</li>
-            </ul>
-          </section>
-          <section class="help-card">
-            <h4>Flusso consigliato (quando parti da votazioni aperte)</h4>
+            <h4>Istruzioni per la proclamazione</h4>
+            <p>💡 <strong>Nota:</strong> i pulsanti <em>Disabilita prenotazioni</em> e <em>Disabilita voti</em> sono temporanei — puoi abilitarli e disabilitarli liberamente durante la serata quante volte vuoi, senza conseguenze sulla modalità corrente.</p>
             <ol>
-              <li>Con voti aperti, usa <strong>Termina votazioni</strong> per passare a proclamazione (chiude voti + prenotazioni).</li>
-              <li>Apri la pagina pubblica con <strong>Apri pagina voti/countdown ↗</strong> per mostrare la schermata diretta.</li>
-              <li>Per un reveal scenico usa <strong>Avvia countdown</strong> (da admin panel o dalla pagina countdown aperta come admin).</li>
-              <li>Se non vuoi il countdown, usa direttamente <strong>Decreta vincitore</strong> e il risultato viene pubblicato subito.</li>
+              <li>
+                <strong>Apri le votazioni dopo aver aperto il karaoke.</strong>
+                Usa il pulsante <em>Apri votazioni</em> nel pannello serata: da quel momento il pubblico può votare dalla pagina <code>vota.html</code> e le prenotazioni rimangono attive in parallelo.
+              </li>
+              <li>
+                <strong>Quando vuoi chiudere le votazioni, premi <em>Termina votazioni</em>.</strong>
+                Questo pulsante chiude contemporaneamente i voti <em>e</em> le prenotazioni e attiva la <strong>modalità proclamazione</strong>.
+                <br><strong>⚠️ Importante:</strong> in modalità proclamazione è possibile <em>solo</em> proclamare il vincitore e successivamente chiudere il karaoke. Non è possibile riaprire le prenotazioni o i voti.
+              </li>
+              <li>
+                <strong>Countdown e proiezione del risultato.</strong>
+                Per un reveal scenico:
+                <ol type="a">
+                  <li>Dal computer collegato al proiettore, apri la pagina pubblica <code>vota.html</code> e proiettala in sala (usa il pulsante <em>Apri pagina voti/countdown ↗</em> nell'app admin per aprirla velocemente).</li>
+                  <li>Dall'app admin (sullo smartphone o su un secondo dispositivo), premi <strong>Avvia countdown</strong>: partirà un conto alla rovescia di 5 secondi visibile sul proiettore.</li>
+                  <li>Allo scadere del countdown il vincitore viene decretato automaticamente e il risultato compare sulla pagina proiettata in sala.</li>
+                  <li>Se preferisci saltare il countdown, usa direttamente <strong>Decreta vincitore</strong> per pubblicare il risultato immediatamente.</li>
+                </ol>
+              </li>
             </ol>
           </section>
         </div>
