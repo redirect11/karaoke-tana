@@ -546,23 +546,38 @@
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.10);
       border-radius: 10px;
-      padding: 10px 12px;
+      padding: 12px 14px;
     }
     .help-card h4 {
       color: var(--text);
-      font-size: 0.8rem;
-      margin-bottom: 6px;
+      font-size: 0.88rem;
+      margin-bottom: 8px;
     }
-    .help-card ul {
+    .help-card p {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.4;
+    }
+    .help-card ol {
       margin: 0;
-      padding-left: 18px;
+      padding-left: 20px;
       display: grid;
-      gap: 5px;
+      gap: 8px;
+    }
+    .help-card ol ol {
+      margin-top: 6px;
+      padding-left: 18px;
+      gap: 6px;
     }
     .help-card li {
       color: var(--muted);
-      font-size: 0.76rem;
-      line-height: 1.35;
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+    .help-card .help-note {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: #d8b6ff;
     }
 
     #queue-wrap {
@@ -865,7 +880,6 @@
         <div class="help-body">
           <section class="help-card">
             <h4>Istruzioni per la proclamazione</h4>
-            <p>💡 <strong>Nota:</strong> i pulsanti <em>Disabilita prenotazioni</em> e <em>Disabilita voti</em> sono temporanei — puoi abilitarli e disabilitarli liberamente durante la serata quante volte vuoi, senza conseguenze sulla modalità corrente.</p>
             <ol>
               <li>
                 <strong>Apri le votazioni dopo aver aperto il karaoke.</strong>
@@ -887,6 +901,7 @@
                 </ol>
               </li>
             </ol>
+            <p class="help-note">💡 <strong>Nota:</strong> i pulsanti <em>Disabilita prenotazioni</em> e <em>Disabilita voti</em> sono temporanei — puoi abilitarli e disabilitarli liberamente durante la serata quante volte vuoi, senza conseguenze sulla modalità corrente.</p>
           </section>
         </div>
       </details>
