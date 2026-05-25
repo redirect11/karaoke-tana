@@ -1000,7 +1000,7 @@
         Segui
       </button>
     </div>
-    <a id="closed-archive-link" href="archive.html" style="display:none; margin-top:6px; color:var(--gold); text-decoration:underline; font-size:0.86rem;">
+    <a id="closed-archive-link" href="archive.html" style="display:inline-block; margin-top:6px; color:var(--gold); text-decoration:underline; font-size:0.86rem;">
       Consulta archivio karaoke
     </a>
   </div>
@@ -1039,7 +1039,7 @@
     <img id="selfie-lightbox-img" src="" alt="selfie ingrandito" />
   </div>
 
-  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.2 &nbsp;|&nbsp; <a href="cookie-policy.html" style="color:inherit;text-decoration:underline;">Cookie Policy</a></footer>
+  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.2 &nbsp;|&nbsp; <a href="archive.html" style="color:inherit;text-decoration:underline;">Archivio karaoke</a> &nbsp;|&nbsp; <a href="cookie-policy.html" style="color:inherit;text-decoration:underline;">Cookie Policy</a></footer>
 
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -1264,7 +1264,10 @@
           : 'Data del prossimo karaoke in aggiornamento.';
       }
       if (closedArchiveLink) {
-        closedArchiveLink.style.display = publicSettings?.archivio_pubblico_abilitato === true ? 'inline-block' : 'none';
+        // Link sempre visibile: se l'archivio è chiuso al pubblico,
+        // archive.html mostrerà comunque il messaggio "non disponibile".
+        // Gli admin loggati lo vedono indipendentemente dal toggle.
+        closedArchiveLink.style.display = 'inline-block';
       }
     }
 
