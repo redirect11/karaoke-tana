@@ -313,6 +313,36 @@
     #diretta-countdown.end {
       animation: countdownEndPulse 1s ease-in-out infinite;
     }
+    .diretta-admin-controls {
+      width: min(460px, 100%);
+      margin-top: 8px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(212,160,23,0.24);
+      background: rgba(12, 8, 24, 0.62);
+      display: grid;
+      gap: 8px;
+      justify-items: center;
+    }
+    .diretta-admin-controls .btn-start-countdown {
+      border: 1px solid rgba(212,160,23,0.34);
+      background: linear-gradient(180deg, #f7d670 0%, #c89a27 100%);
+      color: #281702;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .diretta-admin-controls .btn-start-countdown:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .diretta-admin-note {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
     @keyframes countdownEndPulse {
       0%, 100% { transform: scale(1); text-shadow: 0 0 28px rgba(240,201,74,0.45); }
       50% { transform: scale(1.1); text-shadow: 0 0 40px rgba(240,201,74,0.85); }
@@ -535,6 +565,10 @@
     <h2 id="diretta-title">⚡ Preparatevi… il momento è arrivato!</h2>
     <p id="diretta-text">Questa notte si scrive la storia del karaoke. Chi sarà il re o la regina del microfono? 👑</p>
     <div id="diretta-countdown" class="hidden"></div>
+    <div id="diretta-admin-controls" class="diretta-admin-controls hidden">
+      <button id="btn-start-diretta-countdown" class="btn-start-countdown" type="button">🎬 Avvia countdown (admin)</button>
+      <div id="diretta-admin-note" class="diretta-admin-note">Apri questa pagina dal pannello admin per avviare il countdown da qui.</div>
+    </div>
   </section>
 
   <div id="content">
@@ -570,6 +604,9 @@
     const direttaTitle  = document.getElementById('diretta-title');
     const direttaText   = document.getElementById('diretta-text');
     const direttaCountdownEl = document.getElementById('diretta-countdown');
+    const direttaAdminControls = document.getElementById('diretta-admin-controls');
+    const startDirettaCountdownBtn = document.getElementById('btn-start-diretta-countdown');
+    const direttaAdminNote = document.getElementById('diretta-admin-note');
     const photoModal = document.getElementById('photo-modal');
     const photoModalImg = document.getElementById('photo-modal-image');
     const photoModalTitle = document.getElementById('photo-modal-title');
@@ -585,6 +622,9 @@
     let forceWinnerReveal = false;
     let votiRealtimeRefreshTimer = null;
     let refreshingSerata = false;
+    let direttaAdminToken = '';
+    let direttaAdminActionInFlight = false;
+    const direttaAdminContextRequested = new URLSearchParams(window.location.search).get('adminView') === '1';
     const HOME_PAGE_PATH = 'index.html';
     // localVotes: { [prenotazione_id]: { voto, db_id } }
     const localVotes = JSON.parse(localStorage.getItem('local_votes') || '{}');
@@ -723,6 +763,76 @@
       direttaCountdownLastValue = null;
     }
 
+    function getAdminHeaders(token) {
+      const headers = new Headers({ 'Content-Type': 'application/json', Authorization: `Bearer ${token}` });
+      if (config.SUPABASE_ANON_KEY) headers.set('apikey', config.SUPABASE_ANON_KEY);
+      return headers;
+    }
+
+    async function callAdmin(action, payload = {}) {
+      if (!config.SUPABASE_URL) throw new Error('CONFIG.SUPABASE_URL non configurato.');
+      if (!direttaAdminToken) throw new Error('Sessione admin non disponibile su questa pagina.');
+      const endpoint = `${String(config.SUPABASE_URL).replace(/\/+$/, '')}/functions/v1/admin-bookings`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: getAdminHeaders(direttaAdminToken),
+        body: JSON.stringify({ action, ...payload }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        const message = result?.error?.message || 'Errore durante la richiesta admin.';
+        throw new Error(message);
+      }
+      return result.data;
+    }
+
+    function renderDirettaAdminControls() {
+      if (!direttaAdminControls || !direttaAdminNote || !startDirettaCountdownBtn) return;
+      const direttaActive = Boolean(serata?.winner_reveal_countdown_active);
+      const winnerDecreed = Boolean(serata?.vincitore_decretato);
+      const countdownStarted = Number.isFinite(Date.parse(serata?.winner_reveal_countdown_ends_at || ''));
+      if (!direttaActive || winnerDecreed || !direttaAdminContextRequested) {
+        direttaAdminControls.classList.add('hidden');
+        return;
+      }
+      direttaAdminControls.classList.remove('hidden');
+      if (!direttaAdminToken) {
+        startDirettaCountdownBtn.disabled = true;
+        direttaAdminNote.textContent = 'Modalità admin: token non ricevuto. Apri questa pagina dal pannello admin.';
+        return;
+      }
+      if (countdownStarted) {
+        startDirettaCountdownBtn.disabled = true;
+        direttaAdminNote.textContent = 'Countdown già avviato da un pannello admin.';
+        return;
+      }
+      startDirettaCountdownBtn.disabled = direttaAdminActionInFlight;
+      direttaAdminNote.textContent = 'Puoi avviare il countdown da qui (5 secondi) prima della proclamazione.';
+    }
+
+    async function startDirettaCountdownFromVota() {
+      if (!serata?.id || !direttaAdminToken || direttaAdminActionInFlight) return;
+      if (Number.isFinite(Date.parse(serata?.winner_reveal_countdown_ends_at || ''))) return;
+      if (!confirm('Avviare il countdown diretta (5 secondi) da questa pagina?')) return;
+      direttaAdminActionInFlight = true;
+      renderDirettaAdminControls();
+      try {
+        const result = await callAdmin('decree_winner', { serataId: serata.id, countdownSeconds: 5 });
+        if (result?.serata) {
+          serata = result.serata;
+          votingOpen = Boolean(serata.voto_aperto);
+          showTotalsPublic = Boolean(serata.mostra_voti_totali);
+        }
+        updateBanner();
+        renderDiretta();
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito ad avviare il countdown.');
+      } finally {
+        direttaAdminActionInFlight = false;
+        renderDirettaAdminControls();
+      }
+    }
+
     async function preloadDirettaFinalView() {
       if (!serata?.id) return;
       if (direttaRevealPreloadPromise) return direttaRevealPreloadPromise;
@@ -750,6 +860,7 @@
         content.style.display = '';
         direttaCountdownEl.classList.add('hidden');
         direttaCountdownEl.classList.remove('tick', 'end');
+        renderDirettaAdminControls();
         return;
       }
 
@@ -761,6 +872,7 @@
         direttaText.textContent = 'Questa notte si scrive la storia del karaoke. Chi sarà il re o la regina del microfono? 👑';
         direttaCountdownEl.classList.add('hidden');
         direttaCountdownEl.classList.remove('tick', 'end');
+        renderDirettaAdminControls();
         return;
       }
 
@@ -797,6 +909,7 @@
         direttaCountdownTimer = setTimeout(tick, nextDelay);
       };
       tick();
+      renderDirettaAdminControls();
     }
 
     function scheduleRealtimeScoresRefresh() {
@@ -1155,6 +1268,15 @@
         .replace(/&/g,'&amp;').replace(/</g,'&lt;')
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
+
+    window.addEventListener('message', (event) => {
+      if (event.origin !== window.location.origin) return;
+      const payload = event.data || {};
+      if (payload.type !== 'karaoke-admin-auth' || typeof payload.token !== 'string' || !payload.token) return;
+      direttaAdminToken = payload.token;
+      renderDirettaAdminControls();
+    });
+    startDirettaCountdownBtn?.addEventListener('click', startDirettaCountdownFromVota);
 
     loadSerata();
   </script>
