@@ -725,6 +725,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           data: date,
           aperta: true,
           voto_aperto: false,
+          prenotazioni_abilitate: true,
           mostra_voti_totali: false,
           winner_reveal_countdown_active: false,
           winner_reveal_countdown_started_at: null,
@@ -760,6 +761,8 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         .update({
           aperta: false,
           voto_aperto: false,
+          prenotazioni_abilitate: false,
+          archiviato_nascosto: true,
           mostra_voti_totali: false,
           winner_reveal_countdown_active: false,
           winner_reveal_countdown_started_at: null,
@@ -1000,6 +1003,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       const { data, error } = await admin
         .from("serate")
         .update({
+          prenotazioni_abilitate: false,
           winner_reveal_countdown_active: true,
           winner_reveal_countdown_started_at: null,
           winner_reveal_countdown_ends_at: null,
@@ -1160,6 +1164,153 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           top5,
         },
       };
+    }
+
+    case "set_bookings":
+    case "toggle_bookings": {
+      const currentSerata = body.serataId != null
+        ? await getSerataById(admin, toPositiveInt(body.serataId, "serataId"))
+        : await getOpenSerata(admin);
+
+      if (!currentSerata?.id) {
+        throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
+      }
+      if (currentSerata.vincitore_decretato) {
+        throw new ApiError(409, "winner_already_decreed", "Vincitore già decretato: non puoi modificare le prenotazioni.");
+      }
+      if (currentSerata.winner_reveal_countdown_active) {
+        throw new ApiError(409, "proclamazione_mode", "Modalità proclamazione attiva: non puoi modificare le prenotazioni.");
+      }
+
+      const prenotazioniAbilitate = typeof body.prenotazioniAbilitate === "boolean"
+        ? body.prenotazioniAbilitate
+        : !Boolean(currentSerata.prenotazioni_abilitate);
+
+      const { data, error } = await admin
+        .from("serate")
+        .update({ prenotazioni_abilitate: prenotazioniAbilitate })
+        .eq("id", currentSerata.id)
+        .select("*")
+        .maybeSingle();
+
+      if (error) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito ad aggiornare lo stato prenotazioni.");
+      }
+      if (!data) {
+        throw new ApiError(404, "not_found", "Serata non trovata.");
+      }
+
+      return { status: 200, data };
+    }
+
+    case "terminate_voting": {
+      // Closes voting + bookings, enables proclamation mode (winner_reveal_countdown_active).
+      // Equivalent to pressing "Termina votazioni" in the admin UI.
+      const currentSerata = body.serataId != null
+        ? await getSerataById(admin, toPositiveInt(body.serataId, "serataId"))
+        : await getOpenSerata(admin);
+
+      if (!currentSerata?.id) {
+        throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
+      }
+      if (currentSerata.vincitore_decretato) {
+        throw new ApiError(409, "winner_already_decreed", "Il vincitore è già stato decretato.");
+      }
+      if (!currentSerata.voto_aperto) {
+        throw new ApiError(409, "voting_not_open", "Le votazioni non sono attualmente aperte.");
+      }
+
+      const { data: serataBookingsCheck, error: bookingsCheckError } = await admin
+        .from("prenotazioni")
+        .select("id")
+        .eq("serata_id", currentSerata.id)
+        .eq("approvata", true)
+        .limit(1);
+
+      if (bookingsCheckError) {
+        throw new ApiError(500, "query_failed", "Errore durante la verifica delle prenotazioni approvate.");
+      }
+      if (!serataBookingsCheck || serataBookingsCheck.length === 0) {
+        throw new ApiError(409, "no_approved_bookings", "Servono prenotazioni approvate per terminare le votazioni e avviare la proclamazione.");
+      }
+
+      const { data, error } = await admin
+        .from("serate")
+        .update({
+          voto_aperto: false,
+          prenotazioni_abilitate: false,
+          winner_reveal_countdown_active: true,
+          winner_reveal_countdown_started_at: null,
+          winner_reveal_countdown_ends_at: null,
+          winner_reveal_countdown_seconds: null,
+        })
+        .eq("id", currentSerata.id)
+        .select("*")
+        .maybeSingle();
+
+      if (error) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito a terminare le votazioni.");
+      }
+      if (!data) {
+        throw new ApiError(404, "not_found", "Serata non trovata.");
+      }
+
+      return { status: 200, data };
+    }
+
+    case "delete_serata": {
+      const serataId = toPositiveInt(body.serataId, "serataId");
+
+      // Only allow deleting closed (archived) serate.
+      const serataToDelete = await getSerataById(admin, serataId);
+      if (!serataToDelete) {
+        throw new ApiError(404, "not_found", "Serata non trovata.");
+      }
+      if (serataToDelete.aperta) {
+        throw new ApiError(409, "serata_open", "Non puoi eliminare una serata aperta. Chiudila prima.");
+      }
+
+      // Delete votes first (reference prenotazioni).
+      const { data: bookingIds } = await admin
+        .from("prenotazioni")
+        .select("id")
+        .eq("serata_id", serataId);
+
+      const ids = (bookingIds ?? []).map((b: Record<string, unknown>) => Number(b.id)).filter((id: number) => id > 0);
+
+      if (ids.length > 0) {
+        const { error: votesDeleteError } = await admin
+          .from("voti")
+          .delete()
+          .in("prenotazione_id", ids);
+
+        if (votesDeleteError) {
+          throw new ApiError(500, "delete_failed", "Non sono riuscito a eliminare i voti della serata.");
+        }
+      }
+
+      // Delete prenotazioni.
+      const { error: bookingsDeleteError } = await admin
+        .from("prenotazioni")
+        .delete()
+        .eq("serata_id", serataId);
+
+      if (bookingsDeleteError) {
+        throw new ApiError(500, "delete_failed", "Non sono riuscito a eliminare le prenotazioni della serata.");
+      }
+
+      // Delete serata.
+      const { error: serataDeleteError } = await admin
+        .from("serate")
+        .delete()
+        .eq("id", serataId)
+        .eq("aperta", false);
+
+      if (serataDeleteError) {
+        throw new ApiError(500, "delete_failed", "Non sono riuscito a eliminare la serata.");
+      }
+
+      return { status: 200, data: { deletedSerataId: serataId } };
     }
 
     case "cleanup_current_serata":

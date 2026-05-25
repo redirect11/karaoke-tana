@@ -584,6 +584,7 @@
     const modalContent = document.getElementById('modal-content');
     let adminToken = '';
     let isAdmin = false;
+    let simulateUserView = false;
 
     function esc(str) {
       return String(str ?? '')
@@ -655,8 +656,8 @@
         .eq('aperta', false)
         .order('data', { ascending: false })
         .order('created_at', { ascending: false });
-      // Solo l'admin vede anche le serate nascoste
-      if (!isAdmin) query = query.eq('archiviato_nascosto', false);
+      // Solo l'admin vede anche le serate nascoste (a meno che non stia simulando la vista utente)
+      if (!isAdmin || simulateUserView) query = query.eq('archiviato_nascosto', false);
       const { data: serate, error: errSerate } = await query;
       if (errSerate) throw errSerate;
       const serateList = (serate || []).map((s) => {
@@ -761,6 +762,9 @@
              <button type="button" class="tile-admin-btn" data-admin-action="pick-cover" data-serata-id="${Number(serata.id)}" title="Cambia foto di copertina">
                📷 cover
              </button>
+             <button type="button" class="tile-admin-btn" data-admin-action="delete-serata" data-serata-id="${Number(serata.id)}" title="Elimina edizione" style="color:#ff8888;">
+               🗑️
+             </button>
            </div>`
         : '';
       const showWinnerBadge = winner && (serata.vincitore_decretato || view.top5.length > 0);
@@ -824,6 +828,7 @@
     function renderGallery(serate, songsBySerata, votesByPrenotazione, allBookingsBySerata) {
       if (!serate.length) {
         archiveRoot.innerHTML = `${isAdmin ? renderAdminBanner() : ''}<div class="status-msg">Nessuna edizione archiviata.</div>`;
+        if (isAdmin) wireAdminBanner();
         return;
       }
       const views = serate.map((s) => ({ serata: s, view: computeSerataView(s, songsBySerata, votesByPrenotazione, allBookingsBySerata) }));
@@ -836,6 +841,7 @@
         </div>
       `;
       archiveRoot.innerHTML = html;
+      if (isAdmin) wireAdminBanner();
       archiveRoot.querySelectorAll('article.tile').forEach((tileEl) => {
         tileEl.addEventListener('click', (e) => {
           // Click sui controlli admin (pulsanti) non aprono la modale
@@ -858,13 +864,30 @@
             await adminToggleVisibility(found.serata, btn);
           } else if (action === 'pick-cover') {
             openCoverPicker(found.serata, found.view);
+          } else if (action === 'delete-serata') {
+            await adminDeleteSerata(found.serata, btn);
           }
         });
       });
     }
 
+    function wireAdminBanner() {
+      const simulateBtn = document.getElementById('btn-simulate-user-view');
+      if (simulateBtn) {
+        simulateBtn.addEventListener('click', async () => {
+          simulateUserView = !simulateUserView;
+          await reloadGallery();
+        });
+      }
+    }
+
     function renderAdminBanner() {
-      return `<div class="admin-banner">Modalità admin attiva: puoi nascondere edizioni e scegliere la foto di copertina.</div>`;
+      return `<div class="admin-banner" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span>Modalità admin attiva: puoi nascondere edizioni, scegliere la foto di copertina ed eliminare edizioni.</span>
+        <button type="button" id="btn-simulate-user-view" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:5px 14px;border-radius:999px;cursor:pointer;font-size:0.8rem;font-weight:700;white-space:nowrap;">
+          ${simulateUserView ? '👤 Vista utente (attiva) — clicca per disattivare' : '👁️ Simula vista utente'}
+        </button>
+      </div>`;
     }
 
     function renderModal(serata, view) {
@@ -1015,6 +1038,19 @@
       } catch (error) {
         alert(error?.message || 'Aggiornamento visibilità fallito.');
       } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function adminDeleteSerata(serata, btn) {
+      const dateLabel = formatDateLabel(serata.archive_date || serata.data, false);
+      if (!confirm(`Eliminare definitivamente l'edizione del ${dateLabel}?\n\nQuesta azione cancellerà anche tutte le prenotazioni e i voti associati. Non è reversibile.`)) return;
+      btn.disabled = true;
+      try {
+        await callAdmin('delete_serata', { serataId: Number(serata.id) });
+        await reloadGallery();
+      } catch (error) {
+        alert(error?.message || 'Eliminazione edizione fallita.');
         btn.disabled = false;
       }
     }
