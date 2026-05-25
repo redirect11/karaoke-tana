@@ -204,6 +204,26 @@
       font-weight: 700;
       color: var(--gold-s);
     }
+    /* ── diretta / countdown screen ── */
+    #diretta-wrap {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 48px 16px 24px;
+      text-align: center;
+    }
+    #diretta-wrap .diretta-icon { font-size: 3rem; }
+    #diretta-wrap h2 { color: var(--gold-s); font-size: 1.15rem; }
+    #diretta-wrap p { color: var(--muted); font-size: 0.88rem; }
+    #diretta-countdown {
+      font-size: clamp(3rem, 16vw, 6rem);
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 28px rgba(240,201,74,0.45);
+      line-height: 1;
+      letter-spacing: 0.03em;
+    }
   </style>
   <link rel="stylesheet" href="scripts/vendor/cookieconsent.css" />
 </head>
@@ -216,6 +236,13 @@
   </header>
 
   <div id="status-banner"></div>
+
+  <section id="diretta-wrap">
+    <div class="diretta-icon">🎬</div>
+    <h2 id="diretta-title">⚡ Preparatevi… il momento è arrivato!</h2>
+    <p id="diretta-text">Questa notte si scrive la storia del karaoke. Chi sarà il re o la regina del microfono? 👑</p>
+    <div id="diretta-countdown" class="hidden"></div>
+  </section>
 
   <div id="content">
     <div class="state-box" id="loading-state">
@@ -236,11 +263,16 @@
 
     const content       = document.getElementById('content');
     const statusBanner  = document.getElementById('status-banner');
+    const direttaWrap   = document.getElementById('diretta-wrap');
+    const direttaTitle  = document.getElementById('diretta-title');
+    const direttaText   = document.getElementById('diretta-text');
+    const direttaCountdownEl = document.getElementById('diretta-countdown');
 
     let serata       = null;
     let songs        = [];
     let votingOpen   = false;
     let showTotalsPublic = false;
+    let direttaCountdownTimer = null;
     // localVotes: { [prenotazione_id]: { voto, db_id } }
     const localVotes = JSON.parse(localStorage.getItem('local_votes') || '{}');
 
@@ -282,7 +314,10 @@
       votingOpen = data.voto_aperto;
       showTotalsPublic = Boolean(data.mostra_voti_totali);
       updateBanner();
-      await loadSongs();
+      renderDiretta();
+      if (!data.winner_reveal_countdown_active || data.vincitore_decretato) {
+        await loadSongs();
+      }
       subscribeRealtime();
     }
 
@@ -293,10 +328,62 @@
       } else if (serata?.vincitore_decretato) {
         statusBanner.className = 'closed';
         statusBanner.textContent = '🏁 Vincitore decretato — votazioni concluse';
+      } else if (serata?.winner_reveal_countdown_active) {
+        statusBanner.className = 'closed';
+        statusBanner.textContent = '🎬 Diretta attiva — scopri chi sarà il vincitore';
       } else {
         statusBanner.className = 'closed';
         statusBanner.textContent = '⭕ Votazioni chiuse';
       }
+    }
+
+    function stopDirettaCountdown() {
+      if (direttaCountdownTimer) {
+        clearInterval(direttaCountdownTimer);
+        direttaCountdownTimer = null;
+      }
+    }
+
+    function renderDiretta() {
+      const direttaActive = Boolean(serata?.winner_reveal_countdown_active);
+      const winnerDecreed = Boolean(serata?.vincitore_decretato);
+      const endsAtMs = Date.parse(serata?.winner_reveal_countdown_ends_at || '');
+      const hasCountdown = Number.isFinite(endsAtMs);
+
+      stopDirettaCountdown();
+
+      if (!direttaActive || winnerDecreed) {
+        direttaWrap.style.display = 'none';
+        content.style.display = '';
+        direttaCountdownEl.classList.add('hidden');
+        return;
+      }
+
+      direttaWrap.style.display = 'flex';
+      content.style.display = 'none';
+
+      if (!hasCountdown) {
+        direttaTitle.textContent = '⚡ Preparatevi… il momento è arrivato!';
+        direttaText.textContent = 'Questa notte si scrive la storia del karaoke. Chi sarà il re o la regina del microfono? 👑';
+        direttaCountdownEl.classList.add('hidden');
+        return;
+      }
+
+      direttaTitle.textContent = '🔥 IL MOMENTO È ADESSO!';
+      direttaText.textContent = 'Il conto alla rovescia è partito. Chi salirà sul trono del karaoke? 🎤👑';
+      direttaCountdownEl.classList.remove('hidden');
+
+      const tick = () => {
+        const remaining = Math.max(0, Math.ceil((endsAtMs - Date.now()) / 1000));
+        direttaCountdownEl.textContent = String(remaining).padStart(2, '0');
+        if (remaining === 0) {
+          stopDirettaCountdown();
+          direttaTitle.textContent = '🏆 È ORA DI SAPERE LA VERITÀ!';
+          direttaText.textContent = 'Il vincitore sta per essere proclamato… trattenete il respiro! 😱';
+        }
+      };
+      tick();
+      direttaCountdownTimer = setInterval(tick, 500);
     }
 
     // ── Load songs ─────────────────────────────────────────────
@@ -480,7 +567,10 @@
           votingOpen = serata.voto_aperto;
           showTotalsPublic = Boolean(serata.mostra_voti_totali);
           updateBanner();
-          renderContent();
+          renderDiretta();
+          if (!serata.winner_reveal_countdown_active || serata.vincitore_decretato) {
+            await loadSongs();
+          }
         })
         .subscribe();
     }

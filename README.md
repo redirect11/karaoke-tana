@@ -50,7 +50,7 @@ Scopo:
 
 L'accesso admin usa ora **Supabase Auth** (email + password) invece del vecchio sistema password/hash custom.
 
-La vecchia migrazione `supabase/migrations/20260520150000_admin_credentials_pbkdf2.sql` non serve più e non va eseguita: il flusso admin attuale usa solo `auth.users` + `admin_users`.
+La vecchia migrazione `supabase/migrations/20260520150000_admin_credentials_pbkdf2.sql` è mantenuta solo per compatibilità con la history remota di Supabase (schema_migrations): il flusso admin attuale usa solo `auth.users` + `admin_users`.
 
 #### Setup iniziale (una tantum)
 
@@ -152,6 +152,16 @@ Il form in `index.html` ora chiama la Edge Function:
 - fallback automatico: `${SUPABASE_URL}/functions/v1/submit-booking`
 
 La UI gestisce loading/error sul bottone di submit.
+
+### Reveal pubblico vincitore
+
+- La schermata diretta/countdown per il reveal vincitore è integrata in `vota.html`.
+- Con votazioni chiuse l'admin può premere **"Abilita diretta"** dallo staff panel (`admin.html`):
+  - la pagina `vota.html` mostra la schermata "Il vincitore sta per essere rivelato…";
+  - premendo **"Avvia countdown"** (=tasto Decreta vincitore con diretta attiva) parte un countdown di 30 s;
+  - al termine del countdown il vincitore viene decretato automaticamente.
+- Con diretta disabilitata, **"Decreta vincitore"** dichiara subito il vincitore (comportamento precedente).
+- Se si vuole annullare la diretta prima del countdown, premere **"Disabilita diretta"**.
 
 ## Deploy GitHub Pages
 
