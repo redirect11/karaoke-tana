@@ -2187,10 +2187,15 @@
       loadSongList();
       const bookingsEnabled = data.prenotazioni_abilitate !== false;
       if (!bookingsEnabled) {
-        [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+        [stepFollow, stepForm].forEach(s => s.style.display = 'none');
         document.querySelector('.steps').style.display = 'none';
         if (bookingsDisabledVoteMsg) bookingsDisabledVoteMsg.style.display = Boolean(data.voto_aperto) ? 'block' : 'none';
-        stepBookingsDisabled.style.display = 'block';
+        const pending = await checkPendingBooking();
+        if (!pending) {
+          stepBookingsDisabled.style.display = 'block';
+        } else {
+          stepBookingsDisabled.style.display = 'none';
+        }
         return false;
       }
       stepBookingsDisabled.style.display = 'none';
@@ -2246,10 +2251,15 @@
           // Handle bookings enabled/disabled changes in realtime.
           const bookingsEnabled = payload.new.prenotazioni_abilitate !== false;
           if (!bookingsEnabled) {
-            [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
+            [stepFollow, stepForm].forEach(s => s.style.display = 'none');
             document.querySelector('.steps').style.display = 'none';
             if (bookingsDisabledVoteMsg) bookingsDisabledVoteMsg.style.display = Boolean(payload.new.voto_aperto) ? 'block' : 'none';
-            stepBookingsDisabled.style.display = 'block';
+            // Only show the disabled notice when the user has no active booking state
+            if (stepWaiting.style.display !== 'flex') {
+              stepBookingsDisabled.style.display = 'block';
+            } else {
+              stepBookingsDisabled.style.display = 'none';
+            }
           } else {
             stepBookingsDisabled.style.display = 'none';
             // Only restore the steps/form if not in waiting mode already.
