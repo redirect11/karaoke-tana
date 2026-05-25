@@ -206,6 +206,7 @@
     #leaderboard-card {
       display: none;
       margin-bottom: 20px;
+      overflow: hidden;
     }
     #leaderboard-card h3 {
       color: var(--gold-soft);
@@ -220,32 +221,134 @@
     .leaderboard-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
+    }
+    .leaderboard-hero {
+      position: relative;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.14);
+      overflow: hidden;
+      min-height: 176px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.4);
+      isolation: isolate;
+    }
+    .leaderboard-hero-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      transform: scale(1.06);
+    }
+    .leaderboard-hero-bg.placeholder {
+      background:
+        radial-gradient(circle at 30% 30%, rgba(212,160,23,0.18), transparent 60%),
+        radial-gradient(circle at 70% 70%, rgba(140,40,180,0.3), transparent 60%),
+        linear-gradient(135deg, #2a1650 0%, #1d1430 100%);
+    }
+    .leaderboard-hero-gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(14,5,24,0.12) 0%, rgba(14,5,24,0.84) 78%, rgba(14,5,24,0.96) 100%);
+      z-index: 1;
+    }
+    .leaderboard-hero-content {
+      position: relative;
+      z-index: 2;
+      padding: 18px;
+      min-height: 176px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+    .leaderboard-winner-badge {
+      display: inline-flex;
+      align-items: center;
+      align-self: flex-start;
+      gap: 6px;
+      background: linear-gradient(135deg, var(--gold) 0%, #b07a00 100%);
+      color: #1a0a00;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 16px rgba(212,160,23,0.35);
+    }
+    .leaderboard-winner-name {
+      font-size: clamp(1.18rem, 3.6vw, 1.7rem);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.1;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.55);
+    }
+    .leaderboard-winner-song {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.88);
+      line-height: 1.3;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .leaderboard-winner-points {
+      font-size: 0.78rem;
+      color: var(--gold-soft);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .leaderboard-top5 {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .leaderboard-top5-chip {
+      font-size: 0.72rem;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 999px;
+      padding: 3px 9px;
+      color: rgba(255,255,255,0.92);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      max-width: 100%;
+    }
+    .leaderboard-top5-chip-rank {
+      font-weight: 800;
+      color: var(--gold-soft);
+      font-size: 0.68rem;
+    }
+    .leaderboard-top5-chip-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 110px;
     }
     .leaderboard-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      background: var(--bg2);
+      background: linear-gradient(135deg, rgba(42,22,80,0.95) 0%, rgba(30,15,53,0.95) 100%);
       border: 1px solid #3d2366;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 10px 12px;
     }
     .leaderboard-item.winner {
-      border-color: var(--gold);
-      background: rgba(212,160,23,0.18);
+      border-color: rgba(212,160,23,0.7);
+      background: linear-gradient(135deg, rgba(212,160,23,0.16) 0%, rgba(42,22,80,0.92) 100%);
     }
     .leaderboard-rank {
-      min-width: 26px;
-      height: 26px;
+      min-width: 27px;
+      height: 27px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 0.76rem;
       font-weight: 800;
-      background: rgba(212,160,23,0.2);
+      background: rgba(212,160,23,0.18);
       color: var(--gold-soft);
     }
     .leaderboard-item.winner .leaderboard-rank {
@@ -259,6 +362,11 @@
     .leaderboard-song-title { font-size: 0.86rem; font-weight: 700; color: var(--text); }
     .leaderboard-song-meta { font-size: 0.76rem; color: var(--muted); }
     .leaderboard-points { font-size: 0.8rem; font-weight: 800; color: var(--gold-soft); white-space: nowrap; }
+    @media (max-width: 520px) {
+      .leaderboard-hero { min-height: 162px; }
+      .leaderboard-hero-content { min-height: 162px; padding: 14px; }
+      .leaderboard-top5-chip-name { max-width: 90px; }
+    }
 
     /* ── booking form ── */
     #step-form { display: none; }
@@ -1397,6 +1505,15 @@
         .replaceAll("'", '&#39;');
     }
 
+    function escapeCssUrl(value) {
+      return String(value || '')
+        .replaceAll('\\', '\\\\')
+        .replaceAll('"', '\\"')
+        .replaceAll("'", "\\'")
+        .replaceAll('(', '\\(')
+        .replaceAll(')', '\\)');
+    }
+
     // Riscrive URL Supabase salvati con host "localhost"/"127.0.0.1"
     // quando la pagina è aperta da un IP di rete. Necessario per le
     // foto dei selfie caricate da desktop su localhost e poi richieste
@@ -1418,7 +1535,7 @@
       }
       const { data: rows, error } = await db
         .from('prenotazioni')
-        .select('id, nome, canzone, artista, created_at, approvata')
+        .select('id, nome, canzone, artista, created_at, approvata, selfie_url')
         .eq('serata_id', serataId)
         .eq('approvata', true)
         .order('created_at', { ascending: true });
@@ -1473,8 +1590,27 @@
       leaderboardStatus.textContent = '';
       leaderboardStatus.style.display = 'none';
       const winnerId = Number(winnerBookingId) || Number(ranking[0].id);
-      leaderboardList.innerHTML = ranking.map((item, index) => {
-        const isWinner = Number(item.id) === winnerId;
+      const winnerItem = ranking.find((item) => Number(item.id) === winnerId) || ranking[0];
+      const winnerSongLabel = winnerItem?.artista
+        ? `${winnerItem.canzone} — ${winnerItem.artista}`
+        : winnerItem?.canzone || '';
+      const winnerSelfieUrl = resolveLanUrl(winnerItem?.selfie_url || '');
+      const winnerBgHtml = winnerSelfieUrl
+        ? `<div class="leaderboard-hero-bg" style="background-image:url('${escapeCssUrl(winnerSelfieUrl)}')"></div>`
+        : '<div class="leaderboard-hero-bg placeholder"></div>';
+
+      const podiumChips = ranking.slice(1);
+      const top5Html = podiumChips.length
+        ? `<div class="leaderboard-top5">${podiumChips.map((item, index) => `
+        <span class="leaderboard-top5-chip">
+          <span class="leaderboard-top5-chip-rank">${index + 2}°</span>
+          <span class="leaderboard-top5-chip-name">${escapeHtml(item.nome)}</span>
+        </span>
+      `).join('')}</div>`
+        : '';
+
+      const rankingRowsHtml = ranking.map((item, index) => {
+        const isWinner = Number(item.id) === Number(winnerItem.id);
         return `
           <div class="leaderboard-item${isWinner ? ' winner' : ''}">
             <div class="leaderboard-rank">${index + 1}</div>
@@ -1486,6 +1622,21 @@
           </div>
         `;
       }).join('');
+
+      leaderboardList.innerHTML = `
+        <article class="leaderboard-hero">
+          ${winnerBgHtml}
+          <div class="leaderboard-hero-gradient"></div>
+          <div class="leaderboard-hero-content">
+            <span class="leaderboard-winner-badge">🏆 Vincitore</span>
+            <div class="leaderboard-winner-name">${escapeHtml(winnerItem.nome)}</div>
+            <div class="leaderboard-winner-song">${escapeHtml(winnerSongLabel)}</div>
+            <div class="leaderboard-winner-points">${winnerItem.scoreTotal} pt · ${winnerItem.scoreCount} voti</div>
+            ${top5Html}
+          </div>
+        </article>
+        ${rankingRowsHtml}
+      `;
     }
 
     function renderSongList() {
