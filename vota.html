@@ -1020,14 +1020,31 @@
     function subscribeRealtime() {
       db.channel('vota-live')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'prenotazioni' }, async () => {
+          if (!serata) return;
           await loadSongs();
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'voti' }, async () => {
+          if (!serata) return;
           scheduleRealtimeScoresRefresh();
         })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate',
-          filter: `id=eq.${serata.id}` }, async payload => {
-          serata     = payload.new;
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'serate' }, async payload => {
+          if (!payload?.new || typeof payload.new !== 'object') return;
+          const nextSerata = payload.new;
+          const currentId = Number(serata?.id) || 0;
+          const nextId = Number(nextSerata.id) || 0;
+          const currentCreatedAt = Date.parse(String(serata?.created_at || ''));
+          const nextCreatedAt = Date.parse(String(nextSerata.created_at || ''));
+          const sameSerata = currentId > 0 && currentId === nextId;
+          const shouldSwitchSerata = !serata
+            || sameSerata
+            || payload.eventType === 'INSERT'
+            || (
+              Number.isFinite(currentCreatedAt)
+              && Number.isFinite(nextCreatedAt)
+              && nextCreatedAt >= currentCreatedAt
+            );
+          if (!shouldSwitchSerata) return;
+          serata     = nextSerata;
           votingOpen = serata.voto_aperto;
           showTotalsPublic = Boolean(serata.mostra_voti_totali);
           updateBanner();
