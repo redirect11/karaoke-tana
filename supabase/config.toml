@@ -1,6 +1,9 @@
 # Supabase CLI/Git integration config.
 # Functions listed here are auto-discovered for branch deployments.
-project_id = "replace-with-your-project-ref"
+# Per sviluppo locale: identificatore usato come prefisso dei container Docker.
+# Per deploy cloud: sostituisci con il tuo Supabase project ref
+# oppure passa --project-ref <REF> alla CLI.
+project_id = "karaoke-tana"
 
 [functions.submit-booking]
 enabled = true

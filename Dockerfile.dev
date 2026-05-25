@@ -1,0 +1,30 @@
+# =============================================================
+#  karaoke-tana – Dev container (Docker-in-Docker)
+#
+#  Usa docker:dind come base: il daemon Docker gira DENTRO
+#  il container, quindi supabase start può connettersi
+#  correttamente a 127.0.0.1 dove girano i container Supabase.
+#
+#  Richiede privileged: true nel docker-compose.dev.yml.
+#  Usa un named volume per cachare le immagini Docker tra
+#  un avvio e l'altro (evita di riscaricare ~1-2 GB ogni volta).
+#
+#  Avvio: docker compose -f docker-compose.dev.yml up --build
+# =============================================================
+
+FROM docker:27-dind
+
+# Installa Node.js, npm, bash (Alpine base)
+RUN apk add --no-cache nodejs npm bash curl
+
+# Installa Supabase CLI e web server statico
+RUN npm install -g supabase serve
+
+COPY scripts/dev-entrypoint.sh /usr/local/bin/dev-entrypoint.sh
+RUN chmod +x /usr/local/bin/dev-entrypoint.sh
+
+WORKDIR /workspace
+
+EXPOSE 3000
+
+ENTRYPOINT ["/usr/local/bin/dev-entrypoint.sh"]

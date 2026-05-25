@@ -104,6 +104,34 @@ function normalizeDateOrToday(value: unknown): string {
   return trimmed;
 }
 
+function normalizeOptionalDate(value: unknown, fieldName: string): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string") {
+    throw new ApiError(400, "invalid_payload", `${fieldName} deve essere una data YYYY-MM-DD o null.`);
+  }
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    throw new ApiError(400, "invalid_payload", `${fieldName} deve essere nel formato YYYY-MM-DD.`);
+  }
+  return trimmed;
+}
+
+function toIsoDateFromTimestamp(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return null;
+  return new Date(parsed).toISOString().slice(0, 10);
+}
+
+function getArchiveDate(serata: Record<string, unknown>): string | null {
+  const fromCreatedAt = toIsoDateFromTimestamp(serata.created_at);
+  if (fromCreatedAt) return fromCreatedAt;
+  const fromData = typeof serata.data === "string" ? serata.data : null;
+  if (fromData && /^\d{4}-\d{2}-\d{2}$/.test(fromData)) return fromData;
+  return null;
+}
+
 function createAdminClient() {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -263,9 +291,10 @@ async function ensureSerataAllowsMutations(
 
 async function getState(admin: ReturnType<typeof createClient>) {
   const serata = await getOpenSerata(admin);
+  const settings = await getPublicSettings(admin);
 
   if (!serata) {
-    return { serata: null, bookings: [], top5: [] };
+    return { serata: null, bookings: [], top5: [], settings };
   }
 
   const { data, error } = await admin
@@ -294,7 +323,139 @@ async function getState(admin: ReturnType<typeof createClient>) {
   const approved = bookingsWithScores.filter((booking) => Boolean(booking.approvata));
   const top5 = buildRanking(approved, scoreMap).slice(0, 5);
 
-  return { serata, bookings: bookingsWithScores, top5 };
+  return { serata, bookings: bookingsWithScores, top5, settings };
+}
+
+async function getPublicSettings(admin: ReturnType<typeof createClient>) {
+  const { data, error } = await admin
+    .from("impostazioni_pubbliche")
+    .select("id, archivio_pubblico_abilitato, prossima_serata_data")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (error) {
+    throw new ApiError(500, "query_failed", "Errore durante il caricamento delle impostazioni pubbliche.");
+  }
+
+  if (data) {
+    return data;
+  }
+
+  const { data: inserted, error: insertError } = await admin
+    .from("impostazioni_pubbliche")
+    .insert({ id: 1, archivio_pubblico_abilitato: false, prossima_serata_data: null })
+    .select("id, archivio_pubblico_abilitato, prossima_serata_data")
+    .maybeSingle();
+
+  if (insertError || !inserted) {
+    throw new ApiError(500, "insert_failed", "Non sono riuscito a inizializzare le impostazioni pubbliche.");
+  }
+
+  return inserted;
+}
+
+async function updatePublicSettings(
+  admin: ReturnType<typeof createClient>,
+  updates: { archivio_pubblico_abilitato?: boolean; prossima_serata_data?: string | null },
+) {
+  await getPublicSettings(admin);
+
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (typeof updates.archivio_pubblico_abilitato === "boolean") {
+    payload.archivio_pubblico_abilitato = updates.archivio_pubblico_abilitato;
+  }
+  if (Object.prototype.hasOwnProperty.call(updates, "prossima_serata_data")) {
+    payload.prossima_serata_data = updates.prossima_serata_data ?? null;
+  }
+
+  const { data, error } = await admin
+    .from("impostazioni_pubbliche")
+    .update(payload)
+    .eq("id", 1)
+    .select("id, archivio_pubblico_abilitato, prossima_serata_data")
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new ApiError(500, "update_failed", "Non sono riuscito ad aggiornare le impostazioni pubbliche.");
+  }
+
+  return data;
+}
+
+async function getArchive(admin: ReturnType<typeof createClient>, serataId?: number) {
+  const { data: editions, error: editionsError } = await admin
+    .from("serate")
+    .select("id, data, created_at, voto_aperto, vincitore_decretato, vincitore_prenotazione_id, archiviato_nascosto, cover_prenotazione_id")
+    .eq("aperta", false)
+    .order("data", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (editionsError) {
+    throw new ApiError(500, "query_failed", "Errore durante il caricamento dell'archivio.");
+  }
+
+  const normalizedEditions = (editions ?? []).map((edition) => ({
+    ...edition,
+    archive_date: getArchiveDate(edition as Record<string, unknown>),
+  }));
+
+  const selectedSerataId = serataId ?? Number(normalizedEditions[0]?.id ?? 0);
+  if (!Number.isInteger(selectedSerataId) || selectedSerataId <= 0) {
+    return { editions: normalizedEditions, detail: null };
+  }
+
+  const detailSerata = await getSerataById(admin, selectedSerataId);
+  if (!detailSerata || detailSerata.aperta) {
+    throw new ApiError(404, "not_found", "Edizione archivio non trovata.");
+  }
+
+  const { data: serataBookings, error: bookingsError } = await admin
+    .from("prenotazioni")
+    .select("*")
+    .eq("serata_id", selectedSerataId)
+    .order("created_at", { ascending: true });
+
+  if (bookingsError) {
+    throw new ApiError(500, "query_failed", "Errore durante il caricamento delle prenotazioni archivio.");
+  }
+
+  const allBookings = (serataBookings ?? []) as Array<Record<string, unknown>>;
+  const songsList: Array<Record<string, unknown>> = [];
+  const approvedForRanking: Array<Record<string, unknown>> = [];
+  const scoredBookings: Array<Record<string, unknown>> = [];
+  for (const booking of allBookings) {
+    const isPerformed = Boolean(booking.cantata);
+    const isApproved = Boolean(booking.approvata);
+    if (isPerformed) songsList.push(booking);
+    if (isApproved) approvedForRanking.push(booking);
+    if (isPerformed || isApproved) scoredBookings.push(booking);
+  }
+  const scoreMap = await getBookingScores(admin, scoredBookings);
+  const songsWithScores = songsList.map((song) => {
+    const bookingId = Number(song.id);
+    const score = scoreMap.get(bookingId) ?? { total: 0, count: 0 };
+    const scoreAverage = score.count > 0 ? score.total / score.count : 0;
+    return {
+      ...song,
+      score_total: score.total,
+      score_count: score.count,
+      score_average: Number(scoreAverage.toFixed(2)),
+    };
+  });
+
+  const ranked = buildRanking(approvedForRanking, scoreMap);
+  const top5 = ranked.filter((song) => Number(song.score_count) > 0).slice(0, 5);
+  const detail = {
+    serata: {
+      ...detailSerata,
+      archive_date: getArchiveDate(detailSerata as Record<string, unknown>),
+    },
+    songs: songsWithScores,
+    top5,
+    hasVoting: top5.length > 0,
+  };
+
+  return { editions: normalizedEditions, detail };
 }
 
 async function executeAction(admin: ReturnType<typeof createClient>, action: string, body: Record<string, unknown>) {
@@ -306,6 +467,83 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
     case "get_state":
     case "state": {
       return { status: 200, data: await getState(admin) };
+    }
+
+    case "get_public_settings": {
+      return { status: 200, data: await getPublicSettings(admin) };
+    }
+
+    case "set_public_settings": {
+      const updates: { archivio_pubblico_abilitato?: boolean; prossima_serata_data?: string | null } = {};
+      if (typeof body.archivioPubblicoAbilitato === "boolean") {
+        updates.archivio_pubblico_abilitato = body.archivioPubblicoAbilitato;
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "prossimaSerataData")) {
+        updates.prossima_serata_data = normalizeOptionalDate(body.prossimaSerataData, "prossimaSerataData");
+      }
+      if (
+        typeof updates.archivio_pubblico_abilitato !== "boolean"
+        && !Object.prototype.hasOwnProperty.call(updates, "prossima_serata_data")
+      ) {
+        throw new ApiError(400, "invalid_payload", "Specifica almeno archivioPubblicoAbilitato o prossimaSerataData.");
+      }
+      return { status: 200, data: await updatePublicSettings(admin, updates) };
+    }
+
+    case "get_archive": {
+      const serataId = body.serataId != null
+        ? toPositiveInt(body.serataId, "serataId")
+        : undefined;
+      return { status: 200, data: await getArchive(admin, serataId) };
+    }
+
+    case "set_archive_visibility": {
+      const serataId = toPositiveInt(body.serataId, "serataId");
+      if (typeof body.hidden !== "boolean") {
+        throw new ApiError(400, "invalid_payload", "Il campo `hidden` deve essere booleano.");
+      }
+      const { data, error } = await admin
+        .from("serate")
+        .update({ archiviato_nascosto: body.hidden })
+        .eq("id", serataId)
+        .eq("aperta", false)
+        .select("id, archiviato_nascosto, cover_prenotazione_id")
+        .single();
+      if (error) {
+        throw new ApiError(500, "query_failed", "Errore durante l'aggiornamento della visibilità.");
+      }
+      return { status: 200, data };
+    }
+
+    case "set_archive_cover": {
+      const serataId = toPositiveInt(body.serataId, "serataId");
+      let prenotazioneId: number | null = null;
+      if (body.prenotazioneId !== null && body.prenotazioneId !== undefined && body.prenotazioneId !== "") {
+        prenotazioneId = toPositiveInt(body.prenotazioneId, "prenotazioneId");
+        // Verifica che la prenotazione appartenga alla serata indicata
+        const { data: booking, error: bookingErr } = await admin
+          .from("prenotazioni")
+          .select("id, serata_id")
+          .eq("id", prenotazioneId)
+          .maybeSingle();
+        if (bookingErr) {
+          throw new ApiError(500, "query_failed", "Errore durante la verifica della prenotazione di cover.");
+        }
+        if (!booking || Number(booking.serata_id) !== serataId) {
+          throw new ApiError(400, "invalid_payload", "La prenotazione selezionata non appartiene a questa serata.");
+        }
+      }
+      const { data, error } = await admin
+        .from("serate")
+        .update({ cover_prenotazione_id: prenotazioneId })
+        .eq("id", serataId)
+        .eq("aperta", false)
+        .select("id, archiviato_nascosto, cover_prenotazione_id")
+        .single();
+      if (error) {
+        throw new ApiError(500, "query_failed", "Errore durante l'aggiornamento della copertina.");
+      }
+      return { status: 200, data };
     }
 
     case "approve_booking":

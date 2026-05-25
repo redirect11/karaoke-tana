@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Archivio Karaoke – La Tana del Coniglio</title>
+  <style>
+    :root {
+      --bg: #0e0518;
+      --bg2: #1a0d2e;
+      --card: #2a1650;
+      --card2: #1d1430;
+      --gold: #d4a017;
+      --gold-soft: #f0c54a;
+      --text: #f0e6d3;
+      --muted: #a08ca0;
+      --border: rgba(255,255,255,0.08);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: var(--text);
+      padding: 24px 16px 56px;
+      min-height: 100vh;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(140,40,180,0.22), transparent 60%),
+        radial-gradient(900px 500px at 90% 0%, rgba(212,160,23,0.16), transparent 60%),
+        var(--bg);
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; }
+
+    /* ── Header ────────────────────────────────────────── */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; margin-bottom: 28px; flex-wrap: wrap;
+    }
+    .title-block h1 {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--gold-soft) 0%, var(--gold) 60%, #b07a00 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      margin-bottom: 4px;
+    }
+    .title-block p { color: var(--muted); font-size: 0.92rem; }
+    .back-link {
+      color: var(--text); background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border); border-radius: 999px;
+      padding: 8px 16px; font-size: 0.86rem; text-decoration: none;
+      transition: background 0.18s, border-color 0.18s;
+    }
+    .back-link:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.18); }
+
+    /* ── Status / empty ────────────────────────────────── */
+    .status-msg {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 40px 24px; text-align: center;
+      color: var(--muted); font-size: 0.95rem; line-height: 1.6;
+    }
+
+    /* ── Gallery ───────────────────────────────────────── */
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 18px;
+    }
+    .tile {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      aspect-ratio: 4 / 5;
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, #2a1650 0%, #1d1430 100%);
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+      isolation: isolate;
+    }
+    .tile.hero {
+      grid-column: 1 / -1;
+      aspect-ratio: 21 / 9;
+    }
+    @media (max-width: 760px) {
+      .tile.hero { aspect-ratio: 4 / 5; }
+    }
+    .tile:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+      border-color: rgba(212,160,23,0.45);
+    }
+    .tile-bg {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center;
+      transform: scale(1.06);
+      transition: transform 0.6s ease;
+      z-index: 0;
+    }
+    .tile:hover .tile-bg { transform: scale(1.12); }
+    .tile-bg.placeholder {
+      background:
+        radial-gradient(circle at 30% 30%, rgba(212,160,23,0.18), transparent 60%),
+        radial-gradient(circle at 70% 70%, rgba(140,40,180,0.30), transparent 60%),
+        linear-gradient(135deg, #2a1650 0%, #1d1430 100%);
+    }
+    .tile-gradient {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg,
+        rgba(14,5,24,0.10) 0%,
+        rgba(14,5,24,0.25) 40%,
+        rgba(14,5,24,0.78) 80%,
+        rgba(14,5,24,0.94) 100%);
+      z-index: 1;
+    }
+    .tile-content {
+      position: absolute; inset: 0;
+      z-index: 2;
+      padding: 20px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      gap: 12px;
+    }
+
+    .tile-date-pill {
+      align-self: flex-start;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(8px) saturate(140%);
+      -webkit-backdrop-filter: blur(8px) saturate(140%);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: #fff;
+    }
+    .tile-info { display: flex; flex-direction: column; gap: 10px; }
+    .tile-winner-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      align-self: flex-start;
+      background: linear-gradient(135deg, var(--gold) 0%, #b07a00 100%);
+      color: #1a0a00;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 16px rgba(212,160,23,0.35);
+    }
+    .tile-winner-name {
+      font-size: clamp(1.1rem, 2.4vw, 1.55rem);
+      font-weight: 800;
+      line-height: 1.15;
+      color: #fff;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+    }
+    .tile-winner-song {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.85);
+      line-height: 1.35;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .tile-top5 {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-top: 2px;
+    }
+    .tile-top5-chip {
+      font-size: 0.72rem;
+      background: rgba(255,255,255,0.10);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 999px;
+      padding: 3px 9px;
+      color: rgba(255,255,255,0.92);
+      display: inline-flex; align-items: center; gap: 5px;
+      max-width: 100%;
+    }
+    .tile-top5-chip-rank {
+      font-weight: 800; color: var(--gold-soft);
+      font-size: 0.68rem;
+    }
+    .tile-top5-chip-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+    .tile-no-data {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.88rem; font-style: italic;
+    }
+
+    /* Hero-specific layout */
+    .tile.hero .tile-content {
+      padding: 28px;
+      flex-direction: row;
+      align-items: flex-end;
+      gap: 24px;
+    }
+    .tile.hero .tile-date-pill {
+      position: absolute; top: 24px; left: 24px;
+    }
+    .tile.hero .tile-main { flex: 1; min-width: 0; }
+    .tile.hero .tile-winner-name { font-size: clamp(1.6rem, 3.5vw, 2.4rem); margin-bottom: 6px; }
+    .tile.hero .tile-winner-song { font-size: 1rem; }
+    .tile.hero .tile-top5 {
+      flex-direction: column;
+      align-items: flex-end;
+      flex-shrink: 0;
+      max-width: 320px;
+      gap: 6px;
+    }
+    .tile.hero .tile-top5-chip { font-size: 0.78rem; padding: 5px 12px; }
+    .tile.hero .tile-top5-chip-name { max-width: 200px; }
+    @media (max-width: 760px) {
+      .tile.hero .tile-content { flex-direction: column; align-items: stretch; padding: 20px; }
+      .tile.hero .tile-top5 { flex-direction: row; align-items: flex-start; max-width: none; }
+      .tile.hero .tile-date-pill { position: static; }
+    }
+
+    /* ── Detail modal ──────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.78);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: none;
+      align-items: flex-start; justify-content: center;
+      padding: 20px;
+      overflow-y: auto;
+      opacity: 0;
+      transition: opacity 0.22s ease;
+    }
+    .modal-overlay.open { display: flex; opacity: 1; }
+    .modal {
+      background: linear-gradient(180deg, #2a1650 0%, #1a0d2e 100%);
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.1);
+      width: 100%; max-width: 720px;
+      margin: auto;
+      overflow: hidden;
+      transform: translateY(20px);
+      transition: transform 0.28s ease;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+
+    .modal-hero {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+    }
+    .modal-hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center; }
+    .modal-hero-gradient {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(14,5,24,0.2) 0%, rgba(14,5,24,0.85) 100%);
+    }
+    .modal-hero-content {
+      position: absolute; inset: 0;
+      padding: 20px 24px;
+      display: flex; flex-direction: column; justify-content: flex-end; gap: 6px;
+    }
+    .modal-close {
+      position: absolute; top: 14px; right: 14px;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15);
+      color: #fff; font-size: 1.3rem; cursor: pointer; z-index: 3;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .modal-close:hover { background: rgba(0,0,0,0.75); }
+    .modal-hero-date {
+      font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--gold-soft); font-weight: 700;
+    }
+    .modal-hero-title {
+      font-size: 1.5rem; font-weight: 800; color: #fff;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+    }
+
+    .modal-body { padding: 22px 24px 28px; }
+    .modal-section + .modal-section { margin-top: 24px; }
+    .modal-section-title {
+      font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--gold-soft);
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .modal-section-title::before {
+      content: ''; width: 4px; height: 16px; border-radius: 2px;
+      background: linear-gradient(180deg, var(--gold), #b07a00);
+    }
+
+    /* Podium */
+    .podium-list { display: flex; flex-direction: column; gap: 10px; }
+    .podium-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: background 0.15s;
+    }
+    .podium-row.top1 {
+      background: linear-gradient(90deg, rgba(212,160,23,0.18) 0%, rgba(212,160,23,0.04) 100%);
+      border-color: rgba(212,160,23,0.4);
+    }
+    .podium-row.top2 { background: rgba(190,190,200,0.06); border-color: rgba(190,190,200,0.2); }
+    .podium-row.top3 { background: rgba(205,127,50,0.08); border-color: rgba(205,127,50,0.25); }
+    .podium-rank {
+      font-size: 1.4rem; font-weight: 900;
+      min-width: 36px; text-align: center;
+      color: var(--muted);
+    }
+    .podium-row.top1 .podium-rank { color: var(--gold); }
+    .podium-row.top2 .podium-rank { color: #cfcfd6; }
+    .podium-row.top3 .podium-rank { color: #e09556; }
+    .podium-avatar {
+      width: 44px; height: 44px; border-radius: 50%; object-fit: cover;
+      border: 2px solid rgba(255,255,255,0.18); flex-shrink: 0;
+      background: var(--card2);
+    }
+    .podium-info { flex: 1; min-width: 0; }
+    .podium-name { font-weight: 700; font-size: 0.95rem; color: var(--text); }
+    .podium-song { font-size: 0.82rem; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .podium-score {
+      text-align: right; flex-shrink: 0;
+      font-weight: 800;
+    }
+    .podium-score-pts { font-size: 1.05rem; color: var(--gold-soft); }
+    .podium-score-votes { font-size: 0.7rem; color: var(--muted); font-weight: 500; }
+
+    /* Song list */
+    .songlist { display: flex; flex-direction: column; gap: 8px; }
+    .songlist-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .songlist-num {
+      font-size: 0.78rem; font-weight: 700; color: var(--muted);
+      min-width: 22px;
+    }
+    .songlist-info { flex: 1; min-width: 0; }
+    .songlist-title { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+    .songlist-meta { font-size: 0.78rem; color: var(--muted); margin-top: 1px; }
+
+    .empty-section { color: var(--muted); font-size: 0.88rem; font-style: italic; padding: 12px 0; }
+
+    /* ── Admin controls (visibili solo se logato come admin) ── */
+    .admin-banner {
+      background: linear-gradient(135deg, rgba(212,160,23,0.18) 0%, rgba(140,40,180,0.12) 100%);
+      border: 1px solid rgba(212,160,23,0.4);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.86rem; color: var(--gold-soft);
+    }
+    .admin-banner::before {
+      content: '⚙️';
+      font-size: 1.1rem;
+    }
+    .tile.is-hidden { opacity: 0.65; }
+    .tile.is-hidden::after {
+      content: '🙈 nascosta dal pubblico';
+      position: absolute;
+      top: 12px; left: 12px;
+      z-index: 3;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .tile-admin-actions {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 4;
+      display: inline-flex;
+      gap: 4px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(8px) saturate(140%);
+      -webkit-backdrop-filter: blur(8px) saturate(140%);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 999px;
+      padding: 3px;
+    }
+    .tile-admin-btn {
+      background: transparent;
+      border: none;
+      color: #fff;
+      padding: 5px 9px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 700;
+      line-height: 1;
+      display: inline-flex; align-items: center; gap: 4px;
+      transition: background 0.15s;
+    }
+    .tile-admin-btn:hover { background: rgba(255,255,255,0.12); }
+    .tile-admin-btn:disabled { opacity: 0.5; cursor: wait; }
+
+    /* Cover picker modal */
+    .cover-picker-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.82);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: none;
+      align-items: flex-start; justify-content: center;
+      padding: 20px;
+      overflow-y: auto;
+      z-index: 1500;
+    }
+    .cover-picker-overlay.open { display: flex; }
+    .cover-picker {
+      background: linear-gradient(180deg, #2a1650 0%, #1a0d2e 100%);
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.1);
+      width: 100%; max-width: 720px;
+      margin: auto;
+      padding: 22px 24px 24px;
+    }
+    .cover-picker h3 {
+      color: var(--gold-soft);
+      font-size: 0.92rem; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .cover-picker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 12px;
+    }
+    .cover-option {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      background-size: cover;
+      background-position: center;
+      border: 2px solid transparent;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .cover-option:hover { transform: scale(1.04); }
+    .cover-option.selected { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,160,23,0.3); }
+    .cover-option-name {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 6px 8px;
+      background: linear-gradient(0deg, rgba(0,0,0,0.85), transparent);
+      font-size: 0.72rem;
+      color: #fff;
+      font-weight: 600;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+    }
+    .cover-option-empty {
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      border: 2px dashed rgba(255,255,255,0.2);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted);
+      font-size: 0.78rem;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .cover-option-empty:hover { border-color: var(--gold); color: var(--gold-soft); }
+    .cover-option-empty.selected { border-color: var(--gold); color: var(--gold-soft); border-style: solid; }
+    .cover-picker-footer {
+      display: flex; justify-content: flex-end; gap: 10px;
+      margin-top: 18px;
+    }
+    .cover-picker-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 9px 18px; border-radius: 999px; cursor: pointer;
+      font-size: 0.86rem; font-weight: 700;
+    }
+    .cover-picker-btn.primary {
+      background: var(--gold); color: #1a0a00; border-color: transparent;
+    }
+    .cover-picker-btn:disabled { opacity: 0.55; cursor: wait; }
+
+    /* Skeleton during load */
+    .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius); }
+    .skeleton-tile { aspect-ratio: 4 / 5; }
+    .skeleton-tile.hero { aspect-ratio: 21 / 9; grid-column: 1 / -1; }
+    @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    @media (max-width: 760px) { .skeleton-tile.hero { aspect-ratio: 4 / 5; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="topbar">
+      <div class="title-block">
+        <h1>Archivio Karaoke</h1>
+        <p>Le edizioni passate, i vincitori e le canzoni più votate.</p>
+      </div>
+      <a class="back-link" href="index.html">← Torna alla home</a>
+    </header>
+    <section id="archive-root">
+      <div class="gallery">
+        <div class="skeleton skeleton-tile hero"></div>
+        <div class="skeleton skeleton-tile"></div>
+        <div class="skeleton skeleton-tile"></div>
+        <div class="skeleton skeleton-tile"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Detail modal -->
+  <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal" id="modal-content"></div>
+  </div>
+
+  <!-- Cover picker (solo admin) -->
+  <div class="cover-picker-overlay" id="cover-picker-overlay" role="dialog" aria-modal="true">
+    <div class="cover-picker" id="cover-picker-content"></div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    const config = (typeof window.CONFIG === 'object' && window.CONFIG) || (typeof CONFIG === 'object' && CONFIG) || {};
+    const supabaseReady = config.SUPABASE_URL && !config.SUPABASE_URL.includes('TUO-PROGETTO');
+    const supabaseUrl = `${config.SUPABASE_URL || ''}`;
+    const edgeBaseUrl = supabaseReady ? `${supabaseUrl.replace(/\/+$/, '')}/functions/v1` : '';
+    const adminBookingsUrl = supabaseReady ? `${edgeBaseUrl}/admin-bookings` : '';
+    const db = supabaseReady ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY || '') : null;
+    // Client separato con sessionStorage per riprendere la sessione admin
+    // se l'utente ha fatto login da admin.html nella stessa scheda.
+    const authClient = supabaseReady
+      ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY || '', {
+          auth: { persistSession: true, storage: sessionStorage },
+        })
+      : null;
+    const archiveRoot = document.getElementById('archive-root');
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalContent = document.getElementById('modal-content');
+    let adminToken = '';
+    let isAdmin = false;
+
+    function esc(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+    }
+
+    // Riscrive URL Supabase localhost → hostname della pagina (LAN).
+    function resolveLanUrl(url) {
+      if (typeof url !== 'string' || !url) return url;
+      const host = typeof window !== 'undefined' && window.location && window.location.hostname;
+      if (!host || host === 'localhost' || host === '127.0.0.1') return url;
+      return url.replace(/^(https?:\/\/)(localhost|127\.0\.0\.1)(:|\/|$)/, `$1${host}$3`);
+    }
+
+    function formatDateLabel(dateIso, withWeekday = true) {
+      if (!dateIso) return 'Data non disponibile';
+      const [year, month, day] = String(dateIso).split('-').map(Number);
+      if (!year || !month || !day) return String(dateIso);
+      return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('it-IT', {
+        weekday: withWeekday ? 'long' : undefined,
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).trim();
+    }
+
+    function formatDateShort(dateIso) {
+      if (!dateIso) return '';
+      const [y, m, d] = String(dateIso).split('-').map(Number);
+      if (!y || !m || !d) return String(dateIso);
+      return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('it-IT', {
+        day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC',
+      });
+    }
+
+    function buildRanking(bookings, scoreMap) {
+      return bookings
+        .map((b) => {
+          const s = scoreMap.get(Number(b.id)) || { total: 0, count: 0 };
+          return { ...b, score_total: s.total, score_count: s.count, score_avg: s.count ? s.total / s.count : 0 };
+        })
+        .sort((a, b) => {
+          if (b.score_total !== a.score_total) return b.score_total - a.score_total;
+          if (b.score_avg !== a.score_avg) return b.score_avg - a.score_avg;
+          if (b.score_count !== a.score_count) return b.score_count - a.score_count;
+          return String(a.created_at || '').localeCompare(String(b.created_at || ''));
+        });
+    }
+
+    async function loadSettings() {
+      const { data, error } = await db
+        .from('impostazioni_pubbliche')
+        .select('archivio_pubblico_abilitato, prossima_serata_data')
+        .eq('id', 1)
+        .maybeSingle();
+      if (error) throw error;
+      return data || { archivio_pubblico_abilitato: false, prossima_serata_data: null };
+    }
+
+    async function loadEverything() {
+      let query = db
+        .from('serate')
+        .select('id, data, created_at, vincitore_prenotazione_id, vincitore_decretato, archiviato_nascosto, cover_prenotazione_id')
+        .eq('aperta', false)
+        .order('data', { ascending: false })
+        .order('created_at', { ascending: false });
+      // Solo l'admin vede anche le serate nascoste
+      if (!isAdmin) query = query.eq('archiviato_nascosto', false);
+      const { data: serate, error: errSerate } = await query;
+      if (errSerate) throw errSerate;
+      const serateList = (serate || []).map((s) => {
+        const parsed = Date.parse(String(s?.created_at || ''));
+        const archiveDate = Number.isFinite(parsed)
+          ? new Date(parsed).toISOString().slice(0, 10)
+          : (s?.data || null);
+        return { ...s, archive_date: archiveDate };
+      });
+      const serateIds = serateList.map((s) => Number(s.id)).filter((id) => Number.isInteger(id) && id > 0);
+      if (!serateIds.length) return { serate: [], songsBySerata: new Map(), votesByPrenotazione: new Map() };
+
+      // Fetchiamo TUTTE le prenotazioni delle serate (anche non cantate)
+      // così la cover_prenotazione_id può puntare a un selfie di un
+      // partecipante che non ha cantato. Il rendering songs/top5
+      // filtrerà solo `cantata = true`.
+      const { data: songs, error: errSongs } = await db
+        .from('prenotazioni')
+        .select('id, nome, canzone, artista, selfie_url, serata_id, created_at, cantata, approvata')
+        .in('serata_id', serateIds);
+      if (errSongs) throw errSongs;
+      const songsBySerata = new Map();
+      const allBookingsBySerata = new Map();
+      const songIds = [];
+      (songs || []).forEach((song) => {
+        const sid = Number(song.serata_id);
+        if (!Number.isInteger(sid)) return;
+        if (!allBookingsBySerata.has(sid)) allBookingsBySerata.set(sid, []);
+        allBookingsBySerata.get(sid).push(song);
+        if (song.cantata) {
+          if (!songsBySerata.has(sid)) songsBySerata.set(sid, []);
+          songsBySerata.get(sid).push(song);
+          if (Number.isInteger(Number(song.id))) songIds.push(Number(song.id));
+        }
+      });
+
+      const votesByPrenotazione = new Map();
+      if (songIds.length) {
+        const { data: votes, error: errVotes } = await db
+          .from('voti')
+          .select('prenotazione_id, voto')
+          .in('prenotazione_id', songIds);
+        if (errVotes) throw errVotes;
+        (votes || []).forEach((v) => {
+          const k = Number(v.prenotazione_id);
+          const val = Number(v.voto);
+          if (!Number.isInteger(k) || !Number.isFinite(val)) return;
+          const prev = votesByPrenotazione.get(k) || { total: 0, count: 0 };
+          prev.total += val;
+          prev.count += 1;
+          votesByPrenotazione.set(k, prev);
+        });
+      }
+      return { serate: serateList, songsBySerata, votesByPrenotazione, allBookingsBySerata };
+    }
+
+    function computeSerataView(serata, songsBySerata, votesByPrenotazione, allBookingsBySerata) {
+      const songs = songsBySerata.get(Number(serata.id)) || [];
+      const allBookings = (allBookingsBySerata && allBookingsBySerata.get(Number(serata.id))) || songs;
+      const ranking = buildRanking(songs, votesByPrenotazione);
+      const top5 = ranking.filter((r) => r.score_count > 0).slice(0, 5);
+      const decreedWinnerId = Number(serata.vincitore_prenotazione_id);
+      let winner = null;
+      if (Number.isInteger(decreedWinnerId) && decreedWinnerId > 0) {
+        winner = ranking.find((r) => Number(r.id) === decreedWinnerId) || songs.find((s) => Number(s.id) === decreedWinnerId) || null;
+      }
+      if (!winner && top5.length) winner = top5[0];
+
+      // Cover photo priority order:
+      //   1. cover_prenotazione_id (override admin) → cerca il selfie tra TUTTE le prenotazioni
+      //   2. selfie del vincitore
+      //   3. random tra i selfie caricati
+      let coverUrl = '';
+      const coverOverrideId = Number(serata.cover_prenotazione_id);
+      if (Number.isInteger(coverOverrideId) && coverOverrideId > 0) {
+        const coverBooking = allBookings.find((b) => Number(b.id) === coverOverrideId);
+        if (coverBooking?.selfie_url) coverUrl = coverBooking.selfie_url;
+      }
+      if (!coverUrl) coverUrl = winner?.selfie_url || '';
+      if (!coverUrl) {
+        const withSelfies = allBookings.filter((b) => typeof b.selfie_url === 'string' && b.selfie_url.length > 0);
+        if (withSelfies.length) {
+          coverUrl = withSelfies[Math.floor(Math.random() * withSelfies.length)].selfie_url;
+        }
+      }
+      return { songs, ranking, top5, winner, coverUrl, allBookings };
+    }
+
+    function renderTile(serata, view, opts = {}) {
+      const { hero = false } = opts;
+      const dateLabel = formatDateLabel(serata.archive_date || serata.data, !hero);
+      const winner = view.winner;
+      const selfieUrl = resolveLanUrl(view.coverUrl || '');
+      const winnerName = winner?.nome || '';
+      const winnerSong = winner ? `${winner.canzone}${winner.artista ? ' — ' + winner.artista : ''}` : '';
+      const hidden = Boolean(serata.archiviato_nascosto);
+      const adminActionsHtml = isAdmin
+        ? `<div class="tile-admin-actions" data-stop>
+             <button type="button" class="tile-admin-btn" data-admin-action="toggle-visibility" data-serata-id="${Number(serata.id)}" title="${hidden ? 'Rendi pubblica' : 'Nascondi dal pubblico'}">
+               ${hidden ? '👁️ mostra' : '🙈 nascondi'}
+             </button>
+             <button type="button" class="tile-admin-btn" data-admin-action="pick-cover" data-serata-id="${Number(serata.id)}" title="Cambia foto di copertina">
+               📷 cover
+             </button>
+           </div>`
+        : '';
+      const showWinnerBadge = winner && (serata.vincitore_decretato || view.top5.length > 0);
+
+      const top5Html = view.top5.length
+        ? `<div class="tile-top5">${view.top5.map((item, idx) => `
+            <span class="tile-top5-chip">
+              <span class="tile-top5-chip-rank">${idx + 1}°</span>
+              <span class="tile-top5-chip-name">${esc(item.nome)}</span>
+            </span>
+          `).join('')}</div>`
+        : '';
+
+      const bgHtml = selfieUrl
+        ? `<div class="tile-bg" style="background-image:url('${esc(selfieUrl)}')"></div>`
+        : `<div class="tile-bg placeholder"></div>`;
+
+      const tileClass = `tile${hero ? ' hero' : ''}${hidden ? ' is-hidden' : ''}`;
+      const heroLayout = hero;
+      if (heroLayout) {
+        return `
+          <article class="${tileClass}" data-serata-id="${Number(serata.id)}">
+            ${bgHtml}
+            <div class="tile-gradient"></div>
+            ${adminActionsHtml}
+            <div class="tile-content">
+              <span class="tile-date-pill">${esc(dateLabel)}</span>
+              <div class="tile-main">
+                ${showWinnerBadge ? '<span class="tile-winner-badge">🏆 Vincitore</span>' : ''}
+                ${winner
+                  ? `<div class="tile-winner-name">${esc(winnerName)}</div>
+                     <div class="tile-winner-song">${esc(winnerSong)}</div>`
+                  : '<div class="tile-no-data">Nessuna classifica per questa edizione</div>'}
+              </div>
+              ${top5Html}
+            </div>
+          </article>
+        `;
+      }
+
+      return `
+        <article class="${tileClass}" data-serata-id="${Number(serata.id)}">
+          ${bgHtml}
+          <div class="tile-gradient"></div>
+          ${adminActionsHtml}
+          <div class="tile-content">
+            <span class="tile-date-pill">${esc(dateLabel)}</span>
+            <div class="tile-info">
+              ${winner
+                ? `${showWinnerBadge ? '<span class="tile-winner-badge">🏆 Vincitore</span>' : ''}
+                   <div class="tile-winner-name">${esc(winnerName)}</div>
+                   <div class="tile-winner-song">${esc(winnerSong)}</div>`
+                : '<div class="tile-no-data">Nessuna classifica per questa edizione</div>'}
+              ${top5Html}
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderGallery(serate, songsBySerata, votesByPrenotazione, allBookingsBySerata) {
+      if (!serate.length) {
+        archiveRoot.innerHTML = `${isAdmin ? renderAdminBanner() : ''}<div class="status-msg">Nessuna edizione archiviata.</div>`;
+        return;
+      }
+      const views = serate.map((s) => ({ serata: s, view: computeSerataView(s, songsBySerata, votesByPrenotazione, allBookingsBySerata) }));
+      const [first, ...rest] = views;
+      const html = `
+        ${isAdmin ? renderAdminBanner() : ''}
+        <div class="gallery">
+          ${renderTile(first.serata, first.view, { hero: true })}
+          ${rest.map((v) => renderTile(v.serata, v.view)).join('')}
+        </div>
+      `;
+      archiveRoot.innerHTML = html;
+      archiveRoot.querySelectorAll('article.tile').forEach((tileEl) => {
+        tileEl.addEventListener('click', (e) => {
+          // Click sui controlli admin (pulsanti) non aprono la modale
+          if (e.target.closest('[data-admin-action]')) return;
+          if (e.target.closest('[data-stop]')) return;
+          const id = Number(tileEl.getAttribute('data-serata-id'));
+          const found = views.find((v) => Number(v.serata.id) === id);
+          if (found) openModal(found.serata, found.view);
+        });
+      });
+      // Gestione azioni admin
+      archiveRoot.querySelectorAll('[data-admin-action]').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const action = btn.getAttribute('data-admin-action');
+          const serataId = Number(btn.getAttribute('data-serata-id'));
+          const found = views.find((v) => Number(v.serata.id) === serataId);
+          if (!found) return;
+          if (action === 'toggle-visibility') {
+            await adminToggleVisibility(found.serata, btn);
+          } else if (action === 'pick-cover') {
+            openCoverPicker(found.serata, found.view);
+          }
+        });
+      });
+    }
+
+    function renderAdminBanner() {
+      return `<div class="admin-banner">Modalità admin attiva: puoi nascondere edizioni e scegliere la foto di copertina.</div>`;
+    }
+
+    function renderModal(serata, view) {
+      const winner = view.winner;
+      const selfieUrl = resolveLanUrl(view.coverUrl || '');
+      const dateLabel = formatDateLabel(serata.archive_date || serata.data, true);
+      const totalSongs = view.songs.length;
+
+      const podiumHtml = view.top5.length
+        ? `<div class="podium-list">${view.top5.map((item, idx) => `
+            <div class="podium-row top${idx + 1 <= 3 ? idx + 1 : ''}">
+              <div class="podium-rank">${idx + 1}°</div>
+              ${item.selfie_url
+                ? `<img class="podium-avatar" src="${esc(resolveLanUrl(item.selfie_url))}" alt="${esc(item.nome)}" loading="lazy" />`
+                : `<div class="podium-avatar" aria-hidden="true"></div>`}
+              <div class="podium-info">
+                <div class="podium-name">${esc(item.nome)}</div>
+                <div class="podium-song">${esc(item.canzone)}${item.artista ? ' — ' + esc(item.artista) : ''}</div>
+              </div>
+              <div class="podium-score">
+                <div class="podium-score-pts">${Number(item.score_total) || 0}<span style="font-size:0.7rem;color:var(--muted);font-weight:500;"> pt</span></div>
+                <div class="podium-score-votes">${item.score_count} ${item.score_count === 1 ? 'voto' : 'voti'}</div>
+              </div>
+            </div>
+          `).join('')}</div>`
+        : '<div class="empty-section">Nessuna votazione registrata in questa edizione.</div>';
+
+      const songListHtml = view.songs.length
+        ? `<div class="songlist">${view.songs.map((song, idx) => `
+            <div class="songlist-row">
+              <div class="songlist-num">${idx + 1}</div>
+              <div class="songlist-info">
+                <div class="songlist-title">${esc(song.canzone)}${song.artista ? ' — ' + esc(song.artista) : ''}</div>
+                <div class="songlist-meta">Cantata da ${esc(song.nome)}</div>
+              </div>
+            </div>
+          `).join('')}</div>`
+        : '<div class="empty-section">Nessuna canzone segnata come cantata.</div>';
+
+      modalContent.innerHTML = `
+        <div class="modal-hero">
+          ${selfieUrl
+            ? `<div class="modal-hero-bg" style="background-image:url('${esc(selfieUrl)}')"></div>`
+            : `<div class="modal-hero-bg" style="background:radial-gradient(circle at 30% 30%, rgba(212,160,23,0.18), transparent 60%), radial-gradient(circle at 70% 70%, rgba(140,40,180,0.30), transparent 60%), linear-gradient(135deg, #2a1650 0%, #1d1430 100%);"></div>`}
+          <div class="modal-hero-gradient"></div>
+          <button class="modal-close" id="modal-close-btn" aria-label="Chiudi">×</button>
+          <div class="modal-hero-content">
+            <div class="modal-hero-date">${esc(dateLabel)}</div>
+            <div class="modal-hero-title" id="modal-title">${winner ? '🏆 ' + esc(winner.nome) : 'Edizione archiviata'}</div>
+            ${winner ? `<div class="tile-winner-song" style="font-size:0.95rem;">${esc(winner.canzone)}${winner.artista ? ' — ' + esc(winner.artista) : ''}</div>` : ''}
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="modal-section">
+            <div class="modal-section-title">Top 5</div>
+            ${podiumHtml}
+          </div>
+          <div class="modal-section">
+            <div class="modal-section-title">Canzoni cantate (${totalSongs})</div>
+            ${songListHtml}
+          </div>
+        </div>
+      `;
+      const closeBtn = document.getElementById('modal-close-btn');
+      if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    }
+
+    function openModal(serata, view) {
+      renderModal(serata, view);
+      modalOverlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeModal() {
+      modalOverlay.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modalOverlay.classList.contains('open')) closeModal();
+    });
+
+    // ── Admin API helpers ─────────────────────────────────
+    function getAdminHeaders() {
+      const headers = new Headers({ 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` });
+      if (config.SUPABASE_ANON_KEY) headers.set('apikey', config.SUPABASE_ANON_KEY);
+      return headers;
+    }
+    async function callAdmin(action, payload = {}) {
+      if (!adminToken || !adminBookingsUrl) throw new Error('Sessione admin mancante.');
+      const response = await fetch(adminBookingsUrl, {
+        method: 'POST',
+        headers: getAdminHeaders(),
+        body: JSON.stringify({ action, ...payload }),
+      });
+      let result = null;
+      try { result = await response.json(); } catch (_) { result = null; }
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error?.message || 'Errore durante la richiesta admin.');
+      }
+      return result.data;
+    }
+    async function detectAdmin() {
+      if (!authClient) return false;
+      try {
+        const { data } = await authClient.auth.getSession();
+        const token = data?.session?.access_token;
+        if (!token) return false;
+        // Verifica che il token sia di un admin chiamando ping
+        adminToken = token;
+        await callAdmin('ping');
+        return true;
+      } catch (_) {
+        adminToken = '';
+        return false;
+      }
+    }
+
+    // ── Admin actions ─────────────────────────────────────
+    async function adminToggleVisibility(serata, btn) {
+      const wasHidden = Boolean(serata.archiviato_nascosto);
+      btn.disabled = true;
+      try {
+        const data = await callAdmin('set_archive_visibility', {
+          serataId: Number(serata.id),
+          hidden: !wasHidden,
+        });
+        serata.archiviato_nascosto = Boolean(data?.archiviato_nascosto);
+        // Re-render: la serata può sparire (se diventa hidden e l'admin filtra) o restare
+        await reloadGallery();
+      } catch (error) {
+        alert(error?.message || 'Aggiornamento visibilità fallito.');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ── Cover picker ──────────────────────────────────────
+    const coverPickerOverlay = document.getElementById('cover-picker-overlay');
+    const coverPickerContent = document.getElementById('cover-picker-content');
+    let coverPickerState = null;
+
+    function openCoverPicker(serata, view) {
+      const bookings = (view.allBookings || []).filter((b) => typeof b.selfie_url === 'string' && b.selfie_url.length > 0);
+      const currentCoverId = Number(serata.cover_prenotazione_id) || null;
+      coverPickerState = { serata, selectedId: currentCoverId };
+      renderCoverPicker(bookings, currentCoverId);
+      coverPickerOverlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeCoverPicker() {
+      coverPickerOverlay.classList.remove('open');
+      coverPickerContent.innerHTML = '';
+      coverPickerState = null;
+      document.body.style.overflow = '';
+    }
+    coverPickerOverlay.addEventListener('click', (e) => {
+      if (e.target === coverPickerOverlay) closeCoverPicker();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && coverPickerOverlay.classList.contains('open')) closeCoverPicker();
+    });
+
+    function renderCoverPicker(bookings, currentCoverId) {
+      const optionsHtml = bookings.length
+        ? bookings.map((b) => `
+            <div class="cover-option${Number(b.id) === currentCoverId ? ' selected' : ''}"
+                 style="background-image:url('${esc(resolveLanUrl(b.selfie_url))}')"
+                 data-cover-id="${Number(b.id)}">
+              <div class="cover-option-name">${esc(b.nome)}</div>
+            </div>
+          `).join('')
+        : '<div class="empty-section" style="grid-column:1/-1">Nessun selfie caricato in questa edizione.</div>';
+      coverPickerContent.innerHTML = `
+        <h3>Scegli la foto di copertina</h3>
+        <div class="cover-picker-grid">
+          <div class="cover-option-empty${!currentCoverId ? ' selected' : ''}" data-cover-id="">
+            ↺ automatica (vincitore o random)
+          </div>
+          ${optionsHtml}
+        </div>
+        <div class="cover-picker-footer">
+          <button type="button" class="cover-picker-btn" data-action="cancel">Annulla</button>
+          <button type="button" class="cover-picker-btn primary" data-action="save">Salva</button>
+        </div>
+      `;
+      coverPickerContent.querySelectorAll('[data-cover-id]').forEach((el) => {
+        el.addEventListener('click', () => {
+          const raw = el.getAttribute('data-cover-id');
+          coverPickerState.selectedId = raw ? Number(raw) : null;
+          coverPickerContent.querySelectorAll('[data-cover-id]').forEach((n) => n.classList.remove('selected'));
+          el.classList.add('selected');
+        });
+      });
+      coverPickerContent.querySelector('[data-action="cancel"]').addEventListener('click', closeCoverPicker);
+      coverPickerContent.querySelector('[data-action="save"]').addEventListener('click', saveCoverPicker);
+    }
+
+    async function saveCoverPicker() {
+      if (!coverPickerState) return;
+      const btn = coverPickerContent.querySelector('[data-action="save"]');
+      btn.disabled = true;
+      btn.textContent = 'Salvataggio…';
+      try {
+        await callAdmin('set_archive_cover', {
+          serataId: Number(coverPickerState.serata.id),
+          prenotazioneId: coverPickerState.selectedId,
+        });
+        closeCoverPicker();
+        await reloadGallery();
+      } catch (error) {
+        alert(error?.message || 'Salvataggio cover fallito.');
+        btn.disabled = false;
+        btn.textContent = 'Salva';
+      }
+    }
+
+    // ── Init / reload ─────────────────────────────────────
+    async function reloadGallery() {
+      const { serate, songsBySerata, votesByPrenotazione, allBookingsBySerata } = await loadEverything();
+      renderGallery(serate, songsBySerata, votesByPrenotazione, allBookingsBySerata);
+    }
+
+    async function init() {
+      if (!db) {
+        archiveRoot.innerHTML = '<div class="status-msg">Configurazione Supabase non disponibile.</div>';
+        return;
+      }
+      try {
+        // Rilevazione admin: se c'è una sessione valida con permessi admin
+        // mostriamo tutto (anche serate nascoste) e i controlli inline.
+        isAdmin = await detectAdmin();
+
+        if (!isAdmin) {
+          const settings = await loadSettings();
+          if (settings.archivio_pubblico_abilitato !== true) {
+            const nextDateText = settings.prossima_serata_data
+              ? `Prossimo karaoke: <strong style="color:var(--gold-soft)">${esc(formatDateLabel(settings.prossima_serata_data, true))}</strong>.`
+              : 'Data del prossimo karaoke non ancora comunicata.';
+            archiveRoot.innerHTML = `
+              <div class="status-msg">
+                Archivio non ancora disponibile pubblicamente.<br>${nextDateText}
+              </div>`;
+            return;
+          }
+        }
+        await reloadGallery();
+      } catch (error) {
+        archiveRoot.innerHTML = `<div class="status-msg">${esc(error?.message || 'Errore durante il caricamento dell\'archivio.')}</div>`;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -185,18 +185,23 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      background: rgba(212,160,23,0.15);
-      border: 1px solid var(--gold);
+      background: rgba(212,160,23,0.3);
+      border: 2px solid var(--gold);
       border-radius: 50px;
       color: var(--gold-soft);
-      font-size: 0.85rem;
+      font-size: 1.05rem;
       font-weight: 700;
       text-decoration: none;
-      padding: 8px 22px;
+      padding: 12px 30px;
       margin-bottom: 20px;
-      transition: background 0.15s;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+      transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
     }
-    #vota-banner:hover { background: rgba(212,160,23,0.28); }
+    #vota-banner:hover {
+      background: rgba(212,160,23,0.42);
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(0,0,0,0.4);
+    }
 
     #leaderboard-card {
       display: none;
@@ -425,12 +430,14 @@
       background: var(--bg2);
       border: 1px solid #3d2366;
       border-radius: 10px;
-      padding: 12px;
+      padding: 16px 14px;
+      min-height: 96px;
       display: flex;
       flex-direction: row;
-      align-items: flex-start;
-      gap: 8px;
+      align-items: center;
+      gap: 10px;
       text-align: left;
+      position: relative;
     }
     .song-item.mine {
       border-color: var(--gold);
@@ -448,10 +455,10 @@
       align-items: flex-start;
     }
     .song-item-index {
-      font-size: 1.4rem;
+      font-size: 1.6rem;
       font-weight: 800;
       color: var(--muted);
-      min-width: 28px;
+      min-width: 32px;
       text-align: center;
       flex-shrink: 0;
       line-height: 1;
@@ -465,42 +472,49 @@
     }
     .song-item-title {
       font-weight: 700;
+      font-size: 1.18rem;
       color: var(--text);
-      line-height: 1.35;
+      line-height: 1.3;
     }
     .song-item-artist {
-      font-size: 0.84rem;
+      font-size: 1.05rem;
       color: var(--gold-soft);
     }
     .song-item-name {
-      font-size: 0.8rem;
+      font-size: 0.95rem;
       color: var(--muted);
+      margin-top: 3px;
     }
     .song-item-badge {
-      margin-top: 6px;
+      margin-top: 8px;
       display: inline-flex;
       align-items: center;
       border-radius: 999px;
       border: 1px solid rgba(212,160,23,0.55);
       color: var(--gold-soft);
       background: rgba(212,160,23,0.12);
-      padding: 2px 8px;
-      font-size: 0.68rem;
+      padding: 3px 10px;
+      font-size: 0.78rem;
       font-weight: 700;
       letter-spacing: 0.02em;
     }
     .song-item-order {
-      min-width: 28px;
-      height: 28px;
-      border-radius: 50%;
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      min-width: 32px;
+      height: 32px;
+      padding: 0 8px;
+      border-radius: 999px;
       background: rgba(212,160,23,0.18);
       color: var(--gold-soft);
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.8rem;
-      font-weight: 700;
+      font-size: 0.85rem;
+      font-weight: 800;
       flex-shrink: 0;
+      z-index: 2;
     }
     .song-item-order.alert {
       background: rgba(255,107,107,0.28);
@@ -519,7 +533,109 @@
       text-transform: uppercase;
       color: var(--muted);
     }
-    .song-item-edit {
+    /* ── Selfie integrato nella card ──
+       La foto è ancorata a destra, dimensionata in altezza alla card
+       (cover preserva l'aspect ratio), leggermente sbiadita, e una
+       mask-image la fa sfumare verso sinistra nel colore di sfondo
+       della card stessa — senza overlay aggiuntivi, così la tinta
+       di `.mine` / `.current-song` resta coerente automaticamente. */
+    .song-item.has-selfie {
+      position: relative;
+      overflow: hidden;
+    }
+    .song-item.has-selfie .song-item-selfie-bg {
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 62%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0.55;
+      filter: blur(1px) saturate(0.8) brightness(0.88);
+      -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
+              mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
+      cursor: zoom-in;
+      z-index: 0;
+      transition: opacity 0.2s, filter 0.2s;
+    }
+    .song-item.has-selfie .song-item-selfie-bg:hover {
+      opacity: 0.85;
+      filter: blur(0) saturate(1) brightness(1);
+    }
+    .song-item.has-selfie > *:not(.song-item-selfie-bg):not(.song-item-order) {
+      position: relative;
+      z-index: 1;
+    }
+    /* Il contenuto testuale resta leggibile sulla metà sinistra:
+       non si estende sopra la zona "piena" del selfie. */
+    .song-item.has-selfie .song-item-top {
+      max-width: 62%;
+    }
+    /* Il badge dell'ordine sta in alto a destra sopra il selfie:
+       backdrop + bordo sottile per la leggibilità sopra la foto. */
+    .song-item.has-selfie .song-item-order {
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px) saturate(140%);
+      -webkit-backdrop-filter: blur(8px) saturate(140%);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #fff;
+    }
+
+    /* ── Selfie lightbox ── */
+    .selfie-lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+      cursor: zoom-out;
+    }
+    .selfie-lightbox.open { display: flex; }
+    .selfie-lightbox img {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 14px;
+      box-shadow: 0 12px 60px rgba(0,0,0,0.7);
+      object-fit: contain;
+    }
+    .selfie-lightbox-close {
+      position: absolute;
+      top: 16px;
+      right: 18px;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: #fff;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .selfie-lightbox-close:hover { background: rgba(255,255,255,0.25); }
+    /* ── Selfie upload form ── */
+    .selfie-upload-wrap { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+    .selfie-preview {
+      width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
+      border: 2px solid var(--gold); display: none; flex-shrink: 0;
+    }
+    .selfie-preview.visible { display: block; }
+    .selfie-label {
+      display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+      background: rgba(212,160,23,0.12); border: 1px dashed rgba(212,160,23,0.45);
+      border-radius: 8px; padding: 8px 14px; font-size: 0.85rem;
+      color: var(--gold-soft); transition: background 0.18s; user-select: none;
+    }
+    .selfie-label:hover { background: rgba(212,160,23,0.2); }
+    .selfie-remove {
+      font-size: 0.78rem; color: var(--muted); cursor: pointer;
+      text-decoration: underline; display: none; margin-top: 4px;
+    }
+    .selfie-remove.visible { display: inline; }
+        .song-item-edit {
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -811,6 +927,23 @@
           <input id="artista" type="text" placeholder="Es. Lady Gaga" required />
         </div>
       </div>
+      <div class="form-group" style="margin-bottom:4px;">
+        <label>Selfie <span style="color:var(--muted);font-weight:400;font-size:0.8rem;">(opzionale)</span></label>
+        <div class="selfie-upload-wrap">
+          <img id="selfie-preview" class="selfie-preview" alt="anteprima" />
+          <div>
+            <label class="selfie-label" for="selfie-input">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              Aggiungi selfie
+            </label>
+            <input id="selfie-input" type="file" accept="image/*" capture="user" style="display:none;" />
+            <span id="selfie-remove" class="selfie-remove">Rimuovi</span>
+          </div>
+        </div>
+      </div>
       <button type="submit" class="btn-submit">🎙 Prenota</button>
     </form>
   </div>
@@ -850,7 +983,26 @@
   <div class="card" id="step-closed">
     <div class="big-icon">🌙</div>
     <h2>Prenotazioni chiuse</h2>
-    <p>Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!</p>
+    <p id="closed-state-message">Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!</p>
+    <p id="closed-state-next-date" style="font-size:0.9rem; color:var(--gold); margin-top:-2px;"></p>
+    <div class="ig-profile-card" id="closed-ig-profile-card" style="margin-top:8px; cursor:pointer;">
+      <div class="ig-pic"></div>
+      <div class="ig-profile-info">
+        <div class="ig-profile-name">La Tana del Coniglio</div>
+        <div class="ig-profile-handle">@latanadelconiglio_nola</div>
+      </div>
+      <button class="ig-btn-follow" id="closed-ig-follow-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <rect x="2" y="2" width="20" height="20" rx="5.5"/>
+          <circle cx="12" cy="12" r="4"/>
+          <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+        Segui
+      </button>
+    </div>
+    <a id="closed-archive-link" href="archive.html" style="display:inline-block; margin-top:6px; color:var(--gold); text-decoration:underline; font-size:0.86rem;">
+      Consulta archivio karaoke
+    </a>
   </div>
 
   <div class="notification-modal" id="notification-modal" role="dialog" aria-modal="true" aria-labelledby="notification-modal-title">
@@ -881,7 +1033,13 @@
     </div>
   </div>
 
-  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.2 &nbsp;|&nbsp; <a href="cookie-policy.html" style="color:inherit;text-decoration:underline;">Cookie Policy</a></footer>
+  <!-- Selfie lightbox -->
+  <div class="selfie-lightbox" id="selfie-lightbox" role="dialog" aria-modal="true" aria-label="Visualizza selfie">
+    <button type="button" class="selfie-lightbox-close" id="selfie-lightbox-close" aria-label="Chiudi">×</button>
+    <img id="selfie-lightbox-img" src="" alt="selfie ingrandito" />
+  </div>
+
+  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.2 &nbsp;|&nbsp; <a href="archive.html" style="color:inherit;text-decoration:underline;">Archivio karaoke</a> &nbsp;|&nbsp; <a href="cookie-policy.html" style="color:inherit;text-decoration:underline;">Cookie Policy</a></footer>
 
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -969,6 +1127,10 @@
     let serataChannel   = null;
     let songListChannel = null;
     let usingLegacySongFallback = false;
+    let publicSettings = {
+      archivio_pubblico_abilitato: false,
+      prossima_serata_data: null,
+    };
 
     // ── UI refs ─────────────────────────────────────────────
     const stepFollow   = document.getElementById('step-follow');
@@ -977,10 +1139,42 @@
     const stepWaiting  = document.getElementById('step-waiting');
     const stepClosed   = document.getElementById('step-closed');
     const stepClosedTitle = stepClosed.querySelector('h2');
-    const stepClosedText = stepClosed.querySelector('p');
+    const stepClosedText = document.getElementById('closed-state-message');
+    const closedStateNextDate = document.getElementById('closed-state-next-date');
+    const closedIgProfileCard = document.getElementById('closed-ig-profile-card');
+    const closedIgFollowBtn   = document.getElementById('closed-ig-follow-btn');
+    const closedArchiveLink = document.getElementById('closed-archive-link');
     const songListCard = document.getElementById('song-list-card');
     const songListEl   = document.getElementById('song-list');
     const songListStatus = document.getElementById('song-list-status');
+
+    // ── Selfie lightbox: apertura via delega + chiusura ──────
+    const selfieLightboxEl = document.getElementById('selfie-lightbox');
+    const selfieLightboxImg = document.getElementById('selfie-lightbox-img');
+    const selfieLightboxClose = document.getElementById('selfie-lightbox-close');
+    function closeSelfieLightbox() {
+      if (!selfieLightboxEl) return;
+      selfieLightboxEl.classList.remove('open');
+      selfieLightboxImg.src = '';
+    }
+    if (songListEl) {
+      songListEl.addEventListener('click', (e) => {
+        const target = e.target.closest('[data-selfie-full]');
+        if (!target) return;
+        const url = target.getAttribute('data-selfie-full');
+        if (!url || !selfieLightboxEl) return;
+        selfieLightboxImg.src = url;
+        selfieLightboxEl.classList.add('open');
+      });
+    }
+    if (selfieLightboxEl) {
+      selfieLightboxEl.addEventListener('click', (e) => {
+        if (e.target === selfieLightboxEl || e.target === selfieLightboxClose) closeSelfieLightbox();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && selfieLightboxEl.classList.contains('open')) closeSelfieLightbox();
+      });
+    }
     const leaderboardCard = document.getElementById('leaderboard-card');
     const leaderboardStatus = document.getElementById('leaderboard-status');
     const leaderboardList = document.getElementById('leaderboard-list');
@@ -1036,6 +1230,47 @@
       if (stepClosedText) stepClosedText.innerHTML = message;
     }
 
+    function formatPublicDateLabel(dateIso, withWeekday = true) {
+      if (!dateIso) return '';
+      const [year, month, day] = String(dateIso).split('-').map(Number);
+      if (!year || !month || !day) return '';
+      return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('it-IT', {
+        weekday: withWeekday ? 'long' : undefined,
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).trim();
+    }
+
+    async function loadPublicSettings() {
+      if (!db) return publicSettings;
+      const { data, error } = await db
+        .from('impostazioni_pubbliche')
+        .select('archivio_pubblico_abilitato, prossima_serata_data')
+        .eq('id', 1)
+        .maybeSingle();
+      if (!error && data) {
+        publicSettings = data;
+      }
+      return publicSettings;
+    }
+
+    function updateClosedPromoContent() {
+      if (closedStateNextDate) {
+        const formattedDate = formatPublicDateLabel(publicSettings?.prossima_serata_data, true);
+        closedStateNextDate.textContent = formattedDate
+          ? `Data del prossimo karaoke: ${formattedDate}.`
+          : 'Data del prossimo karaoke in aggiornamento.';
+      }
+      if (closedArchiveLink) {
+        // Link sempre visibile: se l'archivio è chiuso al pubblico,
+        // archive.html mostrerà comunque il messaggio "non disponibile".
+        // Gli admin loggati lo vedono indipendentemente dal toggle.
+        closedArchiveLink.style.display = 'inline-block';
+      }
+    }
+
     function showLeaderboard(show) {
       if (!leaderboardCard) return;
       leaderboardCard.style.display = show ? 'block' : 'none';
@@ -1069,7 +1304,7 @@
 
       let { data, error } = await db
         .from('prenotazioni')
-        .select('id, nome, canzone, artista, created_at, cantata, approvata')
+        .select('id, nome, canzone, artista, created_at, cantata, approvata, selfie_url')
         .eq('serata_id', currentSerataId)
         .eq('approvata', true)
         .order('created_at', { ascending: true });
@@ -1077,7 +1312,7 @@
       if (error || !data || data.length === 0) {
         const fallback = await db
           .from('prenotazioni')
-          .select('id, nome, canzone, artista, created_at, cantata, approvata')
+          .select('id, nome, canzone, artista, created_at, cantata, approvata, selfie_url')
           .is('serata_id', null)
           .eq('approvata', true)
           .order('created_at', { ascending: true });
@@ -1158,6 +1393,17 @@
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#39;');
+    }
+
+    // Riscrive URL Supabase salvati con host "localhost"/"127.0.0.1"
+    // quando la pagina è aperta da un IP di rete. Necessario per le
+    // foto dei selfie caricate da desktop su localhost e poi richieste
+    // da un mobile che apre la stessa app via LAN.
+    function resolveLanUrl(url) {
+      if (typeof url !== 'string' || !url) return url;
+      const host = typeof window !== 'undefined' && window.location && window.location.hostname;
+      if (!host || host === 'localhost' || host === '127.0.0.1') return url;
+      return url.replace(/^(https?:\/\/)(localhost|127\.0\.0\.1)(:|\/|$)/, `$1${host}$3`);
     }
 
     async function loadFinalLeaderboard(serataId, winnerBookingId = null) {
@@ -1262,8 +1508,11 @@
         const progressiveLabel = Number.isInteger(progressiveIndex) && progressiveIndex > 0
           ? String(progressiveIndex)
           : '?';
+        const hasSelfie = typeof item.selfie_url === 'string' && item.selfie_url.length > 0;
         return `
-        <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}${currentSong ? ' current-song' : ''}" data-id="${item.id}">
+        <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}${currentSong ? ' current-song' : ''}${hasSelfie ? ' has-selfie' : ''}" data-id="${item.id}">
+          ${hasSelfie ? (() => { const resolved = resolveLanUrl(item.selfie_url); return `<div class="song-item-selfie-bg" style="background-image:url('${escapeHtml(resolved)}')" data-selfie-full="${escapeHtml(resolved)}" role="button" aria-label="ingrandisci selfie di ${escapeHtml(item.nome)}"></div>`; })() : ''}
+          ${showOrder ? `<div class="song-item-order${alert ? ' alert' : ''}">${orderLabel}</div>` : ''}
           <div class="song-item-index">${progressiveLabel}</div>
           <div class="song-item-top">
             <div>
@@ -1273,7 +1522,6 @@
               ${currentSong ? '<div class="song-item-badge">🎤 Canzone corrente</div>' : ''}
               ${Number(item.id) === currentBookingIdNum ? '<div class="song-item-badge">La tua prenotazione</div>' : ''}
             </div>
-            ${showOrder ? `<div class="song-item-order${alert ? ' alert' : ''}">${orderLabel}</div>` : ''}
           </div>
         </div>
       `;
@@ -1581,6 +1829,7 @@
     // ── Serata aperta ────────────────────────────────────────
     async function checkSerataAperta() {
       if (!db) return true;
+      await loadPublicSettings();
       const { data } = await db
         .from('serate')
         .select('id, aperta, voto_aperto, vincitore_decretato, vincitore_prenotazione_id, notifiche_browser_abilitate')
@@ -1596,7 +1845,8 @@
         showSongListCard(false);
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
-        setClosedState('Prenotazioni chiuse', 'Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!');
+        setClosedState('Prenotazioni chiuse', 'Per ora non c’è nessun karaoke in corso.<br>Segui la pagina Instagram per conoscere le ultime novità.');
+        updateClosedPromoContent();
         showLeaderboard(false);
         setVotaBanner(false);
         return false;
@@ -1613,12 +1863,14 @@
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
         setClosedState('🏁 Karaoke concluso', 'Il vincitore è stato decretato e le prenotazioni sono chiuse per questa serata.');
+        updateClosedPromoContent();
         showLeaderboard(true);
         await loadFinalLeaderboard(data.id, data.vincitore_prenotazione_id);
         return false;
       }
       showLeaderboard(false);
-      setClosedState('Prenotazioni chiuse', 'Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!');
+      stepClosed.style.display = 'none';
+      document.querySelector('.steps').style.display = '';
       subscribeSerata(data.id);
       subscribeSongList(data.id);
       ensureSongListPolling();
@@ -1631,22 +1883,25 @@
       if (!db || serataChannel) return;
       serataChannel = db.channel('index-serata')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate',
-          filter: `id=eq.${serataId}` }, payload => {
+          filter: `id=eq.${serataId}` }, async (payload) => {
           browserNotificationsEnabled = payload.new.notifiche_browser_abilitate !== false;
           const winnerDecreed = Boolean(payload.new.vincitore_decretato);
           setVotaBanner(Boolean(payload.new.voto_aperto) && !winnerDecreed);
           if (!payload.new.aperta) {
+            await loadPublicSettings();
             currentSerataId = null;
             clearSongListPolling();
             [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
             showSongListCard(false);
             stepClosed.style.display = 'flex';
             document.querySelector('.steps').style.display = 'none';
-            setClosedState('Prenotazioni chiuse', 'Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!');
+            setClosedState('Prenotazioni chiuse', 'Per ora non c’è nessun karaoke in corso.<br>Segui la pagina Instagram per conoscere le ultime novità.');
+            updateClosedPromoContent();
             showLeaderboard(false);
             return;
           }
           if (winnerDecreed) {
+            await loadPublicSettings();
             clearWaitingIntervals();
             clearSongListPolling();
             [stepFollow, stepForm, stepSuccess, stepWaiting].forEach(s => s.style.display = 'none');
@@ -1654,6 +1909,7 @@
             stepClosed.style.display = 'flex';
             document.querySelector('.steps').style.display = 'none';
             setClosedState('🏁 Karaoke concluso', 'Il vincitore è stato decretato e le prenotazioni sono chiuse per questa serata.');
+            updateClosedPromoContent();
             showLeaderboard(true);
             loadFinalLeaderboard(serataId, payload.new.vincitore_prenotazione_id);
             return;
@@ -1661,6 +1917,54 @@
           showLeaderboard(false);
         })
         .subscribe();
+    }
+
+    // ── Subscription globale: rileva apertura nuova serata ───
+    // Usata quando la pagina è in stato "chiuso": non c'è una serata
+    // specifica da osservare, quindi ascoltiamo INSERT e UPDATE su tutta
+    // la tabella serate. Quando arriva un evento con aperta=true,
+    // ri-eseguiamo checkSerataAperta() e mostriamo il flusso di prenotazione.
+    let globalSerataChannel = null;
+
+    function subscribeGlobalSerata() {
+      if (!db || globalSerataChannel) return;
+      globalSerataChannel = db.channel('index-serata-global')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'serate' },
+          async (payload) => {
+            if (payload.new?.aperta) await handleNewSerataOpened();
+          })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate' },
+          async (payload) => {
+            if (payload.new?.aperta && !currentSerataId) await handleNewSerataOpened();
+          })
+        .subscribe();
+    }
+
+    function clearGlobalSerataSubscription() {
+      if (globalSerataChannel && db) {
+        db.removeChannel(globalSerataChannel);
+        globalSerataChannel = null;
+      }
+    }
+
+    async function handleNewSerataOpened() {
+      clearGlobalSerataSubscription();
+      const open = await checkSerataAperta();
+      if (!open) {
+        // Non ancora aperta (race condition): riattiva subscription
+        subscribeGlobalSerata();
+        return;
+      }
+      const pending = await checkPendingBooking();
+      if (pending) return;
+      const alreadyFollowed = getCookie('ig_followed') === 'true';
+      if (alreadyFollowed) {
+        showForm();
+      } else {
+        document.querySelector('.steps').style.display = '';
+        stepClosed.style.display = 'none';
+        stepFollow.style.display = 'block';
+      }
     }
 
     // ── Pending booking check ────────────────────────────────
@@ -1988,6 +2292,15 @@
       e.stopPropagation();
       openInstagram();
     });
+    if (closedIgProfileCard) {
+      closedIgProfileCard.addEventListener('click', openInstagram);
+    }
+    if (closedIgFollowBtn) {
+      closedIgFollowBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openInstagram();
+      });
+    }
 
     // Quando l'utente torna alla pagina dopo aver aperto Instagram
     async function handleReturn() {
@@ -2071,45 +2384,8 @@
       return headers;
     }
 
-    async function submitBooking(booking) {
-      if (!submitBookingUrl) {
-        throw new Error(BOOKING_CONFIG_ERROR_MESSAGE);
-      }
-
-      const response = await fetch(submitBookingUrl, {
-        method: 'POST',
-        headers: getEdgeHeaders(),
-        body: JSON.stringify(booking),
-      });
-
-      let payload = null;
-      try {
-        payload = await response.json();
-      } catch (_) {
-        payload = null;
-      }
-
-      if (!response.ok || !payload?.success || payload?.data?.id === undefined || payload?.data?.id === null) {
-        const errorCode = payload?.error?.code;
-        const message = payload?.error?.message || BOOKING_ERROR_MESSAGE;
-        throw Object.assign(new Error(message), { code: errorCode });
-      }
-
-      return payload.data;
-    }
-
-    // ── Init ─────────────────────────────────────────────────
-    (async () => {
-      const open = await checkSerataAperta();
-      if (!open) return;
-      if (getCookie('ig_followed') === 'true') {
-        const stepsEl = document.querySelector('.steps');
-        if (stepsEl) stepsEl.style.display = 'none';
-        goToForm();
-      }
-    })();
-
-    // ── Form submit ─────────────────────────────────────────
+    // Form handler: raccoglie dati, upload selfie, invia prenotazione,
+    // salva cookie e mostra schermata di attesa.
     document.getElementById('booking-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const nome    = document.getElementById('nome').value.trim();
@@ -2133,6 +2409,12 @@
 
       let pendingExpiresAt = null;
       try {
+        if (selfieBlob) {
+          btn.textContent = 'Caricamento selfie…';
+          const selfie_url = await uploadSelfie(selfieBlob);
+          if (selfie_url) booking.selfie_url = selfie_url;
+          btn.textContent = 'Invio in corso…';
+        }
         const data = await submitBooking(booking);
         const createdAtMs = Date.parse(data.created_at || '');
         pendingExpiresAt = data.pending_expires_at
@@ -2167,16 +2449,133 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    tabToSing.addEventListener('click', () => {
-      activeSongTab = 'to-sing';
-      renderSongList();
-    });
-    tabCompleted.addEventListener('click', () => {
-      activeSongTab = 'completed';
-      renderSongList();
-    });
+    async function submitBooking(booking) {
+      if (!submitBookingUrl) {
+        throw new Error(BOOKING_CONFIG_ERROR_MESSAGE);
+      }
+
+      const response = await fetch(submitBookingUrl, {
+        method: 'POST',
+        headers: getEdgeHeaders(),
+        body: JSON.stringify(booking),
+      });
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {
+        payload = null;
+      }
+
+      if (!response.ok || !payload?.success || payload?.data?.id === undefined || payload?.data?.id === null) {
+        const errorCode = payload?.error?.code;
+        const message = payload?.error?.message || BOOKING_ERROR_MESSAGE;
+        throw Object.assign(new Error(message), { code: errorCode });
+      }
+
+      return payload.data;
+    }
+
+    // ── Selfie upload ─────────────────────────────────────────
+    const selfieInput   = document.getElementById('selfie-input');
+    const selfiePreview = document.getElementById('selfie-preview');
+    const selfieRemove  = document.getElementById('selfie-remove');
+    let selfieBlob = null;   // File compresso pronto per l'upload
+    let selfieDataUrl = null;
+
+    // Comprime l'immagine a max 800px lato lungo, qualità 0.82, formato JPEG
+    function compressImage(file, maxPx = 800, quality = 0.82) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const ratio = Math.min(1, maxPx / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width  = Math.round(img.width  * ratio);
+          canvas.height = Math.round(img.height * ratio);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('compressione fallita')), 'image/jpeg', quality);
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+    }
+
+    if (selfieInput) {
+      selfieInput.addEventListener('change', async () => {
+        const file = selfieInput.files?.[0];
+        if (!file) return;
+        try {
+          selfieBlob = await compressImage(file);
+          const reader = new FileReader();
+          reader.onload = e => {
+            selfieDataUrl = e.target.result;
+            selfiePreview.src = selfieDataUrl;
+            selfiePreview.classList.add('visible');
+            selfieRemove.classList.add('visible');
+          };
+          reader.readAsDataURL(selfieBlob);
+        } catch (_) {
+          selfieBlob = null;
+          selfieDataUrl = null;
+        }
+      });
+    }
+    if (selfieRemove) {
+      selfieRemove.addEventListener('click', () => {
+        selfieBlob = null;
+        selfieDataUrl = null;
+        selfieInput.value = '';
+        selfiePreview.classList.remove('visible');
+        selfiePreview.src = '';
+        selfieRemove.classList.remove('visible');
+      });
+    }
+
+    // Carica il selfie su Supabase Storage e restituisce l'URL pubblico
+    async function uploadSelfie(blob) {
+      if (!db || !blob) return null;
+      try {
+        const ext = 'jpg';
+        const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const path = `public/${filename}`;
+        const { error } = await db.storage.from('selfies').upload(path, blob, {
+          contentType: 'image/jpeg',
+          upsert: false,
+        });
+        if (error) return null;
+        const { data } = db.storage.from('selfies').getPublicUrl(path);
+        return data?.publicUrl ?? null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+        // ── Init ─────────────────────────────────────────────────
+    (async () => {
+      const open = await checkSerataAperta();
+      if (!open) {
+        subscribeGlobalSerata();
+        return;
+      }
+      const pending = await checkPendingBooking();
+      if (pending) return;
+      const alreadyFollowed = getCookie('ig_followed') === 'true';
+      if (alreadyFollowed) {
+        showForm();
+      } else if (getCookie('ig_clicked')) {
+        // Tab scartato da Android dopo aver aperto Instagram: il flag in
+        // memoria è perso ma il cookie sopravvive — riprendi dal form.
+        goToForm();
+      } else {
+        document.querySelector('.steps').style.display = '';
+        stepClosed.style.display = 'none';
+        stepFollow.style.display = 'block';
+      }
+    })();
+
   </script>
-  <script defer src="scripts/vendor/cookieconsent.umd.js"></script>
-  <script defer src="cookie-consent.js"></script>
 </body>
 </html>

@@ -1,0 +1,13 @@
+-- =============================================================
+--  Seed utente admin per sviluppo locale
+--
+--  La creazione dell'utente in auth.users è delegata allo script
+--  scripts/seed-admin.mjs che usa le Supabase Admin API —
+--  più robusto rispetto a INSERT manuali su auth.users/auth.identities
+--  il cui schema interno cambia tra versioni di Supabase.
+--
+--  Questa migrazione è un no-op intenzionale: il seed viene
+--  eseguito dall'entrypoint dopo supabase start.
+-- =============================================================
+
+-- (nessuna operazione SQL necessaria qui)

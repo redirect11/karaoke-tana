@@ -1,48 +1,53 @@
 -- =============================================================
---  La Tana del Coniglio – Karaoke Booking
---  Script di inizializzazione Supabase
+--  karaoke-tana – Schema base
+--  Migrazione iniziale per sviluppo locale con Supabase CLI.
 --
---  Come eseguire:
---    Supabase dashboard → SQL Editor → New query → incolla → Run
+--  Questa migrazione viene applicata automaticamente da:
+--    supabase start  (primo avvio)
+--    supabase db reset  (reset completo)
 --
---  Sicuro da rieseguire: usa IF NOT EXISTS / DROP IF EXISTS.
+--  Le migrazioni successive (20260520*) aggiungono colonne
+--  con ADD COLUMN IF NOT EXISTS, quindi sono idempotenti.
 -- =============================================================
 
 
 -- ─────────────────────────────────────────────────────────────
---  1. SERATE
---     Una sola serata può essere aperta alla volta.
---     Le prenotazioni e le votazioni vengono abilitate/disabilitate
---     per serata tramite i flag `aperta` e `voto_aperto`.
+--  Legacy: admin_credentials
+--  Tabella del vecchio sistema di login admin (password hash).
+--  Non più usata (rimpiazzata da Supabase Auth + admin_users),
+--  ma necessaria perché la migrazione 20260520150000 la altera.
 -- ─────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS serate (
-  id          BIGSERIAL    PRIMARY KEY,
-  data        DATE         NOT NULL DEFAULT CURRENT_DATE,
-  aperta      BOOLEAN      NOT NULL DEFAULT FALSE,
-  voto_aperto BOOLEAN      NOT NULL DEFAULT FALSE,
-  notifiche_telegram_abilitate BOOLEAN NOT NULL DEFAULT TRUE,
-  notifiche_browser_abilitate  BOOLEAN NOT NULL DEFAULT TRUE,
-  note        TEXT,
+CREATE TABLE IF NOT EXISTS admin_credentials (
+  id          SERIAL       PRIMARY KEY,
+  username    TEXT         NOT NULL UNIQUE,
+  password    TEXT         NOT NULL,
   created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS impostazioni_pubbliche (
-  id BIGINT PRIMARY KEY CHECK (id = 1),
-  archivio_pubblico_abilitato BOOLEAN NOT NULL DEFAULT FALSE,
-  prossima_serata_data DATE,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+-- ─────────────────────────────────────────────────────────────
+--  1. SERATE
+--  Una sola serata può essere aperta alla volta (unique index
+--  parziale su aperta = TRUE).
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS serate (
+  id                           BIGSERIAL    PRIMARY KEY,
+  data                         DATE         NOT NULL DEFAULT CURRENT_DATE,
+  aperta                       BOOLEAN      NOT NULL DEFAULT FALSE,
+  voto_aperto                  BOOLEAN      NOT NULL DEFAULT FALSE,
+  mostra_voti_totali           BOOLEAN      NOT NULL DEFAULT FALSE,
+  vincitore_decretato          BOOLEAN      NOT NULL DEFAULT FALSE,
+  vincitore_prenotazione_id    BIGINT,
+  notifiche_telegram_abilitate BOOLEAN      NOT NULL DEFAULT TRUE,
+  notifiche_browser_abilitate  BOOLEAN      NOT NULL DEFAULT TRUE,
+  note                         TEXT,
+  created_at                   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-INSERT INTO impostazioni_pubbliche (id, archivio_pubblico_abilitato, prossima_serata_data)
-VALUES (1, FALSE, NULL)
-ON CONFLICT (id) DO NOTHING;
-
--- Impedisce più di una serata aperta contemporaneamente
 CREATE UNIQUE INDEX IF NOT EXISTS one_open_serata
   ON serate (aperta) WHERE aperta = TRUE;
 
 ALTER TABLE serate ENABLE ROW LEVEL SECURITY;
-ALTER TABLE impostazioni_pubbliche ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
   CREATE POLICY "serate_select" ON serate FOR SELECT TO anon USING (true);
@@ -57,7 +62,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "impostazioni_pubbliche_select" ON impostazioni_pubbliche FOR SELECT TO anon USING (true);
+  CREATE POLICY "serate_delete" ON serate FOR DELETE TO anon USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 
@@ -69,40 +74,12 @@ CREATE TABLE IF NOT EXISTS prenotazioni (
   nome       TEXT         NOT NULL,
   canzone    TEXT         NOT NULL,
   artista    TEXT         NOT NULL,
-  tavolo     INTEGER      NOT NULL,
+  tavolo     INTEGER      DEFAULT 0,       -- opzionale, non più raccolto dal form
   cantata    BOOLEAN      NOT NULL DEFAULT FALSE,
   approvata  BOOLEAN      NOT NULL DEFAULT FALSE,
   serata_id  BIGINT       REFERENCES serate(id),
   created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
-
--- Aggiunge serata_id se la tabella esisteva già senza la colonna
-ALTER TABLE prenotazioni
-  ADD COLUMN IF NOT EXISTS serata_id BIGINT REFERENCES serate(id);
-
-ALTER TABLE prenotazioni
-  ADD COLUMN IF NOT EXISTS approvata BOOLEAN NOT NULL DEFAULT FALSE;
-
-ALTER TABLE serate
-  ADD COLUMN IF NOT EXISTS mostra_voti_totali BOOLEAN NOT NULL DEFAULT FALSE;
-
-ALTER TABLE serate
-  ADD COLUMN IF NOT EXISTS vincitore_decretato BOOLEAN NOT NULL DEFAULT FALSE;
-
-ALTER TABLE serate
-  ADD COLUMN IF NOT EXISTS vincitore_prenotazione_id BIGINT;
-
--- Compatibilità con installazioni esistenti che hanno creato `serate`
--- prima dell'introduzione dei toggle notifiche.
-ALTER TABLE serate
-  ADD COLUMN IF NOT EXISTS notifiche_telegram_abilitate BOOLEAN NOT NULL DEFAULT TRUE;
-
-ALTER TABLE serate
-  ADD COLUMN IF NOT EXISTS notifiche_browser_abilitate BOOLEAN NOT NULL DEFAULT TRUE;
-
--- tavolo non è più raccolto dal form; rende la colonna opzionale
-ALTER TABLE prenotazioni ALTER COLUMN tavolo DROP NOT NULL;
-ALTER TABLE prenotazioni ALTER COLUMN tavolo SET DEFAULT 0;
 
 ALTER TABLE prenotazioni ENABLE ROW LEVEL SECURITY;
 
@@ -122,21 +99,16 @@ DO $$ BEGIN
   CREATE POLICY "prenotazioni_delete" ON prenotazioni FOR DELETE TO anon USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-DO $$ BEGIN
-  CREATE POLICY "serate_delete" ON serate FOR DELETE TO anon USING (true);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 
 -- ─────────────────────────────────────────────────────────────
 --  3. VOTI
---     Un voto per canzone per dispositivo (gestito lato client
---     tramite localStorage). Il voto è aggiornabile (1–5).
+--  Un voto per canzone, aggiornabile (1–5 stelle).
 -- ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS voti (
-  id               BIGSERIAL   PRIMARY KEY,
-  prenotazione_id  BIGINT      NOT NULL REFERENCES prenotazioni(id) ON DELETE CASCADE,
-  voto             INTEGER     NOT NULL CHECK (voto >= 1 AND voto <= 5),
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id               BIGSERIAL    PRIMARY KEY,
+  prenotazione_id  BIGINT       NOT NULL REFERENCES prenotazioni(id) ON DELETE CASCADE,
+  voto             INTEGER      NOT NULL CHECK (voto >= 1 AND voto <= 5),
+  created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE voti ENABLE ROW LEVEL SECURITY;
@@ -154,9 +126,12 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 
--- =============================================================
---  ULTIMO PASSO (manuale nel dashboard):
+-- ─────────────────────────────────────────────────────────────
+--  NOTA: Realtime
+--  In Supabase cloud devi abilitare il realtime manualmente:
+--    Dashboard → Database → Replication → supabase_realtime
+--    → aggiungi: prenotazioni, serate, voti
 --
---  Database → Replication → supabase_realtime →
---  aggiungi le tabelle: prenotazioni, serate, voti
--- =============================================================
+--  In locale (supabase start) il realtime è abilitato per default
+--  su tutte le tabelle.
+-- ─────────────────────────────────────────────────────────────

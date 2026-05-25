@@ -6,6 +6,7 @@ type BookingPayload = {
   canzone: string;
   artista: string;
   serata_id?: number | null;
+  selfie_url?: string | null;
 };
 
 function getPendingExpiryMinutes(): number {
@@ -86,6 +87,14 @@ function validatePayload(payload: unknown): { ok: true; data: BookingPayload } |
     parsedSerataId = normalizedSerataId;
   }
 
+  // selfie_url è opzionale: deve essere una stringa HTTP/HTTPS o null
+  const selfie_url_raw = typeof (body as Record<string, unknown>).selfie_url === 'string'
+    ? ((body as Record<string, unknown>).selfie_url as string).trim()
+    : null;
+  const selfie_url = selfie_url_raw && /^https?:\/\/.{8,}/.test(selfie_url_raw)
+    ? selfie_url_raw
+    : null;
+
   return {
     ok: true,
     data: {
@@ -93,6 +102,7 @@ function validatePayload(payload: unknown): { ok: true; data: BookingPayload } |
       canzone,
       artista,
       serata_id: parsedSerataId,
+      selfie_url,
     },
   };
 }
@@ -267,6 +277,7 @@ serve(async (req) => {
     canzone: validated.data.canzone,
     artista: validated.data.artista,
     approvata: false,
+    ...(validated.data.selfie_url ? { selfie_url: validated.data.selfie_url } : {}),
   };
 
   const openSerata = await getOpenSerata(admin);
