@@ -590,7 +590,7 @@
       color: #fff;
     }
 
-    .card-body { flex: 1; min-width: 0; padding-right: 52px; }
+    .card-body { flex: 1; min-width: 0; padding-right: 52px; padding-bottom: 44px; }
     /* Su has-selfie il body è già limitato dal max-width: il pill in
        alto-destra galleggia sopra la foto, non serve riservare spazio. */
     .booking-card.has-selfie .card-body { padding-right: 0; }
@@ -1052,6 +1052,7 @@
           weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
         });
         const votoOpen = Boolean(currentSerata.voto_aperto);
+        const prenOpen = currentSerata.prenotazioni_abilitate !== false;
         const showTotals = Boolean(currentSerata.mostra_voti_totali);
         const winnerDecreed = Boolean(currentSerata.vincitore_decretato);
         const winnerRevealCountdownActive = Boolean(currentSerata.winner_reveal_countdown_active);
@@ -1059,10 +1060,13 @@
         const revealCountdownLabel = revealCountdownEndsAtMs
           ? new Date(revealCountdownEndsAtMs).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
           : 'in corso';
+        const inProclamazioneMode = winnerRevealCountdownActive && !winnerDecreed;
 
         dotClass = 'is-open';
         summaryStatus = '🟢 Karaoke aperto';
-        summarySub = `${dateStr} · voti ${winnerDecreed ? 'conclusi' : (votoOpen ? 'aperti' : 'chiusi')}${winnerRevealCountdownActive && !winnerDecreed ? ' · reveal in corso' : ''}`;
+        const prenLabel = prenOpen ? 'prenotazioni aperte' : 'prenotazioni chiuse';
+        const votiLabel = winnerDecreed ? 'conclusi' : (votoOpen ? 'aperti' : 'chiusi');
+        summarySub = `${dateStr} · ${prenLabel} · voti ${votiLabel}${inProclamazioneMode ? ' · 🎬 proclamazione' : ''}`;
         innerCard = `
           <div class="serata-card serata-open">
             <div class="serata-info">
@@ -1074,30 +1078,35 @@
             </div>
             <div class="serata-voto-row">
               <div>
+                <div class="voto-label">Prenotazioni: ${prenOpen ? '🟢 abilitate' : '⭕ disabilitate'}</div>
                 <div class="voto-label">Votazioni: ${winnerDecreed ? '🏁 concluse con vincitore' : (votoOpen ? '🟢 aperte' : '⭕ chiuse')}</div>
                 <a class="vota-link" href="vota.html" target="_blank">Apri pagina voti ↗</a>
                 <div class="voto-label">Totali pubblici: ${showTotals ? '👁️ visibili' : '🙈 nascosti'}</div>
-                ${winnerRevealCountdownActive && !winnerDecreed
-                  ? `<div class="reveal-status">⏳ Countdown reveal attivo · fine prevista ${revealCountdownLabel}</div>`
+                ${inProclamazioneMode
+                  ? `<div class="reveal-status">🎬 Modalità proclamazione${revealCountdownEndsAtMs ? ` · countdown fine ${revealCountdownLabel}` : ''}</div>`
                   : ''}
               </div>
               <div class="serata-actions">
-                ${winnerDecreed ? '' : `
-                  <button class="btn-serata ${votoOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-voto">
-                    ${votoOpen ? 'Chiudi votazioni' : 'Apri votazioni'}
-                  </button>
+                ${winnerDecreed ? '' : (inProclamazioneMode ? `
                   <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
                     ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
                   </button>
-                  ${!votoOpen
-                    ? (winnerRevealCountdownActive
-                        ? '<button class="btn-serata btn-secondary" id="btn-disable-diretta">Disabilita diretta</button>'
-                        : '<button class="btn-serata btn-secondary" id="btn-enable-diretta">Abilita diretta</button>')
-                    : ''}
                   <button class="btn-serata btn-winner" id="btn-decree-winner">
-                    ${winnerRevealCountdownActive && !revealCountdownEndsAtMs ? '🎬 Avvia countdown' : 'Decreta vincitore'}
+                    ${!revealCountdownEndsAtMs ? '🎬 Avvia countdown' : '🏆 Decreta vincitore'}
                   </button>
-                `}
+                  <button class="btn-serata btn-secondary" id="btn-disable-diretta">Annulla proclamazione</button>
+                ` : `
+                  <button class="btn-serata ${prenOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-prenotazioni">
+                    ${prenOpen ? '🚫 Disabilita prenotazioni' : '✅ Abilita prenotazioni'}
+                  </button>
+                  <button class="btn-serata ${votoOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-voto">
+                    ${votoOpen ? '🗳️ Chiudi votazioni' : '🗳️ Apri votazioni'}
+                  </button>
+                  ${votoOpen ? '<button class="btn-serata btn-winner" id="btn-terminate-voting">⛔ Termina votazioni</button>' : ''}
+                  <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
+                    ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
+                  </button>
+                `)}
               </div>
             </div>
           </div>
@@ -1137,15 +1146,20 @@
       }
 
       const winnerDecreed = Boolean(currentSerata.vincitore_decretato);
+      const inProclamazioneMode = Boolean(currentSerata.winner_reveal_countdown_active) && !winnerDecreed;
       document.getElementById('btn-close-serata').addEventListener('click', closeSerata);
       if (!winnerDecreed) {
-        document.getElementById('btn-toggle-voto').addEventListener('click', toggleVoto);
-        document.getElementById('btn-toggle-show-totals').addEventListener('click', toggleShowVoteTotals);
-        const enableDirettaBtn = document.getElementById('btn-enable-diretta');
-        if (enableDirettaBtn) enableDirettaBtn.addEventListener('click', enableDiretta);
-        const disableDirettaBtn = document.getElementById('btn-disable-diretta');
-        if (disableDirettaBtn) disableDirettaBtn.addEventListener('click', disableDiretta);
-        document.getElementById('btn-decree-winner').addEventListener('click', decreeWinner);
+        if (inProclamazioneMode) {
+          document.getElementById('btn-toggle-show-totals').addEventListener('click', toggleShowVoteTotals);
+          document.getElementById('btn-decree-winner').addEventListener('click', decreeWinner);
+          document.getElementById('btn-disable-diretta').addEventListener('click', disableDiretta);
+        } else {
+          document.getElementById('btn-toggle-prenotazioni').addEventListener('click', togglePrenotazioni);
+          document.getElementById('btn-toggle-voto').addEventListener('click', toggleVoto);
+          document.getElementById('btn-toggle-show-totals').addEventListener('click', toggleShowVoteTotals);
+          const terminateVotingBtn = document.getElementById('btn-terminate-voting');
+          if (terminateVotingBtn) terminateVotingBtn.addEventListener('click', terminateVoting);
+        }
       }
       renderAdminFinalRanking();
     }
@@ -1204,6 +1218,43 @@
         updateLiveDot();
       } catch (error) {
         alert(error?.message || 'Non sono riuscito ad aggiornare le votazioni.');
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function togglePrenotazioni() {
+      if (!currentSerata) return;
+      const btn = document.getElementById('btn-toggle-prenotazioni');
+      if (btn) btn.disabled = true;
+      const nextValue = currentSerata.prenotazioni_abilitate === false ? true : false;
+      try {
+        const updated = await callAdmin('set_bookings', {
+          serataId: currentSerata.id,
+          prenotazioniAbilitate: nextValue,
+        });
+        currentSerata = updated;
+        syncConnected = true;
+        renderSerata();
+        updateLiveDot();
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito ad aggiornare lo stato delle prenotazioni.');
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function terminateVoting() {
+      if (!currentSerata) return;
+      if (!confirm('Terminare le votazioni? Questa azione chiuderà le votazioni e le prenotazioni e attiverà la modalità proclamazione.\n\nConfermi?')) return;
+      const btn = document.getElementById('btn-terminate-voting');
+      if (btn) btn.disabled = true;
+      try {
+        const updated = await callAdmin('terminate_voting', { serataId: currentSerata.id });
+        currentSerata = updated;
+        syncConnected = true;
+        renderSerata();
+        updateLiveDot();
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito a terminare le votazioni.');
         if (btn) btn.disabled = false;
       }
     }
