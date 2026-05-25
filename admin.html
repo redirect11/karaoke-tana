@@ -512,9 +512,14 @@
       z-index: 0;
       transition: opacity 0.2s, filter 0.2s;
     }
-    .booking-card .booking-card-selfie-bg:hover {
+    .booking-card .booking-card-selfie-bg:not(.is-default):hover {
       opacity: 0.85;
       filter: blur(0) saturate(1) brightness(1);
+    }
+    .booking-card .booking-card-selfie-bg.is-default {
+      opacity: 0.32;
+      filter: blur(0) saturate(0.55) brightness(0.78);
+      cursor: default;
     }
     .booking-card.has-selfie > *:not(.booking-card-selfie-bg):not(.card-pos):not(.card-actions) {
       position: relative;
@@ -786,6 +791,7 @@
     const pwdBtn = document.getElementById('pwd-btn');
 
     const ADMIN_EMAIL = 'admin@tana.it';
+    const DEFAULT_SELFIE_URL = 'logo.png';
 
     let bookings = [];
     let currentSerata = null;
@@ -1454,9 +1460,11 @@
       } else {
         showPill = false;
       }
-      const selfieUrl = typeof booking.selfie_url === 'string' && booking.selfie_url.length > 0
+      const rawSelfieUrl = typeof booking.selfie_url === 'string' && booking.selfie_url.length > 0
         ? resolveLanUrl(booking.selfie_url)
         : '';
+      const selfieUrl = rawSelfieUrl || DEFAULT_SELFIE_URL;
+      const hasRealSelfie = Boolean(rawSelfieUrl);
       const hasSelfie = Boolean(selfieUrl);
       card.className = `booking-card${isApproved && index === 0 ? ' next' : ''}${hasSelfie ? ' has-selfie' : ''}`;
       card.dataset.id = booking.id;
@@ -1487,9 +1495,12 @@
             isCurrent || isCompleted ? '' : '<button class="btn-action btn-edit" data-action="edit">Modifica</button>',
             isCurrent || isCompleted ? '' : '<button class="btn-action btn-delete" data-action="delete">Elimina</button>',
           ].filter(Boolean).join('');
+      const selfieBgHtml = hasSelfie
+        ? `<div class="booking-card-selfie-bg${hasRealSelfie ? '' : ' is-default'}" style="background-image:url('${esc(selfieUrl)}')"${hasRealSelfie ? ` data-selfie-full="${esc(selfieUrl)}" role="button" aria-label="ingrandisci selfie di ${esc(booking.nome)}"` : ' aria-hidden="true"'}></div>`
+        : '';
 
       card.innerHTML = `
-        ${hasSelfie ? `<div class="booking-card-selfie-bg" style="background-image:url('${esc(selfieUrl)}')" data-selfie-full="${esc(selfieUrl)}" role="button" aria-label="ingrandisci selfie di ${esc(booking.nome)}"></div>` : ''}
+        ${selfieBgHtml}
         ${showPill ? `<div class="card-pos${isCurrent ? ' is-live' : ''}">${esc(pillLabel)}</div>` : ''}
         <div class="card-body">
           <div class="card-header">
