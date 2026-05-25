@@ -1,0 +1,54 @@
+<svg width="1200" height="800" viewBox="0 0 1200 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="night" x1="600" y1="0" x2="600" y2="800" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2E1460"/>
+      <stop offset="0.55" stop-color="#1A1038"/>
+      <stop offset="1" stop-color="#0C0A17"/>
+    </linearGradient>
+    <radialGradient id="stageGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(600 325) rotate(90) scale(210 420)">
+      <stop stop-color="#FFD670" stop-opacity="0.78"/>
+      <stop offset="1" stop-color="#FFD670" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pinkGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(410 260) rotate(90) scale(320 260)">
+      <stop stop-color="#F45BFF" stop-opacity="0.48"/>
+      <stop offset="1" stop-color="#F45BFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="blueGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(800 245) rotate(90) scale(330 280)">
+      <stop stop-color="#5EC3FF" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#5EC3FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="beamWarm" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFF3BD" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#FFF3BD" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="beamCold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#A6E3FF" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#A6E3FF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="800" fill="url(#night)"/>
+  <rect width="1200" height="800" fill="url(#stageGlow)"/>
+  <rect width="1200" height="800" fill="url(#pinkGlow)"/>
+  <rect width="1200" height="800" fill="url(#blueGlow)"/>
+
+  <polygon points="220,130 560,580 650,580 310,130" fill="url(#beamWarm)" opacity="0.8"/>
+  <polygon points="980,120 640,580 730,580 1070,120" fill="url(#beamCold)" opacity="0.72"/>
+  <polygon points="580,80 530,580 670,580 620,80" fill="url(#beamWarm)" opacity="0.62"/>
+  <polygon points="720,160 590,580 700,580 830,160" fill="url(#beamCold)" opacity="0.6"/>
+  <polygon points="460,165 370,580 470,580 560,165" fill="url(#beamWarm)" opacity="0.52"/>
+
+  <rect x="355" y="365" width="490" height="190" rx="20" fill="#111022" opacity="0.7"/>
+  <rect x="375" y="382" width="450" height="130" rx="14" fill="#18162C" opacity="0.95"/>
+  <rect x="525" y="402" width="150" height="70" rx="12" fill="#2E2B4B" opacity="0.9"/>
+  <circle cx="600" cy="437" r="20" fill="#FFD670" opacity="0.55"/>
+  <circle cx="600" cy="437" r="40" fill="#FFD670" opacity="0.2"/>
+
+  <path d="M0 640C110 594 180 700 280 655C360 619 432 696 520 655C622 607 702 717 805 670C910 623 1005 703 1200 638V800H0V640Z" fill="#08070F" opacity="0.98"/>
+  <path d="M0 702C120 665 210 756 320 720C396 695 470 768 545 735C650 689 738 770 850 733C942 702 1042 758 1200 715V800H0V702Z" fill="#05040B" opacity="0.95"/>
+
+  <circle cx="130" cy="168" r="10" fill="#FFF3BD" opacity="0.28"/>
+  <circle cx="1015" cy="196" r="9" fill="#A6E3FF" opacity="0.26"/>
+  <circle cx="872" cy="118" r="7" fill="#FFF3BD" opacity="0.22"/>
+  <circle cx="292" cy="108" r="8" fill="#F9A8FF" opacity="0.21"/>
+</svg>
