@@ -158,7 +158,8 @@ La UI gestisce loading/error sul bottone di submit.
 - La schermata diretta/countdown per il reveal vincitore è integrata in `vota.html`.
 - Con votazioni chiuse l'admin può premere **"Abilita diretta"** dallo staff panel (`admin.html`):
   - la pagina `vota.html` mostra la schermata "Il vincitore sta per essere rivelato…";
-  - premendo **"Avvia countdown"** (=tasto Decreta vincitore con diretta attiva) parte un countdown di 30 s;
+  - aprendo **"Apri pagina voti/countdown ↗"** l'admin può gestire la diretta anche dalla pagina pubblica;
+  - premendo **"Avvia countdown"** (da staff panel o da `vota.html` aperta in modalità admin) parte un countdown di 5 s;
   - al termine del countdown il vincitore viene decretato automaticamente.
 - Con diretta disabilitata, **"Decreta vincitore"** dichiara subito il vincitore (comportamento precedente).
 - Se si vuole annullare la diretta prima del countdown, premere **"Disabilita diretta"**.
