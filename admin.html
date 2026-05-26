@@ -15,6 +15,12 @@
       --gold-s: #f0c94a;
       --red:    #9b1c2e;
       --green:  #2ecc71;
+      --status-red: #ff6b6b;
+      --status-red-rgb: 255, 107, 107;
+      --status-yellow: #f1c40f;
+      --status-yellow-rgb: 241, 196, 15;
+      --status-orange: #ff9f43;
+      --status-orange-rgb: 255, 159, 67;
       --text:   #f0e6d3;
       --muted:  #a08ca0;
       --radius: 14px;
@@ -488,9 +494,9 @@
       width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
     }
     .serata-collapsible.is-open .summary-dot { background: var(--green); box-shadow: 0 0 8px rgba(46,204,113,0.6); }
-    .serata-collapsible.is-closed .summary-dot { background: #ff6b6b; box-shadow: 0 0 8px rgba(255,107,107,0.5); }
-    .serata-collapsible.is-warning .summary-dot { background: #f1c40f; box-shadow: 0 0 8px rgba(241,196,15,0.5); }
-    .serata-collapsible.is-proclamation .summary-dot { background: #ff9f43; box-shadow: 0 0 8px rgba(255,159,67,0.55); }
+    .serata-collapsible.is-closed .summary-dot { background: var(--status-red); box-shadow: 0 0 8px rgba(var(--status-red-rgb),0.5); }
+    .serata-collapsible.is-warning .summary-dot { background: var(--status-yellow); box-shadow: 0 0 8px rgba(var(--status-yellow-rgb),0.5); }
+    .serata-collapsible.is-proclamation .summary-dot { background: var(--status-orange); box-shadow: 0 0 8px rgba(var(--status-orange-rgb),0.55); }
     .serata-collapsible .summary-extra {
       font-weight: 500;
       color: var(--muted);
@@ -513,10 +519,10 @@
       background: linear-gradient(90deg, rgba(46,204,113,0.10), transparent);
     }
     .serata-collapsible.is-warning summary {
-      background: linear-gradient(90deg, rgba(241,196,15,0.14), transparent);
+      background: linear-gradient(90deg, rgba(var(--status-yellow-rgb),0.14), transparent);
     }
     .serata-collapsible.is-proclamation summary {
-      background: linear-gradient(90deg, rgba(255,159,67,0.14), transparent);
+      background: linear-gradient(90deg, rgba(var(--status-orange-rgb),0.14), transparent);
     }
     .help-collapsible {
       background: linear-gradient(160deg, rgba(212,160,23,0.16) 0%, rgba(140,40,180,0.10) 100%);
