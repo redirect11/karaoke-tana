@@ -744,11 +744,34 @@
 
     /* ── fullscreen mode ── */
     body.is-fullscreen {
-      background-image: url('concert-crowd-bg.svg');
+      background: #08060f;
+    }
+    body.is-fullscreen::before,
+    body.is-fullscreen::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+    body.is-fullscreen::before {
+      background-image: url('concert_ai.png');
       background-size: cover;
       background-position: center;
-      background-attachment: fixed;
-      background-color: #08060f;
+      background-repeat: no-repeat;
+      filter: blur(8px) saturate(0.92) brightness(0.58);
+      transform: scale(1.06);
+      opacity: 0.3;
+      z-index: 0;
+    }
+    body.is-fullscreen::after {
+      background:
+        radial-gradient(circle at top, rgba(240,201,74,0.12), transparent 42%),
+        linear-gradient(180deg, rgba(8,6,15,0.28) 0%, rgba(8,6,15,0.78) 45%, rgba(18,7,31,0.96) 100%);
+      z-index: 0;
+    }
+    body.is-fullscreen > * {
+      position: relative;
+      z-index: 1;
     }
     body.is-fullscreen header,
     body.is-fullscreen #status-banner {
