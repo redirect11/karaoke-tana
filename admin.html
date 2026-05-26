@@ -258,16 +258,6 @@
       white-space: nowrap;
     }
 
-    .serata-card {
-      border-radius: var(--radius);
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .serata-card.serata-open  { background: rgba(46,204,113,0.12); border: 1.5px solid var(--green); }
-    .serata-card.serata-closed { background: var(--card); border: 1.5px solid #3d2366; }
-
     .serata-main-grid {
       width: 100%;
       display: grid;
@@ -275,8 +265,6 @@
       align-items: start;
       gap: 14px;
     }
-    .serata-info .serata-status { font-weight: 700; font-size: 0.9rem; }
-    .serata-info .serata-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
     .serata-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .serata-primary-action {
       display: flex;
@@ -285,7 +273,6 @@
       gap: 8px;
     }
     .status-badges {
-      margin-top: 10px;
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
@@ -512,10 +499,6 @@
     /* Quando è collassato e la serata è aperta, il riepilogo si fa più visivo */
     .serata-collapsible.is-open summary {
       background: linear-gradient(90deg, rgba(46,204,113,0.10), transparent);
-    }
-    /* serata-card all'interno del collapsible: niente padding doppio */
-    .collapsible-body .serata-card {
-      padding: 12px 14px;
     }
     .help-collapsible {
       background: linear-gradient(160deg, rgba(212,160,23,0.16) 0%, rgba(140,40,180,0.10) 100%);
@@ -1284,14 +1267,8 @@
         summaryStatus = '⭕ Nessun karaoke';
         summarySub = 'Le prenotazioni sono disabilitate';
         innerCard = `
-          <div class="serata-card serata-closed">
-            <div class="serata-info">
-              <div class="serata-status">⭕ Nessun karaoke aperto</div>
-              <div class="serata-sub">Le prenotazioni sono disabilitate</div>
-            </div>
-            <div class="serata-actions">
-              <button class="btn-serata btn-open" id="btn-open-serata">Apri karaoke</button>
-            </div>
+          <div class="serata-actions">
+            <button class="btn-serata btn-open" id="btn-open-serata">Apri karaoke</button>
           </div>
         `;
         // Se non c'è serata, è utile che il pannello sia aperto di default
@@ -1321,57 +1298,53 @@
         const votiLabel = winnerDecreed ? 'conclusi' : (votoOpen ? 'aperti' : 'chiusi');
         summarySub = `${dateStr} · ${prenLabel} · voti ${votiLabel}${inProclamazioneMode ? ' · 🎬 proclamazione' : ''}`;
         innerCard = `
-          <div class="serata-card serata-open">
-            <div class="serata-main-grid">
-              <div class="serata-info">
-                <div class="serata-status">🟢 Karaoke aperto</div>
-                <div class="serata-sub">${dateStr}</div>
-                <div class="status-badges">
-                  <span class="status-pill ${prenOpen ? 'is-open' : 'is-closed'}">
-                    ${prenOpen ? '🟢 Prenotazioni abilitate' : '⭕ Prenotazioni disabilitate'}
-                  </span>
-                  <span class="status-pill ${(votoOpen && !winnerDecreed) ? 'is-open' : 'is-closed'}">
-                    ${winnerDecreed ? '🏁 Votazioni concluse' : (votoOpen ? '🟢 Votazioni aperte' : '⭕ Votazioni chiuse')}
-                  </span>
-                  <span class="status-pill ${showTotals ? 'is-highlight' : 'is-closed'}">
-                    ${showTotals ? '👁️ Totali pubblici visibili' : '🙈 Totali pubblici nascosti'}
-                  </span>
-                </div>
-                ${inProclamazioneMode
-                  ? `<div class="reveal-status">🎬 Modalità proclamazione${revealCountdownEndsAtMs ? ` · countdown fine ${revealCountdownLabel}` : ''}</div>`
-                  : ''}
+          <div class="serata-main-grid">
+            <div class="serata-info">
+              <div class="status-badges">
+                <span class="status-pill ${prenOpen ? 'is-open' : 'is-closed'}">
+                  ${prenOpen ? '🟢 Prenotazioni abilitate' : '⭕ Prenotazioni disabilitate'}
+                </span>
+                <span class="status-pill ${(votoOpen && !winnerDecreed) ? 'is-open' : 'is-closed'}">
+                  ${winnerDecreed ? '🏁 Votazioni concluse' : (votoOpen ? '🟢 Votazioni aperte' : '⭕ Votazioni chiuse')}
+                </span>
+                <span class="status-pill ${showTotals ? 'is-highlight' : 'is-closed'}">
+                  ${showTotals ? '👁️ Totali pubblici visibili' : '🙈 Totali pubblici nascosti'}
+                </span>
               </div>
-              <div class="serata-primary-action">
-                <button class="btn-serata btn-close" id="btn-close-serata">Chiudi karaoke</button>
-                <a class="vota-link" id="btn-open-vota-page" href="vota.html" target="_blank">
-                  ${inProclamazioneMode ? 'Apri pagina voti/countdown ↗' : 'Apri pagina voti ↗'}
-                </a>
-              </div>
+              ${inProclamazioneMode
+                ? `<div class="reveal-status">🎬 Modalità proclamazione${revealCountdownEndsAtMs ? ` · countdown fine ${revealCountdownLabel}` : ''}</div>`
+                : ''}
             </div>
-            <div class="control-section">
-              <div class="control-title">Azioni serata</div>
-              <div class="control-grid">
-                ${winnerDecreed ? '' : (inProclamazioneMode ? `
-                  <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
-                    ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
-                  </button>
-                  <button class="btn-serata btn-winner" id="btn-decree-winner">
-                    ${!revealCountdownEndsAtMs ? '🎬 Avvia countdown' : '🏆 Decreta vincitore'}
-                  </button>
-                  <button class="btn-serata btn-secondary" id="btn-disable-diretta">Annulla proclamazione</button>
-                ` : `
-                  <button class="btn-serata ${prenOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-prenotazioni">
-                    ${prenOpen ? '🚫 Disabilita prenotazioni' : '✅ Abilita prenotazioni'}
-                  </button>
-                  <button class="btn-serata ${votoOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-voto">
-                    ${votoOpen ? '🗳️ Chiudi votazioni' : '🗳️ Apri votazioni'}
-                  </button>
-                  ${votoOpen ? '<button class="btn-serata btn-winner" id="btn-terminate-voting">⛔ Termina votazioni</button>' : ''}
-                  <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
-                    ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
-                  </button>
-                `)}
-              </div>
+            <div class="serata-primary-action">
+              <button class="btn-serata btn-close" id="btn-close-serata">Chiudi karaoke</button>
+              <a class="vota-link" id="btn-open-vota-page" href="vota.html" target="_blank">
+                ${inProclamazioneMode ? 'Apri pagina voti/countdown ↗' : 'Apri pagina voti ↗'}
+              </a>
+            </div>
+          </div>
+          <div class="control-section">
+            <div class="control-title">Azioni serata</div>
+            <div class="control-grid">
+              ${winnerDecreed ? '' : (inProclamazioneMode ? `
+                <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
+                  ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
+                </button>
+                <button class="btn-serata btn-winner" id="btn-decree-winner">
+                  ${!revealCountdownEndsAtMs ? '🎬 Avvia countdown' : '🏆 Decreta vincitore'}
+                </button>
+                <button class="btn-serata btn-secondary" id="btn-disable-diretta">Annulla proclamazione</button>
+              ` : `
+                <button class="btn-serata ${prenOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-prenotazioni">
+                  ${prenOpen ? '🚫 Disabilita prenotazioni' : '✅ Abilita prenotazioni'}
+                </button>
+                <button class="btn-serata ${votoOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-voto">
+                  ${votoOpen ? '🗳️ Chiudi votazioni' : '🗳️ Apri votazioni'}
+                </button>
+                ${votoOpen ? '<button class="btn-serata btn-winner" id="btn-terminate-voting">⛔ Termina votazioni</button>' : ''}
+                <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
+                  ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
+                </button>
+              `)}
             </div>
           </div>
         `;
