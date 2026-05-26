@@ -102,44 +102,11 @@
       gap: 8px;
     }
 
-    .song-card-selfie-bg {
-      position: absolute;
-      top: 0; right: 0; bottom: 0;
-      width: 60%;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      opacity: 0.55;
-      filter: blur(1px) saturate(0.8) brightness(0.88);
-      -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
-              mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
-      cursor: zoom-in;
-      z-index: 0;
-      transition: opacity 0.2s, filter 0.2s;
-    }
-    .song-card-selfie-bg:not(.is-default):hover {
-      opacity: 0.85;
-      filter: blur(0) saturate(1) brightness(1);
-    }
-    .song-card.has-selfie .song-card-selfie-bg.is-default {
-      opacity: 0.32;
-      filter: blur(0) saturate(0.55) brightness(0.78);
-      cursor: default;
-    }
-    .song-card.has-selfie > *:not(.song-card-selfie-bg) {
-      position: relative;
-      z-index: 1;
-    }
-    .song-card.has-selfie .song-top-row,
-    .song-card.has-selfie .song-singer {
-      max-width: 58%;
-    }
-
     .song-top-row {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 8px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 10px;
     }
     .song-index {
       flex-shrink: 0;
@@ -157,6 +124,8 @@
       -webkit-backdrop-filter: blur(8px) saturate(140%);
       border: 1px solid rgba(255,255,255,0.12);
       color: #fff;
+      justify-self: end;
+      align-self: start;
     }
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(8px); }
@@ -189,6 +158,9 @@
       text-align: center;
       text-shadow: 0 2px 10px rgba(0,0,0,0.8);
       letter-spacing: 0.01em;
+      justify-self: center;
+      align-self: start;
+      min-width: 0;
     }
 
     /* ── applause rating ── */
@@ -210,10 +182,10 @@
     }
 
     .card-bottom-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 10px;
     }
 
     .btn-vote {
@@ -279,7 +251,7 @@
     .vote-score {
       font-size: 0.72rem;
       color: var(--muted);
-      text-align: center;
+      text-align: left;
       line-height: 1.2;
     }
     .vote-score span {
@@ -287,6 +259,46 @@
       font-size: 0.95rem;
       font-weight: 700;
       color: var(--gold-s);
+    }
+    .song-photo-btn {
+      width: 56px;
+      height: 56px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 0;
+      background: rgba(0,0,0,0.35);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: zoom-in;
+      justify-self: end;
+      align-self: start;
+      transition: transform 0.12s ease, border-color 0.15s ease, opacity 0.15s ease;
+    }
+    .song-photo-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(240,201,74,0.8);
+    }
+    .song-photo-btn:focus-visible {
+      outline: 2px solid var(--gold-s);
+      outline-offset: 2px;
+    }
+    .song-photo-btn.is-default,
+    .song-photo-btn:disabled {
+      cursor: default;
+      opacity: 0.65;
+      transform: none;
+    }
+    .song-photo-btn.is-default:hover,
+    .song-photo-btn:disabled:hover {
+      border-color: rgba(255,255,255,0.2);
+    }
+    .song-photo-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
     .back-home-btn {
       display: inline-flex;
@@ -1173,9 +1185,9 @@
       const selfieHidden = Boolean(s.selfie_nascosta);
       const hasRealSelfie = Boolean(rawSelfieUrl);
       const canOpenSelfie = hasRealSelfie && !selfieHidden;
-      const selfieUrl = canOpenSelfie ? rawSelfieUrl : DEFAULT_SELFIE_URL;
-      const hasSelfie = Boolean(selfieUrl);
-      div.className = `song-card${hasSelfie ? ' has-selfie' : ''}`;
+      const selfieUrl = hasRealSelfie ? (canOpenSelfie ? rawSelfieUrl : DEFAULT_SELFIE_URL) : DEFAULT_SELFIE_URL;
+      const hasPhoto = Boolean(selfieUrl);
+      div.className = 'song-card';
       div.dataset.id = s.id;
 
       const myVote   = getLocalVote(s.id)?.voto || 0;
@@ -1195,20 +1207,23 @@
       }).join('');
 
       const handsClass = myVote > 0 ? 'rating-hands has-vote' : 'rating-hands';
+      const photoCell = hasPhoto
+        ? `<button class="song-photo-btn${canOpenSelfie ? '' : ' is-default'}" type="button"${canOpenSelfie ? ` aria-label="Ingrandisci foto di ${esc(s.nome)}"` : ' aria-label="Foto non disponibile" disabled'}><img class="song-photo-thumb" src="${esc(selfieUrl)}" alt="" loading="lazy" /></button>`
+        : '<div aria-hidden="true"></div>';
 
       div.innerHTML = `
-        ${hasSelfie ? `<div class="song-card-selfie-bg${canOpenSelfie ? '' : ' is-default'}" style="background-image:url('${escapeCssUrl(selfieUrl)}')"${canOpenSelfie ? ` role="button" aria-label="Ingrandisci foto di ${esc(s.nome)}" tabindex="0"` : ' aria-hidden="true"'}></div>` : ''}
         <div class="song-top-row">
           <div class="song-header">
             <div class="song-title">${esc(s.canzone)}</div>
             <div class="song-artist">${esc(s.artista)}</div>
           </div>
+          <div class="song-singer">🎤 ${esc(s.nome)}</div>
           <div class="song-index">#${Number.isInteger(s._displayIndex) ? s._displayIndex : '—'}</div>
         </div>
-        <div class="song-singer">🎤 ${esc(s.nome)}</div>
         <div class="${handsClass}" role="radiogroup" aria-label="Voto per ${esc(s.canzone)}">${btns}</div>
         <div class="card-bottom-row">
           ${scoreBlock}
+          ${photoCell}
         </div>
       `;
 
@@ -1218,16 +1233,10 @@
         });
       }
       if (canOpenSelfie) {
-        const selfieBg = div.querySelector('.song-card-selfie-bg');
-        if (selfieBg) {
-          selfieBg.addEventListener('click', () => {
+        const photoBtn = div.querySelector('.song-photo-btn');
+        if (photoBtn) {
+          photoBtn.addEventListener('click', () => {
             openPhotoModal(rawSelfieUrl, `${s.nome} — ${s.canzone}`);
-          });
-          selfieBg.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              openPhotoModal(rawSelfieUrl, `${s.nome} — ${s.canzone}`);
-            }
           });
         }
       }
