@@ -71,14 +71,8 @@
 
     .vote-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 14px;
-    }
-
-    @media (max-width: 840px) {
-      .vote-grid {
-        grid-template-columns: 1fr;
-      }
     }
 
     /* ── empty / loading states ── */
@@ -98,12 +92,12 @@
     .song-card {
       background: var(--card);
       border-radius: var(--radius);
-      padding: 56px 24px 22px;
+      padding: 44px 16px 16px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       animation: slideIn 0.3s ease;
       position: relative;
       overflow: hidden;
-      min-height: 208px;
+      min-height: 172px;
     }
 
     .song-card-selfie-bg {
@@ -182,39 +176,56 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    .song-header { margin-bottom: 12px; }
-    .song-title { font-weight: 700; font-size: 1.1rem; color: var(--gold-s); }
-    .song-artist { font-size: 0.85rem; color: var(--muted); margin-top: 3px; }
-    .song-singer {
-      font-size: 0.8rem;
+    .song-header {
+      margin-bottom: 10px;
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+    .song-title {
+      font-weight: 700;
+      font-size: 1rem;
+      line-height: 1.2;
+      color: var(--gold-s);
+      word-break: break-word;
+    }
+    .song-artist {
+      font-size: 0.82rem;
       color: var(--muted);
-      margin-top: 6px;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+    .song-singer {
+      font-size: 0.76rem;
+      color: var(--muted);
+      line-height: 1.2;
     }
 
     /* ── applause rating ── */
     .rating-row {
-      display: flex;
-      align-items: flex-end;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
       gap: 8px;
-      flex-wrap: wrap;
     }
     .rating-side {
-      margin-left: auto;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      gap: 8px;
+      justify-self: end;
+      gap: 6px;
     }
 
     .rating-hands {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px;
+      gap: 4px;
+      padding: 5px;
       border-radius: 16px;
       background: rgba(18,7,31,0.28);
       border: 2px solid transparent;
       transition: background 0.2s, border-color 0.2s;
+      min-width: 0;
     }
     .rating-hands.has-vote {
       background: rgba(212,160,23,0.10);
@@ -222,13 +233,13 @@
     }
 
     .btn-vote {
-      width: 52px;
-      height: 52px;
+      width: 44px;
+      height: 44px;
       border: var(--vote-border) solid transparent;
-      border-radius: 12px;
+      border-radius: 10px;
       background: transparent;
       color: inherit;
-      font-size: 1.5rem;
+      font-size: 1.25rem;
       line-height: 1;
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s, transform 0.1s, filter 0.15s, opacity 0.15s;
@@ -236,11 +247,11 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 3px;
+      gap: 2px;
       filter: grayscale(1) opacity(0.55);
     }
     .btn-vote .vote-num {
-      font-size: 0.68rem;
+      font-size: 0.62rem;
       line-height: 1;
       font-weight: 700;
       color: var(--muted);
@@ -277,16 +288,45 @@
     }
 
     .vote-score {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--muted);
       text-align: right;
-      white-space: nowrap;
+      line-height: 1.2;
     }
     .vote-score span {
       display: block;
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 700;
       color: var(--gold-s);
+    }
+    .back-home-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 10px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(212,160,23,0.45);
+      background: linear-gradient(180deg, rgba(212,160,23,0.26) 0%, rgba(106,67,6,0.42) 100%);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      transition: transform 0.12s, background 0.18s, border-color 0.18s;
+    }
+    .back-home-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(240,201,74,0.75);
+      background: linear-gradient(180deg, rgba(212,160,23,0.36) 0%, rgba(130,82,10,0.5) 100%);
+    }
+    .back-home-btn:active {
+      transform: translateY(0);
+    }
+    .back-home-btn:focus-visible {
+      outline: 2px solid var(--gold-s);
+      outline-offset: 2px;
     }
     /* ── diretta / countdown screen ── */
     #diretta-wrap {
@@ -590,8 +630,8 @@
     .skeleton-card {
       background: var(--card);
       border-radius: var(--radius);
-      padding: 56px 24px 22px;
-      min-height: 208px;
+      padding: 44px 16px 16px;
+      min-height: 172px;
       position: relative;
       overflow: hidden;
     }
@@ -616,14 +656,26 @@
     .skeleton-line.w-30 { width: 30%; height: 12px; }
     .skeleton-btn-row {
       display: flex;
-      gap: 8px;
-      margin-top: 24px;
+      gap: 6px;
+      margin-top: 18px;
     }
     .skeleton-btn {
-      width: 52px;
-      height: 52px;
-      border-radius: 12px;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
       background: rgba(255,255,255,0.07);
+    }
+    @media (max-width: 560px) {
+      .rating-row {
+        grid-template-columns: 1fr;
+      }
+      .rating-side {
+        justify-self: start;
+        align-items: flex-start;
+      }
+      .vote-score {
+        text-align: left;
+      }
     }
 
     /* ── offline banner ── */
@@ -656,7 +708,7 @@
     <div class="logo" aria-hidden="true">🐰🎤</div>
     <h1>Vota le esibizioni</h1>
     <p>La Tana del Coniglio · Nola</p>
-    <a href="index.html" style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:0.78rem;color:var(--muted);text-decoration:none;" aria-label="Torna alla home">← Home</a>
+    <a href="index.html" class="back-home-btn" aria-label="Torna alla home">← Torna alla Home</a>
   </header>
 
   <div id="status-banner"></div>
