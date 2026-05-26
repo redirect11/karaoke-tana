@@ -71,7 +71,7 @@
 
     .vote-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 14px;
     }
 
@@ -92,48 +92,49 @@
     .song-card {
       background: var(--card);
       border-radius: var(--radius);
-      padding: 44px 16px 16px;
+      padding: 14px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       animation: slideIn 0.3s ease;
       position: relative;
       overflow: hidden;
-      min-height: 172px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .song-card-selfie-bg {
       position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 56%;
+      inset: 0;
       background-size: cover;
-      background-position: center;
+      background-position: center top;
       background-repeat: no-repeat;
-      opacity: 0.52;
-      filter: blur(1px) saturate(0.8) brightness(0.88);
-      -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
-              mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
+      opacity: 0.38;
+      filter: blur(2px) saturate(0.75) brightness(0.72);
       z-index: 0;
       transition: opacity 0.2s, filter 0.2s;
     }
     .song-card.has-selfie:hover .song-card-selfie-bg {
-      opacity: 0.82;
-      filter: blur(0) saturate(1) brightness(1);
+      opacity: 0.55;
+      filter: blur(0) saturate(0.9) brightness(0.8);
     }
     .song-card.has-selfie .song-card-selfie-bg.is-default {
-      opacity: 0.32;
-      filter: blur(0) saturate(0.55) brightness(0.78);
+      opacity: 0.18;
+      filter: blur(0) saturate(0.4) brightness(0.65);
       cursor: default;
     }
-    .song-card.has-selfie > *:not(.song-card-selfie-bg):not(.song-index) {
+    .song-card.has-selfie > *:not(.song-card-selfie-bg) {
       position: relative;
       z-index: 1;
     }
 
+    .song-top-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
     .song-index {
-      position: absolute;
-      top: 10px;
-      right: 10px;
+      flex-shrink: 0;
       min-width: 34px;
       height: 34px;
       border-radius: 999px;
@@ -148,7 +149,6 @@
       -webkit-backdrop-filter: blur(8px) saturate(140%);
       border: 1px solid rgba(255,255,255,0.12);
       color: #fff;
-      z-index: 2;
     }
     .selfie-open-btn {
       border: 1px solid rgba(255,255,255,0.16);
@@ -182,68 +182,66 @@
     }
 
     .song-header {
-      margin-bottom: 10px;
       display: grid;
-      gap: 4px;
+      gap: 3px;
       min-width: 0;
+      flex: 1;
     }
     .song-title {
       font-weight: 700;
-      font-size: 1rem;
+      font-size: 0.9rem;
       line-height: 1.2;
       color: var(--gold-s);
       word-break: break-word;
     }
     .song-artist {
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       color: var(--muted);
       line-height: 1.2;
       word-break: break-word;
     }
     .song-singer {
-      font-size: 0.76rem;
-      color: var(--muted);
-      line-height: 1.2;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #fff;
+      text-align: center;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+      letter-spacing: 0.01em;
     }
 
     /* ── applause rating ── */
-    .rating-row {
+    .rating-hands {
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-    }
-    .rating-side {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
       gap: 6px;
-    }
-
-    .rating-hands {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 5px;
+      padding: 10px 8px;
       border-radius: 16px;
-      background: rgba(18,7,31,0.28);
+      background: rgba(18,7,31,0.38);
       border: 2px solid transparent;
       transition: background 0.2s, border-color 0.2s;
+      width: 100%;
     }
     .rating-hands.has-vote {
-      background: rgba(212,160,23,0.10);
-      border-color: rgba(212,160,23,0.30);
+      background: rgba(212,160,23,0.12);
+      border-color: rgba(212,160,23,0.32);
+    }
+
+    .card-bottom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
     .btn-vote {
-      width: 44px;
-      height: 44px;
+      width: 52px;
+      height: 52px;
       border: var(--vote-border) solid transparent;
       border-radius: 10px;
       background: transparent;
       color: inherit;
-      font-size: 1.25rem;
+      font-size: 1.5rem;
       line-height: 1;
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s, transform 0.1s, filter 0.15s, opacity 0.15s;
@@ -255,7 +253,7 @@
       filter: grayscale(1) opacity(0.55);
     }
     .btn-vote .vote-num {
-      font-size: 0.62rem;
+      font-size: 0.65rem;
       line-height: 1;
       font-weight: 700;
       color: var(--muted);
@@ -289,6 +287,11 @@
     .btn-vote:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+    }
+
+    @media (max-width: 340px) {
+      .btn-vote { width: 44px; height: 46px; font-size: 1.3rem; }
+      .rating-hands { gap: 4px; padding: 8px 6px; }
     }
 
     .vote-score {
@@ -1216,20 +1219,18 @@
 
       div.innerHTML = `
         ${hasSelfie ? `<div class="song-card-selfie-bg${canOpenSelfie ? '' : ' is-default'}" style="background-image:url('${escapeCssUrl(selfieUrl)}')"></div>` : ''}
-        <div class="song-index">#${Number.isInteger(s._displayIndex) ? s._displayIndex : '—'}</div>
-        <div class="song-header">
-          <div>
+        <div class="song-top-row">
+          <div class="song-header">
             <div class="song-title">${esc(s.canzone)}</div>
             <div class="song-artist">${esc(s.artista)}</div>
-            <div class="song-singer">Cantata da ${esc(s.nome)}</div>
           </div>
+          <div class="song-index">#${Number.isInteger(s._displayIndex) ? s._displayIndex : '—'}</div>
         </div>
-        <div class="rating-row">
-          <div class="${handsClass}" role="radiogroup" aria-label="Voto per ${esc(s.canzone)}">${btns}</div>
-          <div class="rating-side">
-            ${scoreBlock}
-            ${selfieBtn}
-          </div>
+        <div class="song-singer">🎤 ${esc(s.nome)}</div>
+        <div class="${handsClass}" role="radiogroup" aria-label="Voto per ${esc(s.canzone)}">${btns}</div>
+        <div class="card-bottom-row">
+          ${scoreBlock}
+          ${selfieBtn}
         </div>
       `;
 
