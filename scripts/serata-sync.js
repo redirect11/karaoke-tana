@@ -33,6 +33,7 @@
     const onChange = typeof opts.onChange === 'function' ? opts.onChange : function () {};
     const onError = typeof opts.onError === 'function' ? opts.onError : function () {};
     const channelName = opts.channelName || ('serata-sync-' + Math.random().toString(36).slice(2));
+    const debugEnabled = isRealtimeDebugEnabled();
 
     let channel = null;
     let pollTimer = null;
@@ -63,7 +64,27 @@
       debounceTimer = setTimeout(function () { debounceTimer = null; runSync(); }, debounceMs);
     }
 
+    function isRealtimeDebugEnabled() {
+      if (opts.debug === true) return true;
+      if (opts.debug === false) return false;
+      try {
+        if (!global) return false;
+        const search = global.location && typeof global.location.search === 'string' ? global.location.search : '';
+        const queryEnabled = search ? new URLSearchParams(search).get('realtimeDebug') === '1' : false;
+        const storageEnabled = global.localStorage && global.localStorage.getItem('karaoke_realtime_debug') === '1';
+        return queryEnabled || storageEnabled;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function debugLog() {
+      if (!debugEnabled || !global || !global.console || typeof global.console.debug !== 'function') return;
+      try { global.console.debug.apply(global.console, arguments); } catch (_) {}
+    }
+
     function teardownChannel() {
+      debugLog('[realtime] unsubscribe', channelName);
       if (channel && db && typeof db.removeChannel === 'function') {
         try { db.removeChannel(channel); } catch (_) {}
       }
@@ -75,9 +96,14 @@
       if (!db || typeof db.channel !== 'function') return;
       let ch = db.channel(channelName);
       tables.forEach(function (table) {
-        ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: table }, scheduleSync);
+        ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: table }, function (payload) {
+          debugLog('[realtime] event', { channel: channelName, table: table, event: payload && (payload.eventType || payload.type) });
+          scheduleSync();
+        });
       });
-      channel = ch.subscribe();
+      channel = ch.subscribe(function (status) {
+        debugLog('[realtime] status', { channel: channelName, status: status });
+      });
     }
 
     function start() {
