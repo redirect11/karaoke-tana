@@ -1521,7 +1521,7 @@
       }
       if (mode === 'reveal') {
         votaBanner.style.display = 'flex';
-        votaBanner.textContent = '🏆 Scopri chi ha vinto! →';
+        votaBanner.textContent = '🏆 Scopri chi vincerà →';
         return;
       }
       votaBanner.style.display = 'none';
@@ -1628,7 +1628,7 @@
         revealCountdownEndsAtMs ? '🎬 Countdown in corso' : '🎬 Sei pronto per scoprire chi ha vinto?',
         revealCountdownEndsAtMs
           ? 'Ci siamo: la proclamazione del vincitore è in corso.'
-          : 'Le votazioni sono terminate. Clicca il pulsante in alto per scoprire chi ha vinto.'
+          : 'Le votazioni sono terminate. Clicca il pulsante in alto e attendi la proclamazione del vincitore di questa edizione del Karaoke'
       );
       updateClosedPromoContent();
       showLeaderboard(false);
