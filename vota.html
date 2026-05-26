@@ -126,6 +126,11 @@
       opacity: 0.82;
       filter: blur(0) saturate(1) brightness(1);
     }
+    .song-card.has-selfie .song-card-selfie-bg.is-default {
+      opacity: 0.32;
+      filter: blur(0) saturate(0.55) brightness(0.78);
+      cursor: default;
+    }
     .song-card.has-selfie > *:not(.song-card-selfie-bg):not(.song-index) {
       position: relative;
       z-index: 1;
@@ -1142,9 +1147,10 @@
       const div = document.createElement('div');
       const rawSelfieUrl = resolveLanUrl(typeof s.selfie_url === 'string' ? s.selfie_url : '');
       const selfieHidden = Boolean(s.selfie_nascosta);
-      const selfieUrl = rawSelfieUrl && selfieHidden ? DEFAULT_SELFIE_URL : rawSelfieUrl;
+      const hasRealSelfie = Boolean(rawSelfieUrl);
+      const canOpenSelfie = hasRealSelfie && !selfieHidden;
+      const selfieUrl = canOpenSelfie ? rawSelfieUrl : DEFAULT_SELFIE_URL;
       const hasSelfie = Boolean(selfieUrl);
-      const canOpenSelfie = Boolean(rawSelfieUrl) && !selfieHidden;
       div.className = `song-card${hasSelfie ? ' has-selfie' : ''}`;
       div.dataset.id = s.id;
 
@@ -1165,12 +1171,12 @@
       }).join('');
 
       const handsClass = myVote > 0 ? 'rating-hands has-vote' : 'rating-hands';
-      const selfieBtn = hasSelfie
+      const selfieBtn = canOpenSelfie
         ? `<button class="selfie-open-btn" type="button" aria-label="Apri foto di ${esc(s.nome)}">📷 Foto</button>`
         : '';
 
       div.innerHTML = `
-        ${hasSelfie ? `<div class="song-card-selfie-bg" style="background-image:url('${escapeCssUrl(selfieUrl)}')"></div>` : ''}
+        ${hasSelfie ? `<div class="song-card-selfie-bg${canOpenSelfie ? '' : ' is-default'}" style="background-image:url('${escapeCssUrl(selfieUrl)}')"></div>` : ''}
         <div class="song-index">#${Number.isInteger(s._displayIndex) ? s._displayIndex : '—'}</div>
         <div class="song-header">
           <div>
