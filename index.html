@@ -148,6 +148,21 @@
       margin-bottom: 20px;
     }
 
+    /* ── loading skeleton ── */
+    @keyframes skel-shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
+    }
+    .skel-line {
+      border-radius: 6px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0.06) 75%);
+      background-size: 800px 100%;
+      animation: skel-shimmer 1.4s infinite linear;
+    }
+    .skel-title  { height: 20px; width: 55%; margin-bottom: 16px; }
+    .skel-body   { height: 14px; width: 100%; margin-bottom: 10px; }
+    .skel-body--short { width: 70%; margin-bottom: 0; }
+
     /* ── Instagram profile header card ── */
     .ig-profile-card {
       background: transparent;
@@ -1117,6 +1132,13 @@
     <div class="leaderboard-list" id="leaderboard-list"></div>
   </div>
 
+  <!-- STEP loading: skeleton shown while state is being fetched -->
+  <div class="card" id="step-loading">
+    <div class="skel-line skel-title"></div>
+    <div class="skel-line skel-body"></div>
+    <div class="skel-line skel-body skel-body--short"></div>
+  </div>
+
   <!-- step indicator -->
   <div class="steps" style="display:none">
     <div class="step active" id="ind-1">
@@ -1131,7 +1153,7 @@
   </div>
 
   <!-- STEP 1: follow -->
-  <div class="card" id="step-follow">
+  <div class="card" id="step-follow" style="display:none">
     <h2>Prima di tutto…</h2>
     <p>Segui la nostra pagina Instagram per poter prenotare una canzone.</p>
 
@@ -1157,7 +1179,7 @@
   </div>
 
   <!-- STEP 2: form -->
-  <div class="card" id="step-form">
+  <div class="card" id="step-form" style="display:none">
     <h2>Prenota la tua canzone 🎤</h2>
     <p>Compila il form e lo staff la aggiungerà alla lista appena possibile.</p>
 
@@ -1198,14 +1220,14 @@
   </div>
 
   <!-- STEP 3: success -->
-  <div class="card" id="step-success">
+  <div class="card" id="step-success" style="display:none">
     <div class="big-icon" aria-hidden="true">🎉</div>
     <h2>Richiesta inviata!</h2>
     <p id="success-status">Lo staff la controllerà e apparirà in lista appena viene approvata.</p>
   </div>
 
   <!-- STEP waiting: già prenotato -->
-  <div class="card" id="step-waiting">
+  <div class="card" id="step-waiting" style="display:none">
     <div class="waiting-status-hero">
       <div class="big-icon" aria-hidden="true">🎤</div>
     </div>
@@ -1246,7 +1268,7 @@
   </div>
 
   <!-- STEP closed: nessuna serata aperta -->
-  <div class="card" id="step-closed">
+  <div class="card" id="step-closed" style="display:none">
     <div class="big-icon" aria-hidden="true">🌙</div>
     <h2>Prenotazioni chiuse</h2>
     <p id="closed-state-message">Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!</p>
@@ -1405,6 +1427,7 @@
     };
 
     // ── UI refs ─────────────────────────────────────────────
+    const stepLoading  = document.getElementById('step-loading');
     const stepFollow   = document.getElementById('step-follow');
     const stepForm     = document.getElementById('step-form');
     const stepSuccess  = document.getElementById('step-success');
@@ -3071,6 +3094,7 @@
         // ── Init ─────────────────────────────────────────────────
     (async () => {
       const open = await checkSerataAperta();
+      stepLoading.style.display = 'none';
       startSerataStateSync();
       if (!open) return;
       const pending = await checkPendingBooking();
