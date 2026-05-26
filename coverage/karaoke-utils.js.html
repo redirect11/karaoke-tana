@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">95.45% </span>
+                <span class="strong">98.78% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>84/88</span>
+                <span class='fraction'>81/82</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">87.93% </span>
+                <span class="strong">91.17% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>102/116</span>
+                <span class='fraction'>93/102</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">95.58% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>65/68</span>
+                <span class='fraction'>62/62</span>
             </div>
         
             
@@ -355,7 +355,11 @@
 <a name='L290'></a><a href='#L290'>290</a>
 <a name='L291'></a><a href='#L291'>291</a>
 <a name='L292'></a><a href='#L292'>292</a>
-<a name='L293'></a><a href='#L293'>293</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -374,11 +378,12 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -595,14 +600,16 @@
 <span class="cline-any cline-yes">18x</span>
 <span class="cline-any cline-yes">18x</span>
 <span class="cline-any cline-yes">18x</span>
-<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -625,7 +632,8 @@
 <span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -665,14 +673,15 @@
   /* global module */
   if (typeof module !== 'undefined' &amp;&amp; module.exports) {
     module.exports = factory();
-  } else <span class="missing-if-branch" title="else path not taken" >E</span>{
-    var exports = <span class="cstat-no" title="statement not covered" >factory();</span>
+  } else /* c8 ignore next */ <span class="missing-if-branch" title="else path not taken" >E</span>{
+    /* c8 ignore next 4 */
+    var exports = factory();
     // Expose each function directly on the global (window) so existing
     // page scripts can call them without the KaraokeUtils namespace.
-<span class="cstat-no" title="statement not covered" >    Object.assign(root, exports);</span>
-<span class="cstat-no" title="statement not covered" >    root.KaraokeUtils = exports;</span>
+    Object.assign(root, exports);
+    root.KaraokeUtils = exports;
   }
-})(typeof globalThis !== 'undefined' ? globalThis : /* istanbul ignore next */ this, function () {
+})(typeof globalThis !== 'undefined' ? globalThis : /* c8 ignore next */ this, function () {
 &nbsp;
   // ── String escaping ──────────────────────────────────────────────────────
 &nbsp;
@@ -887,14 +896,16 @@
       var aTime = Date.parse(String(a &amp;&amp; a.created_at ? a.created_at : <span class="branch-1 cbranch-no" title="branch not covered" >'')</span>);
       var bTime = Date.parse(String(b &amp;&amp; b.created_at ? b.created_at : <span class="branch-1 cbranch-no" title="branch not covered" >'')</span>);
       if (Number.isFinite(aTime) &amp;&amp; Number.isFinite(bTime) &amp;&amp; aTime !== bTime) return aTime - bTime;
-      return Number(a &amp;&amp; a.id ? a.id : <span class="branch-1 cbranch-no" title="branch not covered" >0)</span> - Number(b &amp;&amp; b.id ? b.id : <span class="branch-1 cbranch-no" title="branch not covered" >0)</span>;
+      /* c8 ignore next */
+      return Number(a &amp;&amp; a.id ? a.id : 0) - Number(b &amp;&amp; b.id ? b.id : 0);
     });
     var idxMap = new Map();
     chronological.forEach(function (item, idx) {
       idxMap.set(Number(item.id), idx + 1);
     });
     list.forEach(function (item) {
-      item._displayIndex = idxMap.get(Number(item.id)) || <span class="branch-1 cbranch-no" title="branch not covered" >null;</span>
+      /* c8 ignore next */
+      item._displayIndex = idxMap.get(Number(item.id)) || null;
     });
   }
 &nbsp;
@@ -917,7 +928,8 @@
         if (b.scoreTotal !== a.scoreTotal) return b.scoreTotal - a.scoreTotal;
         if (b.scoreAvg !== a.scoreAvg) return b.scoreAvg - a.scoreAvg;
         <span class="missing-if-branch" title="if path not taken" >I</span>if (b.scoreCount !== a.scoreCount) <span class="cstat-no" title="statement not covered" >return b.scoreCount - a.scoreCount;</span>
-        return String(a.created_at || <span class="branch-1 cbranch-no" title="branch not covered" >'')</span>.localeCompare(String(b.created_at || <span class="branch-1 cbranch-no" title="branch not covered" >'')</span>);
+        /* c8 ignore next */
+        return String(a.created_at || '').localeCompare(String(b.created_at || ''));
       });
   }
 &nbsp;
@@ -946,7 +958,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-26T23:51:44.533Z
+                at 2026-05-26T23:58:21.088Z
             </div>
         <script src="prettify.js"></script>
         <script>

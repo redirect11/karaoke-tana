@@ -8,3 +8,6 @@ config.js
 
 # Node / npm
 node_modules/
+
+# Vitest coverage output
+coverage/

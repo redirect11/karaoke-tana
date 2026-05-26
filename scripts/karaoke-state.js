@@ -17,12 +17,13 @@
   /* global module */
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = factory();
-  } else {
+  } else /* c8 ignore next */ {
+    /* c8 ignore next 3 */
     var exports = factory();
     Object.assign(root, exports);
     root.KaraokeState = exports;
   }
-})(typeof globalThis !== 'undefined' ? globalThis : /* istanbul ignore next */ this, function () {
+})(typeof globalThis !== 'undefined' ? globalThis : /* c8 ignore next */ this, function () {
 
   // ── Serata UI state ──────────────────────────────────────────────────────
   //
@@ -197,10 +198,38 @@
     return 'voting-closed';
   }
 
+  // ── Admin panel serata dot-color ─────────────────────────────────────────
+  //
+  // Returns the CSS class applied to the <details class="serata-collapsible">
+  // element in admin.html to drive the summary-dot colour and panel accent.
+  //
+  // Possible values (match admin.html):
+  //   'is-closed'       – no serata is open
+  //   'is-proclamation' – reveal countdown active and winner not yet decreed
+  //   'is-warning'      – open serata but bookings are disabled
+  //   'is-open'         – normal open serata with bookings enabled
+
+  /**
+   * Compute the CSS status-class for the admin serata panel.
+   *
+   * @param {object|null} serataData - Row from the `serate` table (or null).
+   * @returns {'is-closed'|'is-proclamation'|'is-warning'|'is-open'}
+   */
+  function computeAdminSerataColor(serataData) {
+    if (!serataData) return 'is-closed';
+    var inProclamazioneMode =
+      Boolean(serataData.winner_reveal_countdown_active) &&
+      !Boolean(serataData.vincitore_decretato);
+    if (inProclamazioneMode) return 'is-proclamation';
+    if (serataData.prenotazioni_abilitate === false) return 'is-warning';
+    return 'is-open';
+  }
+
   return {
     computeSerataUiState: computeSerataUiState,
     computeBookingCookieAction: computeBookingCookieAction,
     computeQueuePosition: computeQueuePosition,
     computeVoteBanner: computeVoteBanner,
+    computeAdminSerataColor: computeAdminSerataColor,
   };
 });

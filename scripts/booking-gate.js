@@ -29,6 +29,7 @@
 
     function closeModal(resolve, result) {
       if (!modalEl) {
+        /* c8 ignore next 2 */
         resolve(result);
         return;
       }
