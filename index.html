@@ -1482,6 +1482,9 @@
     const songListCard = document.getElementById('song-list-card');
     const songListEl   = document.getElementById('song-list');
     const songListStatus = document.getElementById('song-list-status');
+    // Snapshot al load: i realtime update non devono cambiare la visibilità
+    // degli step dopo che l'utente ha appena premuto "Segui".
+    const followedAtPageLoad = getCookie('ig_followed') === 'true';
 
     // ── Selfie lightbox: apertura via delega + chiusura ──────
     const selfieLightboxEl = document.getElementById('selfie-lightbox');
@@ -2484,7 +2487,7 @@
           stepBookingsDisabled.style.display = 'none';
           // Only restore the steps/form if not in waiting mode already.
           if (stepWaiting.style.display !== 'flex' && stepSuccess.style.display !== 'flex') {
-            const alreadyFollowed = getCookie('ig_followed') === 'true';
+            const alreadyFollowed = followedAtPageLoad;
             // Only show .steps when the user has NOT yet followed — never
             // re-enable them for a user who already completed that step.
             if (!alreadyFollowed) {
@@ -2532,7 +2535,7 @@
       if (!open) return;
       const pending = await checkPendingBooking();
       if (pending) return;
-      const alreadyFollowed = getCookie('ig_followed') === 'true';
+      const alreadyFollowed = followedAtPageLoad;
       if (alreadyFollowed) {
         showForm({ hideSteps: true });
       } else {
@@ -3147,7 +3150,7 @@
       if (!open) return;
       const pending = await checkPendingBooking();
       if (pending) return;
-      const alreadyFollowed = getCookie('ig_followed') === 'true';
+      const alreadyFollowed = followedAtPageLoad;
       if (alreadyFollowed) {
         showForm({ hideSteps: true });
       } else if (getCookie('ig_clicked')) {
