@@ -758,9 +758,9 @@
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      filter: blur(8px) saturate(0.92) brightness(0.58);
+      filter: blur(3px) saturate(0.85) brightness(0.62);
       transform: scale(1.06);
-      opacity: 0.3;
+      opacity: 0.45;
       z-index: 0;
     }
     body.is-fullscreen::after {
@@ -788,6 +788,47 @@
     body.is-fullscreen #diretta-wrap h2,
     body.is-fullscreen #diretta-wrap p {
       text-shadow: 0 2px 12px rgba(0,0,0,0.85);
+    }
+    body.is-fullscreen #diretta-wrap .diretta-icon {
+      font-size: 5rem;
+    }
+    body.is-fullscreen #diretta-wrap h2 {
+      font-size: 1.7rem;
+    }
+    body.is-fullscreen #diretta-wrap p {
+      font-size: 1.05rem;
+    }
+    body.is-fullscreen .leaderboard-header h2 {
+      font-size: 1.35rem;
+    }
+    body.is-fullscreen .leaderboard-header p {
+      font-size: 1rem;
+    }
+    body.is-fullscreen .leaderboard-winner-name {
+      font-size: clamp(1.5rem, 4.5vw, 2.1rem);
+    }
+    body.is-fullscreen .leaderboard-winner-song {
+      font-size: 1.1rem;
+    }
+    body.is-fullscreen .leaderboard-winner-points {
+      font-size: 0.95rem;
+    }
+    body.is-fullscreen .leaderboard-winner-badge {
+      font-size: 0.85rem;
+    }
+    body.is-fullscreen .leaderboard-song-title {
+      font-size: 1.05rem;
+    }
+    body.is-fullscreen .leaderboard-song-meta {
+      font-size: 0.9rem;
+    }
+    body.is-fullscreen .leaderboard-points {
+      font-size: 1rem;
+    }
+    body.is-fullscreen .leaderboard-rank {
+      min-width: 34px;
+      height: 34px;
+      font-size: 0.9rem;
     }
 
     /* ── offline banner ── */
