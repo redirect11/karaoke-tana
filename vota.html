@@ -101,6 +101,27 @@
       flex-direction: column;
       gap: 8px;
     }
+    .song-card.has-selfie .song-card-selfie-bg {
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 60%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0.55;
+      filter: blur(1px) saturate(0.8) brightness(0.88);
+      -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
+              mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
+      z-index: 0;
+    }
+    .song-card.has-selfie .song-card-selfie-bg.is-default {
+      opacity: 0.32;
+      filter: blur(0) saturate(0.55) brightness(0.78);
+    }
+    .song-card.has-selfie > *:not(.song-card-selfie-bg) {
+      position: relative;
+      z-index: 1;
+    }
 
     .song-top-row {
       display: grid;
@@ -184,7 +205,7 @@
     .card-bottom-row {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      align-items: start;
+      align-items: end;
       gap: 10px;
     }
 
@@ -261,19 +282,22 @@
       color: var(--gold-s);
     }
     .song-photo-btn {
-      width: 56px;
-      height: 56px;
+      width: 38px;
+      height: 38px;
       border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 12px;
+      border-radius: 999px;
       padding: 0;
-      background: rgba(0,0,0,0.35);
+      background: rgba(0,0,0,0.55);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
       cursor: zoom-in;
       justify-self: end;
-      align-self: start;
+      align-self: end;
+      color: #fff;
+      font-size: 1rem;
+      backdrop-filter: blur(8px) saturate(140%);
+      -webkit-backdrop-filter: blur(8px) saturate(140%);
       transition: transform 0.12s ease, border-color 0.15s ease, opacity 0.15s ease;
     }
     .song-photo-btn:hover {
@@ -293,12 +317,6 @@
     .song-photo-btn.is-default:hover,
     .song-photo-btn:disabled:hover {
       border-color: rgba(255,255,255,0.2);
-    }
-    .song-photo-thumb {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
     }
     .back-home-btn {
       display: inline-flex;
@@ -1187,7 +1205,10 @@
       const canOpenSelfie = hasRealSelfie && !selfieHidden;
       const selfieUrl = hasRealSelfie ? (canOpenSelfie ? rawSelfieUrl : DEFAULT_SELFIE_URL) : DEFAULT_SELFIE_URL;
       const hasPhoto = Boolean(selfieUrl);
-      div.className = 'song-card';
+      const selfieBgHtml = hasPhoto
+        ? `<div class="song-card-selfie-bg${canOpenSelfie ? '' : ' is-default'}" style="background-image:url('${esc(selfieUrl)}')" aria-hidden="true"></div>`
+        : '';
+      div.className = `song-card${hasPhoto ? ' has-selfie' : ''}`;
       div.dataset.id = s.id;
 
       const myVote   = getLocalVote(s.id)?.voto || 0;
@@ -1208,10 +1229,11 @@
 
       const handsClass = myVote > 0 ? 'rating-hands has-vote' : 'rating-hands';
       const photoCell = hasPhoto
-        ? `<button class="song-photo-btn${canOpenSelfie ? '' : ' is-default'}" type="button"${canOpenSelfie ? ` aria-label="Ingrandisci foto di ${esc(s.nome)}"` : ' aria-label="Foto non disponibile" disabled'}><img class="song-photo-thumb" src="${esc(selfieUrl)}" alt="" loading="lazy" /></button>`
+        ? `<button class="song-photo-btn${canOpenSelfie ? '' : ' is-default'}" type="button"${canOpenSelfie ? ` aria-label="Ingrandisci foto di ${esc(s.nome)}"` : ' aria-label="Foto non disponibile" disabled'}>📷</button>`
         : '<div aria-hidden="true"></div>';
 
       div.innerHTML = `
+        ${selfieBgHtml}
         <div class="song-top-row">
           <div class="song-header">
             <div class="song-title">${esc(s.canzone)}</div>
