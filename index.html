@@ -2196,6 +2196,22 @@
       }, 12000);
     }
 
+    function isRealtimeDebugEnabled() {
+      try {
+        const queryEnabled = new URLSearchParams(window.location.search).get('realtimeDebug') === '1';
+        const storageEnabled = window.localStorage.getItem('karaoke_realtime_debug') === '1';
+        return queryEnabled || storageEnabled;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function logRealtimeDebug(label, payload) {
+      if (!isRealtimeDebugEnabled()) return;
+      if (payload === undefined) console.debug('[realtime]', label);
+      else console.debug('[realtime]', label, payload);
+    }
+
     function subscribeSongList(serataId) {
       if (!db) return;
       if (songListChannel) {
@@ -2209,7 +2225,8 @@
           schema: 'public',
           table: 'prenotazioni',
           filter: `serata_id=eq.${serataId}`
-        }, () => {
+        }, (payload) => {
+          logRealtimeDebug('index prenotazioni serata_id match', payload);
           loadSongList();
         })
         .on('postgres_changes', {
@@ -2217,10 +2234,13 @@
           schema: 'public',
           table: 'prenotazioni',
           filter: 'serata_id=is.null'
-        }, () => {
+        }, (payload) => {
+          logRealtimeDebug('index prenotazioni serata_id is null', payload);
           if (usingLegacySongFallback) loadSongList();
         })
-        .subscribe();
+        .subscribe((status) => {
+          logRealtimeDebug('index prenotazioni channel status', status);
+        });
     }
 
     // ── Serata aperta ────────────────────────────────────────
