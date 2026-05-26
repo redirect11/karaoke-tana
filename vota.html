@@ -666,7 +666,7 @@
     <div id="diretta-countdown" class="hidden"></div>
     <div id="diretta-admin-controls" class="diretta-admin-controls hidden">
       <button id="btn-start-diretta-countdown" class="btn-start-countdown" type="button">🎬 Avvia countdown (admin)</button>
-      <div id="diretta-admin-note" class="diretta-admin-note">Apri questa pagina dal pannello admin per avviare il countdown da qui.</div>
+      <div id="diretta-admin-note" class="diretta-admin-note">Controlli disponibili per admin autenticati.</div>
     </div>
   </section>
 
@@ -764,7 +764,6 @@
     let refreshingSerata = false;
     let direttaAdminToken = '';
     let direttaAdminActionInFlight = false;
-    const direttaAdminContextRequested = new URLSearchParams(window.location.search).get('adminView') === '1';
     const HOME_PAGE_PATH = 'index.html';
     // localVotes: { [prenotazione_id]: { voto, db_id } }
     const localVotes = JSON.parse(localStorage.getItem('local_votes') || '{}');
@@ -931,16 +930,11 @@
       const direttaActive = Boolean(serata?.winner_reveal_countdown_active);
       const winnerDecreed = Boolean(serata?.vincitore_decretato);
       const countdownStarted = Number.isFinite(Date.parse(serata?.winner_reveal_countdown_ends_at || ''));
-      if (!direttaActive || winnerDecreed || !direttaAdminContextRequested) {
+      if (!direttaActive || winnerDecreed || !direttaAdminToken) {
         direttaAdminControls.classList.add('hidden');
         return;
       }
       direttaAdminControls.classList.remove('hidden');
-      if (!direttaAdminToken) {
-        startDirettaCountdownBtn.disabled = true;
-        direttaAdminNote.textContent = 'Modalità admin: token non ricevuto. Apri questa pagina dal pannello admin.';
-        return;
-      }
       if (countdownStarted) {
         startDirettaCountdownBtn.disabled = true;
         direttaAdminNote.textContent = 'Countdown già avviato da un pannello admin.';
