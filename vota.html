@@ -708,6 +708,7 @@
 
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="scripts/serata-sync.js"></script>
   <script defer src="scripts/test-banner.js"></script>
   <script>
     const config = window.CONFIG || {};
@@ -821,8 +822,7 @@
       } else {
         await loadSongs();
       }
-      subscribeRealtime();
-      setInterval(refreshSerata, 8000);
+      startLiveSync();
     }
 
     // ── Refresh serata (used by realtime handler and polling) ──
@@ -1373,20 +1373,25 @@
     });
 
     // ── Real-time ──────────────────────────────────────────────
-    function subscribeRealtime() {
-      db.channel('vota-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'prenotazioni' }, async () => {
-          if (!serata) return;
-          await loadSongs();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'voti' }, async () => {
-          if (!serata) return;
-          scheduleRealtimeScoresRefresh();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'serate' }, async () => {
-          await refreshSerata();
-        })
-        .subscribe();
+    let liveSyncStarted = false;
+    function startLiveSync() {
+      if (liveSyncStarted) return;
+      liveSyncStarted = true;
+      // Stato serata: realtime + poll di fallback (8s).
+      createSerataSync({
+        db, tables: ['serate'], pollMs: 8000,
+        onChange: () => { refreshSerata(); },
+      }).start();
+      // Lista canzoni: realtime (il poll della serata fa da fallback).
+      createSerataSync({
+        db, tables: ['prenotazioni'], pollMs: 0,
+        onChange: () => { if (serata) loadSongs(); },
+      }).start();
+      // Voti/punteggi: realtime.
+      createSerataSync({
+        db, tables: ['voti'], pollMs: 0,
+        onChange: () => { if (serata) scheduleRealtimeScoresRefresh(); },
+      }).start();
     }
 
     function resolveLanUrl(url) {

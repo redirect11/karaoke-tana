@@ -1308,6 +1308,7 @@
   <script defer src="scripts/vendor/cookieconsent.umd.js"></script>
   <script defer src="cookie-consent.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="scripts/serata-sync.js"></script>
   <script defer src="scripts/test-banner.js"></script>
   <script src="./scripts/ads-config.js"></script>
   <script src="./scripts/ads-banner.js"></script>
@@ -1390,7 +1391,6 @@
     })();
 
     let currentSerataId = null;
-    let serataChannel   = null;
     let songListChannel = null;
     let usingLegacySongFallback = false;
     let revealCountdownWatcherTimer = null;
@@ -1465,7 +1465,6 @@
     let bookingsAreEnabled = true;
     let voteOpen = false;
     let songListPollInterval = null;
-    let serataPollInterval = null;
     let songListAvailability = 'loading';
     let songListCache = { toSing: [], completed: [] };
 
@@ -2190,13 +2189,6 @@
       }
     }
 
-    function clearSerataPollInterval() {
-      if (serataPollInterval) {
-        clearInterval(serataPollInterval);
-        serataPollInterval = null;
-      }
-    }
-
     function ensureSongListPolling() {
       clearSongListPolling();
       songListPollInterval = setInterval(() => {
@@ -2257,7 +2249,6 @@
         showLeaderboard(false);
         setVotaBanner(false);
         clearRevealCountdownWatcher();
-        subscribeGlobalSerata();
         return false;
       }
       currentSerataId = data.id;
@@ -2286,13 +2277,11 @@
         bookingsAreEnabled = false;
         await showRevealCountdownState(data);
         scheduleRevealCountdownWatcher(data);
-        subscribeSerata(data.id);
         return false;
       }
       clearRevealCountdownWatcher();
       showLeaderboard(false);
       stepClosed.style.display = 'none';
-      subscribeSerata(data.id);
       subscribeSongList(data.id);
       ensureSongListPolling();
       showSongListCard(true);
@@ -2333,7 +2322,6 @@
           currentSerataId = null;
           clearRevealCountdownWatcher();
           clearSongListPolling();
-          clearSerataPollInterval();
           [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
           showSongListCard(false);
           stepClosed.style.display = 'flex';
@@ -2342,7 +2330,6 @@
           updateClosedPromoContent();
           showLeaderboard(false);
           setVotaBanner(false);
-          subscribeGlobalSerata();
           return;
         }
         browserNotificationsEnabled = data.notifiche_browser_abilitate !== false;
@@ -2357,7 +2344,6 @@
           clearRevealCountdownWatcher();
           clearWaitingIntervals();
           clearSongListPolling();
-          clearSerataPollInterval();
           [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
           showSongListCard(false);
           stepClosed.style.display = 'flex';
@@ -2404,87 +2390,33 @@
       }
     }
 
-    function subscribeSerata(serataId) {
-      if (!db || serataChannel) return;
-      serataChannel = db.channel('index-serata')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate',
-          filter: `id=eq.${serataId}` }, async () => {
-          await refreshSerataState(serataId);
-        })
-        .subscribe();
-      // Polling fallback: handles the case where realtime events are missed or
-      // payload.new is empty because REPLICA IDENTITY FULL is not set.
-      clearSerataPollInterval();
-      serataPollInterval = setInterval(() => refreshSerataState(serataId), 8000);
+    // ── Sincronizzazione stato serata (strategia unica realtime+poll) ──
+    // Un solo sync sull'intera tabella serate (realtime + poll di fallback 8s).
+    // A ogni cambiamento decidiamo cosa fare in base allo stato corrente.
+    let serataStateSync = null;
+    function startSerataStateSync() {
+      if (serataStateSync || typeof createSerataSync !== 'function') return;
+      serataStateSync = createSerataSync({
+        db, tables: ['serate'], pollMs: 8000,
+        onChange: handleSerataChange,
+      });
+      serataStateSync.start();
     }
 
-    // ── Subscription globale: rileva apertura nuova serata ───
-    // Usata quando la pagina è in stato "chiuso": non c'è una serata
-    // specifica da osservare, quindi ascoltiamo INSERT e UPDATE su tutta
-    // la tabella serate. Quando arriva un evento con aperta=true,
-    // ri-eseguiamo checkSerataAperta() e mostriamo il flusso di prenotazione.
-    let globalSerataChannel = null;
-    let globalSerataPollInterval = null;
-    let globalSerataPollInFlight = false;
-
-    function subscribeGlobalSerata() {
-      if (!db || globalSerataChannel) return;
-      globalSerataChannel = db.channel('index-serata-global')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'serate' },
-          async (payload) => {
-            if (payload.new?.aperta) await handleNewSerataOpened();
-          })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'serate' },
-          async (payload) => {
-            if (payload.new?.aperta && !currentSerataId) await handleNewSerataOpened();
-          })
-        .subscribe();
-      // Polling fallback: gli eventi realtime sulla tabella serate possono non
-      // arrivare (tabella non in pubblicazione, socket caduta, tab in background…).
-      // Controlliamo comunque ogni 8s se è stata aperta una serata, così la home
-      // passa al flusso di prenotazione anche senza realtime.
-      if (!globalSerataPollInterval) {
-        globalSerataPollInterval = setInterval(checkForOpenedSerata, 8000);
-      }
-    }
-
-    async function checkForOpenedSerata() {
-      if (!db || currentSerataId || globalSerataPollInFlight) return;
-      globalSerataPollInFlight = true;
-      try {
-        const { data } = await db
-          .from('serate')
-          .select('id, aperta')
-          .eq('aperta', true)
-          .limit(1)
-          .maybeSingle();
-        if (data?.aperta && !currentSerataId) await handleNewSerataOpened();
-      } finally {
-        globalSerataPollInFlight = false;
-      }
-    }
-
-    function clearGlobalSerataSubscription() {
-      if (globalSerataChannel && db) {
-        db.removeChannel(globalSerataChannel);
-        globalSerataChannel = null;
-      }
-      if (globalSerataPollInterval) {
-        clearInterval(globalSerataPollInterval);
-        globalSerataPollInterval = null;
+    async function handleSerataChange() {
+      if (currentSerataId) {
+        // Stiamo già seguendo una serata: aggiorna il suo stato (chiusura,
+        // prenotazioni on/off, countdown, vincitore…).
+        await refreshSerataState(currentSerataId);
+      } else {
+        // Nessuna serata seguita: controlla se ne è stata aperta una.
+        await handleNewSerataOpened();
       }
     }
 
     async function handleNewSerataOpened() {
-      clearGlobalSerataSubscription();
       const open = await checkSerataAperta();
-      if (!open) {
-        // If currentSerataId is set, serata IS open but bookings are disabled — don't re-subscribe globally.
-        if (currentSerataId) return;
-        // No serata open (race condition): riattiva subscription
-        subscribeGlobalSerata();
-        return;
-      }
+      if (!open) return;
       const pending = await checkPendingBooking();
       if (pending) return;
       const alreadyFollowed = getCookie('ig_followed') === 'true';
@@ -3097,10 +3029,8 @@
         // ── Init ─────────────────────────────────────────────────
     (async () => {
       const open = await checkSerataAperta();
-      if (!open) {
-        subscribeGlobalSerata();
-        return;
-      }
+      startSerataStateSync();
+      if (!open) return;
       const pending = await checkPendingBooking();
       if (pending) return;
       const alreadyFollowed = getCookie('ig_followed') === 'true';
