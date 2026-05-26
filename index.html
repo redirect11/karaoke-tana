@@ -1512,8 +1512,19 @@
 
     // ── Vota banner ──────────────────────────────────────────
     const votaBanner = document.getElementById('vota-banner');
-    function setVotaBanner(open) {
-      votaBanner.style.display = open ? 'flex' : 'none';
+    function setVotaBanner(mode = 'hidden') {
+      if (!votaBanner) return;
+      if (mode === 'voting') {
+        votaBanner.style.display = 'flex';
+        votaBanner.textContent = '🗳 Vota le esibizioni! →';
+        return;
+      }
+      if (mode === 'reveal') {
+        votaBanner.style.display = 'flex';
+        votaBanner.textContent = '🏆 Scopri chi ha vinto! →';
+        return;
+      }
+      votaBanner.style.display = 'none';
     }
 
     function setClosedState(title, message) {
@@ -1606,13 +1617,19 @@
 
     async function showRevealCountdownState(serataData) {
       if (!serataData?.id) return;
+      const revealCountdownEndsAtMs = getWinnerRevealEndsAtMs(serataData);
       clearWaitingIntervals();
       clearSongListPolling();
       [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
       showSongListCard(false);
       stepClosed.style.display = 'flex';
       document.querySelector('.steps').style.display = 'none';
-      setClosedState('🎬 Reveal in corso', 'Il countdown è iniziato: la classifica finale verrà mostrata subito allo 0.');
+      setClosedState(
+        revealCountdownEndsAtMs ? '🎬 Countdown in corso' : '🎬 Proclamazione pronta',
+        revealCountdownEndsAtMs
+          ? 'Ci siamo: la proclamazione del vincitore è in corso.'
+          : 'Le votazioni sono terminate. Tocca il pulsante qui sopra per scoprire chi ha vinto.'
+      );
       updateClosedPromoContent();
       showLeaderboard(false);
       await preloadRevealLeaderboard(serataData);
@@ -1632,7 +1649,7 @@
         showSongListCard(false);
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
-        setClosedState('🏆 Classifica finale', 'Countdown terminato: ecco subito il risultato finale della serata.');
+        setClosedState('🏆 Classifica finale', 'Ecco il risultato finale della serata.');
         updateClosedPromoContent();
         showLeaderboard(true);
         await loadFinalLeaderboard(serataData.id, serataData.vincitore_prenotazione_id);
@@ -2273,7 +2290,7 @@
         setClosedState('Prenotazioni chiuse', 'Per ora non c’è nessun karaoke in corso.<br>Segui la pagina Instagram per conoscere le ultime novità.');
         updateClosedPromoContent();
         showLeaderboard(false);
-        setVotaBanner(false);
+        setVotaBanner('hidden');
         clearRevealCountdownWatcher();
         return false;
       }
@@ -2282,7 +2299,7 @@
       voteOpen = Boolean(data.voto_aperto);
       const winnerDecreed = Boolean(data.vincitore_decretato);
       const revealCountdownActive = Boolean(data.winner_reveal_countdown_active);
-      setVotaBanner(Boolean(data.voto_aperto) && !winnerDecreed);
+      setVotaBanner(winnerDecreed ? 'hidden' : (revealCountdownActive ? 'reveal' : (Boolean(data.voto_aperto) ? 'voting' : 'hidden')));
       if (winnerDecreed) {
         bookingsAreEnabled = false;
         voteOpen = false;
@@ -2355,14 +2372,14 @@
           setClosedState('Prenotazioni chiuse', 'Per ora non c\'è nessun karaoke in corso.<br>Segui la pagina Instagram per conoscere le ultime novità.');
           updateClosedPromoContent();
           showLeaderboard(false);
-          setVotaBanner(false);
+          setVotaBanner('hidden');
           return;
         }
         browserNotificationsEnabled = data.notifiche_browser_abilitate !== false;
         voteOpen = Boolean(data.voto_aperto);
         const winnerDecreed = Boolean(data.vincitore_decretato);
         const revealCountdownActive = Boolean(data.winner_reveal_countdown_active);
-        setVotaBanner(Boolean(data.voto_aperto) && !winnerDecreed);
+        setVotaBanner(winnerDecreed ? 'hidden' : (revealCountdownActive ? 'reveal' : (Boolean(data.voto_aperto) ? 'voting' : 'hidden')));
         if (winnerDecreed) {
           bookingsAreEnabled = false;
           voteOpen = false;

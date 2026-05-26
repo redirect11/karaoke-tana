@@ -904,9 +904,9 @@
                 Per un reveal scenico:
                 <ol type="a">
                   <li>Dal computer collegato al proiettore, apri la pagina pubblica <code>vota.html</code> e proiettala in sala (usa il pulsante <em>Apri pagina voti/countdown ↗</em> nell'app admin per aprirla velocemente).</li>
-                  <li>Dall'app admin (sullo smartphone o su un secondo dispositivo), premi <strong>Avvia countdown</strong>: partirà un conto alla rovescia di 5 secondi visibile sul proiettore.</li>
+                  <li>Dall'app admin (sullo smartphone o su un secondo dispositivo), premi <strong>Avvia countdown</strong>: comparirà subito il numero iniziale e poi partirà il conto alla rovescia visibile sul proiettore.</li>
                   <li>Allo scadere del countdown il vincitore viene decretato automaticamente e il risultato compare sulla pagina proiettata in sala.</li>
-                  <li>Se preferisci saltare il countdown, usa direttamente <strong>Decreta vincitore</strong> per pubblicare il risultato immediatamente.</li>
+                  <li>Se preferisci saltare il countdown, usa direttamente <strong>Proclamazione diretta</strong> per pubblicare il risultato immediatamente.</li>
                 </ol>
               </li>
             </ol>
@@ -1333,9 +1333,10 @@
                 <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
                   ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
                 </button>
-                <button class="btn-serata btn-winner" id="btn-decree-winner">
-                  ${!revealCountdownEndsAtMs ? '🎬 Avvia countdown' : '🏆 Decreta vincitore'}
+                <button class="btn-serata btn-winner" id="btn-start-winner-countdown"${revealCountdownEndsAtMs ? ' disabled' : ''}>
+                  ${revealCountdownEndsAtMs ? '🎬 Countdown avviato' : '🎬 Avvia countdown'}
                 </button>
+                <button class="btn-serata btn-winner" id="btn-decree-winner">🏆 Proclamazione diretta</button>
                 <button class="btn-serata btn-secondary" id="btn-disable-diretta">Annulla proclamazione</button>
               ` : `
                 <button class="btn-serata ${prenOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-prenotazioni">
@@ -1397,7 +1398,8 @@
       if (!winnerDecreed) {
         if (inProclamazioneMode) {
           document.getElementById('btn-toggle-show-totals').addEventListener('click', toggleShowVoteTotals);
-          document.getElementById('btn-decree-winner').addEventListener('click', decreeWinner);
+          document.getElementById('btn-start-winner-countdown').addEventListener('click', startWinnerCountdown);
+          document.getElementById('btn-decree-winner').addEventListener('click', decreeWinnerDirect);
           document.getElementById('btn-disable-diretta').addEventListener('click', disableDiretta);
         } else {
           document.getElementById('btn-toggle-prenotazioni').addEventListener('click', togglePrenotazioni);
@@ -1545,30 +1547,38 @@
       }
     }
 
-    async function decreeWinner() {
+    async function startWinnerCountdown() {
       if (!currentSerata) return;
-      const direttaActive = Boolean(currentSerata.winner_reveal_countdown_active);
-      const confirmMsg = direttaActive
-        ? 'Avviare il countdown diretta (5 secondi) per il reveal del vincitore?'
-        : 'Conferma il decreto del vincitore. Dopo questa azione non sarà più possibile prenotare o modificare la coda.';
-      if (!confirm(confirmMsg)) return;
-      const btn = document.getElementById('btn-decree-winner');
+      if (!currentSerata.winner_reveal_countdown_active) return;
+      if (Number.isFinite(Date.parse(currentSerata.winner_reveal_countdown_ends_at || ''))) return;
+      if (!confirm('Avviare il countdown diretta (5 secondi) per il reveal del vincitore?')) return;
+      const btn = document.getElementById('btn-start-winner-countdown');
       if (btn) btn.disabled = true;
       try {
         const result = await callAdmin('decree_winner', { serataId: currentSerata.id, countdownSeconds: 5 });
-        if (result?.countdown_started) {
-          currentSerata = result?.serata || currentSerata;
-          syncConnected = true;
-          renderSerata();
-          updateLiveDot();
-        } else {
-          currentSerata = result?.serata || currentSerata;
-          syncConnected = true;
-          await refreshState(true);
-          alert('Vincitore decretato. Da ora puoi solo chiudere il karaoke.');
-        }
+        currentSerata = result?.serata || currentSerata;
+        syncConnected = true;
+        renderSerata();
+        updateLiveDot();
       } catch (error) {
-        alert(error?.message || 'Non sono riuscito a decretare il vincitore.');
+        alert(error?.message || 'Non sono riuscito ad avviare il countdown.');
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function decreeWinnerDirect() {
+      if (!currentSerata) return;
+      if (!confirm('Proclamare subito il vincitore senza countdown? Dopo questa azione non sarà più possibile prenotare o modificare la coda.')) return;
+      const btn = document.getElementById('btn-decree-winner');
+      if (btn) btn.disabled = true;
+      try {
+        const result = await callAdmin('decree_winner', { serataId: currentSerata.id, skipCountdown: true });
+        currentSerata = result?.serata || currentSerata;
+        syncConnected = true;
+        await refreshState(true);
+        alert('Vincitore decretato. Da ora puoi solo chiudere il karaoke.');
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito a proclamare il vincitore.');
         if (btn) btn.disabled = false;
       }
     }
