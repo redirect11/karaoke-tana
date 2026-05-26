@@ -208,21 +208,21 @@
 
     /* ── applause rating ── */
     .rating-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: end;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
       gap: 8px;
     }
     .rating-side {
       display: flex;
       flex-direction: column;
-      align-items: flex-end;
-      justify-self: end;
+      align-items: center;
       gap: 6px;
     }
 
     .rating-hands {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 4px;
       padding: 5px;
@@ -230,7 +230,6 @@
       background: rgba(18,7,31,0.28);
       border: 2px solid transparent;
       transition: background 0.2s, border-color 0.2s;
-      min-width: 0;
     }
     .rating-hands.has-vote {
       background: rgba(212,160,23,0.10);
@@ -295,7 +294,7 @@
     .vote-score {
       font-size: 0.72rem;
       color: var(--muted);
-      text-align: right;
+      text-align: center;
       line-height: 1.2;
     }
     .vote-score span {
@@ -669,18 +668,6 @@
       height: 44px;
       border-radius: 10px;
       background: rgba(255,255,255,0.07);
-    }
-    @media (max-width: 560px) {
-      .rating-row {
-        grid-template-columns: 1fr;
-      }
-      .rating-side {
-        justify-self: start;
-        align-items: flex-start;
-      }
-      .vote-score {
-        text-align: left;
-      }
     }
 
     /* ── offline banner ── */
