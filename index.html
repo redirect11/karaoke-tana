@@ -760,6 +760,11 @@
       opacity: 0.85;
       filter: blur(0) saturate(1) brightness(1);
     }
+    .song-item.has-selfie .song-item-selfie-bg.is-default {
+      opacity: 0.32;
+      filter: blur(0) saturate(0.55) brightness(0.78);
+      cursor: default;
+    }
     .song-item.has-selfie > *:not(.song-item-selfie-bg):not(.song-item-order) {
       position: relative;
       z-index: 1;
@@ -1903,12 +1908,13 @@
           ? resolveLanUrl(item.selfie_url)
           : '';
         const selfieHidden = Boolean(item.selfie_nascosta);
-        const selfieUrl = rawSelfieUrl && selfieHidden ? DEFAULT_SELFIE_URL : rawSelfieUrl;
+        const hasRealSelfie = Boolean(rawSelfieUrl);
+        const canOpenSelfie = hasRealSelfie && !selfieHidden;
+        const selfieUrl = canOpenSelfie ? rawSelfieUrl : DEFAULT_SELFIE_URL;
         const hasSelfie = Boolean(selfieUrl);
-        const canOpenSelfie = Boolean(rawSelfieUrl) && !selfieHidden;
         return `
         <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}${currentSong ? ' current-song' : ''}${hasSelfie ? ' has-selfie' : ''}" data-id="${item.id}">
-          ${hasSelfie ? `<div class="song-item-selfie-bg" style="background-image:url('${escapeCssUrl(selfieUrl)}')"${canOpenSelfie ? ` data-selfie-full="${escapeHtml(rawSelfieUrl)}" role="button" aria-label="ingrandisci selfie di ${escapeHtml(item.nome)}"` : ' aria-hidden="true"'}></div>` : ''}
+          ${hasSelfie ? `<div class="song-item-selfie-bg${canOpenSelfie ? '' : ' is-default'}" style="background-image:url('${escapeCssUrl(selfieUrl)}')"${canOpenSelfie ? ` data-selfie-full="${escapeHtml(rawSelfieUrl)}" role="button" aria-label="ingrandisci selfie di ${escapeHtml(item.nome)}"` : ' aria-hidden="true"'}></div>` : ''}
           ${showOrder ? `<div class="song-item-order${alert ? ' alert' : ''}">${orderLabel}</div>` : ''}
           <div class="song-item-index">${progressiveLabel}</div>
           <div class="song-item-top">
