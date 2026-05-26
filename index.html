@@ -147,6 +147,7 @@
       line-height: 1.55;
       margin-bottom: 20px;
     }
+    .brand-highlight { color: var(--gold-soft); }
 
     /* ── loading skeleton ── */
     @keyframes skel-shimmer {
@@ -1651,7 +1652,7 @@
         revealCountdownEndsAtMs ? '🎬 Countdown in corso' : '🎬 Sei pronto per scoprire chi ha vinto?',
         revealCountdownEndsAtMs
           ? 'Ci siamo: la proclamazione del vincitore è in corso.'
-          : 'Le votazioni sono terminate. Clicca il pulsante in alto per scoprire chi ha vinto.'
+          : 'Le votazioni sono terminate. Clicca il pulsante in alto per scoprire il vincitore di questa edizione del Karaoke della <strong class="brand-highlight">Tana Del Coniglio</strong>.'
       );
       updateClosedPromoContent();
       showLeaderboard(false);
