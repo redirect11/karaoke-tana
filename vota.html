@@ -706,6 +706,67 @@
       background: rgba(255,255,255,0.07);
     }
 
+    /* ── fullscreen button (desktop only, visible in proclamation mode) ── */
+    #btn-fullscreen {
+      position: fixed;
+      top: 14px;
+      right: 16px;
+      z-index: 50;
+      display: none;
+      align-items: center;
+      gap: 5px;
+      padding: 8px 13px;
+      border-radius: 10px;
+      border: 1px solid rgba(212,160,23,0.45);
+      background: rgba(18,7,31,0.82);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: var(--gold-s);
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.18s, border-color 0.18s, opacity 0.15s;
+      white-space: nowrap;
+    }
+    #btn-fullscreen.visible { display: flex; }
+    #btn-fullscreen:hover {
+      background: rgba(30,15,53,0.95);
+      border-color: rgba(240,201,74,0.75);
+    }
+    #btn-fullscreen:active { opacity: 0.8; }
+    #btn-fullscreen:focus-visible {
+      outline: 2px solid var(--gold-s);
+      outline-offset: 2px;
+    }
+    @media (max-width: 768px) {
+      #btn-fullscreen { display: none !important; }
+    }
+
+    /* ── fullscreen mode ── */
+    body.is-fullscreen {
+      background-image: url('concert-crowd-bg.svg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      background-color: #08060f;
+    }
+    body.is-fullscreen header,
+    body.is-fullscreen #status-banner {
+      display: none !important;
+    }
+    body.is-fullscreen #diretta-wrap {
+      min-height: 100vh;
+      padding-top: 0;
+      justify-content: center;
+    }
+    body.is-fullscreen #diretta-countdown {
+      text-shadow: 0 0 50px rgba(240,201,74,0.95), 0 2px 24px rgba(0,0,0,0.9);
+    }
+    body.is-fullscreen #diretta-wrap h2,
+    body.is-fullscreen #diretta-wrap p {
+      text-shadow: 0 2px 12px rgba(0,0,0,0.85);
+    }
+
     /* ── offline banner ── */
     #offline-banner {
       display: none;
@@ -738,6 +799,11 @@
     <p>La Tana del Coniglio · Nola</p>
     <a href="index.html" class="back-home-btn" aria-label="Torna alla home">← Torna alla Home</a>
   </header>
+
+  <button id="btn-fullscreen" type="button" aria-label="Attiva schermo intero">
+    <span class="fs-icon" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" focusable="false"><path d="M1 1h4v1.5H2.5V6H1V1zm8 0h4v5h-1.5V2.5H9V1zM1 8v5h4v-1.5H2.5V9H1zm10 3.5V9h1.5v4H9v-1.5h3z"/></svg></span>
+    <span class="fs-label">Schermo intero</span>
+  </button>
 
   <div id="status-banner"></div>
 
@@ -1106,12 +1172,14 @@
         content.style.display = '';
         direttaCountdownEl.classList.add('hidden');
         direttaCountdownEl.classList.remove('tick', 'end');
+        updateFullscreenBtnVisibility(false);
         renderDirettaAdminControls();
         return;
       }
 
       direttaWrap.style.display = 'flex';
       content.style.display = 'none';
+      updateFullscreenBtnVisibility(true);
 
       if (!hasCountdown) {
         direttaTitle.textContent = '⚡ Preparatevi… il momento è arrivato!';
@@ -1154,6 +1222,7 @@
         if (remaining === 0) {
           stopDirettaCountdown();
           forceWinnerReveal = true;
+          if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
           renderContent();
           direttaWrap.style.display = 'none';
           content.style.display = '';
@@ -1583,6 +1652,43 @@
     });
     startDirettaCountdownBtn?.addEventListener('click', startDirettaCountdownFromVota);
     decreeDirettaNowBtn?.addEventListener('click', decreeWinnerDirectFromVota);
+
+    // ── Fullscreen toggle ──────────────────────────────────────
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+
+    function updateFullscreenBtn() {
+      if (!btnFullscreen) return;
+      const isFs = Boolean(document.fullscreenElement);
+      document.body.classList.toggle('is-fullscreen', isFs);
+      const icon  = btnFullscreen.querySelector('.fs-icon');
+      const label = btnFullscreen.querySelector('.fs-label');
+      const enterSvg = '<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" focusable="false"><path d="M1 1h4v1.5H2.5V6H1V1zm8 0h4v5h-1.5V2.5H9V1zM1 8v5h4v-1.5H2.5V9H1zm10 3.5V9h1.5v4H9v-1.5h3z"/></svg>';
+      const exitSvg  = '<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" focusable="false"><path d="M4 1v3H1V5.5h4.5V1H4zm5 0h-1.5v4.5H13V4h-3V1h-1zm-5 8.5H1V11h3v3h1.5V9.5H4zM9 9.5v4H10.5V11H13.5V9.5H9z"/></svg>';
+      if (icon)  icon.innerHTML  = isFs ? exitSvg : enterSvg;
+      if (label) label.textContent = isFs ? 'Esci' : 'Schermo intero';
+      btnFullscreen.setAttribute('aria-label', isFs ? 'Esci da schermo intero' : 'Attiva schermo intero');
+    }
+
+    function updateFullscreenBtnVisibility(show) {
+      if (!btnFullscreen) return;
+      const supported = Boolean(document.fullscreenEnabled);
+      btnFullscreen.classList.toggle('visible', show && supported);
+      if (!show && document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenEnabled) return;
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      } else {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }
+
+    document.addEventListener('fullscreenchange', updateFullscreenBtn);
+    btnFullscreen?.addEventListener('click', toggleFullscreen);
 
     loadSerata();
   </script>
