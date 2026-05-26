@@ -508,16 +508,19 @@
     #step-closed .big-icon.is-hidden { display: none; }
     #step-closed .closed-state-alert {
       display: none;
-      margin-bottom: 0;
-      padding: 8px 12px;
+      margin-bottom: 8px;
+      padding: 9px 20px;
       border-radius: 999px;
-      background: var(--warning-bg);
-      color: var(--warning-text);
-      font-size: 0.84rem;
+      background: rgba(18,7,31,0.82);
+      border: 1.5px solid rgba(212,160,23,0.65);
+      color: var(--gold-soft);
+      font-size: 0.9rem;
       font-weight: 800;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.04em;
+      text-align: center;
+      box-shadow: 0 0 14px rgba(212,160,23,0.22), 0 2px 8px rgba(0,0,0,0.4);
     }
-    #step-closed .closed-state-alert.is-visible { display: inline-flex; align-items: center; justify-content: center; }
+    #step-closed .closed-state-alert.is-visible { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
     .booking-disabled-illustration {
       width: min(220px, 65vw);
       display: block;
