@@ -843,6 +843,8 @@
     let showTotalsPublic = false;
     let direttaCountdownTimer = null;
     let direttaCountdownLastValue = null;
+    let direttaCountdownSeenAtMs = 0;
+    let direttaCountdownKey = '';
     let direttaRevealPreloadPromise = null;
     let forceWinnerReveal = false;
     let votiRealtimeRefreshTimer = null;
@@ -984,6 +986,8 @@
         direttaCountdownTimer = null;
       }
       direttaCountdownLastValue = null;
+      direttaCountdownSeenAtMs = 0;
+      direttaCountdownKey = '';
     }
 
     function getAdminHeaders(token) {
@@ -1127,10 +1131,20 @@
       if (Number.isInteger(configuredSeconds) && configuredSeconds > 0) {
         direttaCountdownEl.textContent = String(configuredSeconds).padStart(2, '0');
       }
+      const nextCountdownKey = `${endsAtMs}|${Number.isInteger(configuredSeconds) ? configuredSeconds : ''}`;
+      if (direttaCountdownKey !== nextCountdownKey) {
+        direttaCountdownKey = nextCountdownKey;
+        direttaCountdownSeenAtMs = Date.now();
+      }
 
       const tick = () => {
         const msLeft = endsAtMs - Date.now();
-        const remaining = Math.max(0, Math.ceil(msLeft / 1000) - 1);
+        const remainingByServer = Math.max(0, Math.ceil(msLeft / 1000));
+        let remaining = remainingByServer;
+        if (Number.isInteger(configuredSeconds) && configuredSeconds > 0) {
+          const elapsedSinceSeen = Date.now() - direttaCountdownSeenAtMs;
+          if (elapsedSinceSeen < 1000) remaining = Math.max(remaining, configuredSeconds);
+        }
         if (remaining !== direttaCountdownLastValue) {
           direttaCountdownLastValue = remaining;
           direttaCountdownEl.textContent = String(remaining).padStart(2, '0');
@@ -1146,7 +1160,7 @@
           void refreshSerata();
           return;
         }
-        const nextChangeInMs = msLeft - (remaining * 1000);
+        const nextChangeInMs = msLeft - ((remaining - 1) * 1000);
         const nextDelay = Math.max(45, Math.min(220, nextChangeInMs + 18));
         direttaCountdownTimer = setTimeout(tick, nextDelay);
       };
@@ -1159,7 +1173,7 @@
       votiRealtimeRefreshTimer = setTimeout(async () => {
         votiRealtimeRefreshTimer = null;
         if (!serata || serata.winner_reveal_countdown_active) return;
-        await loadScores();
+        await loadScores({ updateOnlyVisibleScores: true });
       }, 150);
     }
 
@@ -1196,7 +1210,35 @@
     }
 
     // ── Load scores ────────────────────────────────────────────
-    async function loadScores() {
+    function updateVisibleScoresOnly() {
+      const cards = content.querySelectorAll('.song-card[data-id]');
+      if (!cards.length) return false;
+      const songsById = new Map(songs.map((song) => [Number(song.id), song]));
+      let updated = 0;
+
+      cards.forEach((card) => {
+        const songId = Number(card.dataset.id || 0);
+        if (!songId) return;
+        const song = songsById.get(songId);
+        if (!song) return;
+        const scoreEl = card.querySelector('.vote-score');
+        if (!scoreEl) return;
+
+        const sc = song._scores || { sum: 0, count: 0 };
+        if (showTotalsPublic) {
+          const avg = sc.count > 0 ? (sc.sum / sc.count).toFixed(1) : '—';
+          scoreEl.innerHTML = `<span>${avg}</span>${sc.count} vot${sc.count === 1 ? 'o' : 'i'}`;
+        } else {
+          scoreEl.innerHTML = '<span>—</span>Voti nascosti';
+        }
+        updated += 1;
+      });
+
+      return updated > 0;
+    }
+
+    async function loadScores(options = {}) {
+      const updateOnlyVisibleScores = Boolean(options.updateOnlyVisibleScores);
       if (songs.length === 0) { renderContent(); return; }
       const ids = songs.map(s => s.id);
       const { data } = await db
@@ -1212,7 +1254,11 @@
       });
 
       songs.forEach(s => { s._scores = scores[s.id] || { sum: 0, count: 0 }; });
-      renderContent(scores);
+      if (updateOnlyVisibleScores) {
+        if (!updateVisibleScoresOnly()) renderContent();
+        return;
+      }
+      renderContent();
     }
 
     // ── Render ─────────────────────────────────────────────────
