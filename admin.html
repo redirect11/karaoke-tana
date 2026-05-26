@@ -488,7 +488,9 @@
       width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
     }
     .serata-collapsible.is-open .summary-dot { background: var(--green); box-shadow: 0 0 8px rgba(46,204,113,0.6); }
-    .serata-collapsible.is-closed .summary-dot { background: var(--muted); }
+    .serata-collapsible.is-closed .summary-dot { background: #ff6b6b; box-shadow: 0 0 8px rgba(255,107,107,0.5); }
+    .serata-collapsible.is-warning .summary-dot { background: #f1c40f; box-shadow: 0 0 8px rgba(241,196,15,0.5); }
+    .serata-collapsible.is-proclamation .summary-dot { background: #ff9f43; box-shadow: 0 0 8px rgba(255,159,67,0.55); }
     .serata-collapsible .summary-extra {
       font-weight: 500;
       color: var(--muted);
@@ -509,6 +511,12 @@
     /* Quando è collassato e la serata è aperta, il riepilogo si fa più visivo */
     .serata-collapsible.is-open summary {
       background: linear-gradient(90deg, rgba(46,204,113,0.10), transparent);
+    }
+    .serata-collapsible.is-warning summary {
+      background: linear-gradient(90deg, rgba(241,196,15,0.14), transparent);
+    }
+    .serata-collapsible.is-proclamation summary {
+      background: linear-gradient(90deg, rgba(255,159,67,0.14), transparent);
     }
     .help-collapsible {
       background: linear-gradient(160deg, rgba(212,160,23,0.16) 0%, rgba(140,40,180,0.10) 100%);
@@ -1278,7 +1286,7 @@
 
       if (!currentSerata) {
         dotClass = 'is-closed';
-        summaryStatus = '⭕ Nessun karaoke';
+        summaryStatus = '🔴 Karaoke chiuso';
         summarySub = 'Le prenotazioni sono disabilitate';
         innerCard = `
           <div class="serata-actions">
@@ -1306,8 +1314,16 @@
           : 'in corso';
         const inProclamazioneMode = winnerRevealCountdownActive && !winnerDecreed;
 
-        dotClass = 'is-open';
-        summaryStatus = '🟢 Karaoke aperto';
+        if (inProclamazioneMode) {
+          dotClass = 'is-proclamation';
+          summaryStatus = '🟠 Modalità proclamazione';
+        } else if (!prenOpen) {
+          dotClass = 'is-warning';
+          summaryStatus = '🟡 Prenotazioni disabilitate';
+        } else {
+          dotClass = 'is-open';
+          summaryStatus = '🟢 Karaoke aperto';
+        }
         const prenLabel = prenOpen ? 'prenotazioni aperte' : 'prenotazioni chiuse';
         const votiLabel = winnerDecreed ? 'conclusi' : (votoOpen ? 'aperti' : 'chiusi');
         summarySub = `${dateStr} · ${prenLabel} · voti ${votiLabel}${inProclamazioneMode ? ' · 🎬 proclamazione' : ''}`;
