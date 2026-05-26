@@ -2405,7 +2405,8 @@
         return false;
       }
       stepBookingsDisabled.style.display = 'none';
-      document.querySelector('.steps').style.display = '';
+      // Do NOT unconditionally show .steps here — callers check ig_followed
+      // and decide whether to show steps or go straight to the form.
       return true;
     }
 
@@ -2483,11 +2484,15 @@
           stepBookingsDisabled.style.display = 'none';
           // Only restore the steps/form if not in waiting mode already.
           if (stepWaiting.style.display !== 'flex' && stepSuccess.style.display !== 'flex') {
-            document.querySelector('.steps').style.display = '';
+            const alreadyFollowed = getCookie('ig_followed') === 'true';
+            // Only show .steps when the user has NOT yet followed — never
+            // re-enable them for a user who already completed that step.
+            if (!alreadyFollowed) {
+              document.querySelector('.steps').style.display = '';
+            }
             // Check if there's a pending booking, otherwise show form.
             const pending = await checkPendingBooking();
             if (!pending) {
-              const alreadyFollowed = getCookie('ig_followed') === 'true';
               if (alreadyFollowed) showForm({ hideSteps: true });
               else stepFollow.style.display = 'block';
             }
