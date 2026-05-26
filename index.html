@@ -18,6 +18,8 @@
       --text:      #f0e6d3;
       --muted:     #bfaabf;
       --green:     #2ecc71;
+      --warning-bg: #f5c400;
+      --warning-text: #1a1200;
       --radius:    14px;
     }
 
@@ -497,6 +499,25 @@
     #step-success h2, #step-waiting h2, #step-closed h2, #step-bookings-disabled h2 { color: var(--gold-soft); font-size: 1.3rem; }
     #step-waiting h2.is-critical { color: #ff4d4f; }
     #step-success p,  #step-waiting p,  #step-closed p, #step-bookings-disabled p  { font-size: 0.88rem; }
+    .closed-state-hero-image {
+      width: min(220px, 65vw);
+      display: none;
+      margin: 0 auto;
+    }
+    .closed-state-hero-image.is-visible { display: block; }
+    #step-closed .big-icon.is-hidden { display: none; }
+    #step-closed .closed-state-alert {
+      display: none;
+      margin-bottom: 0;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--warning-bg);
+      color: var(--warning-text);
+      font-size: 0.84rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+    .closed-state-alert.is-visible { display: inline-flex; align-items: center; justify-content: center; }
     .booking-disabled-illustration {
       width: min(220px, 65vw);
       display: block;
@@ -1244,7 +1265,7 @@
   <div class="card" id="step-bookings-disabled" style="display:none;">
     <img
       class="booking-disabled-illustration"
-      src="stop-prenotazioni.png"
+      src="/stop-prenotazioni.png"
       alt="Illustrazione prenotazioni chiuse"
       width="220"
       height="220"
@@ -1270,7 +1291,17 @@
 
   <!-- STEP closed: nessuna serata aperta -->
   <div class="card" id="step-closed" style="display:none">
-    <div class="big-icon" aria-hidden="true">🌙</div>
+    <p id="closed-state-alert" class="closed-state-alert">Le votazioni sono terminate</p>
+    <img
+      id="closed-state-hero-image"
+      class="closed-state-hero-image"
+      src="/stop-prenotazioni.png"
+      alt="Votazioni chiuse"
+      width="220"
+      height="220"
+      loading="lazy"
+    />
+    <div id="closed-state-icon" class="big-icon" aria-hidden="true">🌙</div>
     <h2>Prenotazioni chiuse</h2>
     <p id="closed-state-message">Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!</p>
     <p id="closed-state-next-date" style="font-size:0.9rem; color:var(--gold); margin-top:-2px;"></p>
@@ -1439,6 +1470,9 @@
     const stepClosedTitle = stepClosed.querySelector('h2');
     const stepClosedText = document.getElementById('closed-state-message');
     const closedStateNextDate = document.getElementById('closed-state-next-date');
+    const closedStateIcon = document.getElementById('closed-state-icon');
+    const closedStateHeroImage = document.getElementById('closed-state-hero-image');
+    const closedStateAlert = document.getElementById('closed-state-alert');
     const closedIgProfileCard = document.getElementById('closed-ig-profile-card');
     const closedIgFollowBtn   = document.getElementById('closed-ig-follow-btn');
     const closedArchiveLink = document.getElementById('closed-archive-link');
@@ -1551,9 +1585,13 @@
       votaBanner.style.display = 'none';
     }
 
-    function setClosedState(title, message) {
+    function setClosedState(title, message, options = {}) {
+      const showVotingClosedHighlight = !!options.showVotingClosedHighlight;
       if (stepClosedTitle) stepClosedTitle.textContent = title;
       if (stepClosedText) stepClosedText.innerHTML = message;
+      if (closedStateAlert) closedStateAlert.classList.toggle('is-visible', showVotingClosedHighlight);
+      if (closedStateHeroImage) closedStateHeroImage.classList.toggle('is-visible', showVotingClosedHighlight);
+      if (closedStateIcon) closedStateIcon.classList.toggle('is-hidden', showVotingClosedHighlight);
     }
 
     function formatPublicDateLabel(dateIso, withWeekday = true) {
@@ -1652,7 +1690,8 @@
         revealCountdownEndsAtMs ? '🎬 Countdown in corso' : '🎬 Sei pronto per scoprire chi ha vinto?',
         revealCountdownEndsAtMs
           ? 'Ci siamo: la proclamazione del vincitore è in corso.'
-          : 'Le votazioni sono terminate. Clicca il pulsante in alto per scoprire il vincitore di questa edizione del Karaoke della <strong class="brand-highlight">Tana Del Coniglio</strong>.'
+          : 'Clicca il pulsante in alto per scoprire il vincitore di questa edizione del Karaoke della <strong class="brand-highlight">Tana Del Coniglio</strong>.',
+        { showVotingClosedHighlight: !revealCountdownEndsAtMs }
       );
       updateClosedPromoContent();
       showLeaderboard(false);
