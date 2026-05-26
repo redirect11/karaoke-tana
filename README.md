@@ -159,9 +159,9 @@ La UI gestisce loading/error sul bottone di submit.
 - Con votazioni chiuse l'admin può premere **"Abilita diretta"** dallo staff panel (`admin.html`):
   - la pagina `vota.html` mostra la schermata "Il vincitore sta per essere rivelato…";
   - aprendo **"Apri pagina voti/countdown ↗"** l'admin può gestire la diretta anche dalla pagina pubblica;
-  - premendo **"Avvia countdown"** (da staff panel o da `vota.html` aperta in modalità admin) parte un countdown di 5 s;
+  - premendo **"Avvia countdown"** (da staff panel o da `vota.html` aperta in modalità admin) compare per 1 secondo il numero iniziale e poi parte un countdown di 5 s;
   - al termine del countdown il vincitore viene decretato automaticamente.
-- Con diretta disabilitata, **"Decreta vincitore"** dichiara subito il vincitore (comportamento precedente).
+- In modalità proclamazione è disponibile anche **"Proclamazione diretta"**, che pubblica subito il vincitore senza far comparire alcun countdown sulla pagina pubblica.
 - Se si vuole annullare la diretta prima del countdown, premere **"Disabilita diretta"**.
 
 ## Deploy GitHub Pages

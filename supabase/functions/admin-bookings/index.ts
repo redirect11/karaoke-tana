@@ -1092,14 +1092,17 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         throw new ApiError(409, "no_ranking_available", "Impossibile calcolare la classifica finale.");
       }
 
+      const skipCountdown = body.skipCountdown === true;
+
       // Se la diretta è abilitata e il countdown non è ancora partito → avvia countdown
       if (
         currentSerata.winner_reveal_countdown_active &&
-        !currentSerata.winner_reveal_countdown_ends_at
+        !currentSerata.winner_reveal_countdown_ends_at &&
+        !skipCountdown
       ) {
         const countdownSeconds = parseCountdownSeconds(body.countdownSeconds ?? 5);
         const startedAt = new Date();
-        const endsAt = new Date(startedAt.getTime() + countdownSeconds * 1000);
+        const endsAt = new Date(startedAt.getTime() + (countdownSeconds + 1) * 1000);
         const { data: countdownSerata, error: countdownError } = await admin
           .from("serate")
           .update({

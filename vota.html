@@ -404,7 +404,21 @@
       font-weight: 800;
       cursor: pointer;
     }
+    .diretta-admin-controls .btn-decree-now {
+      border: 1px solid rgba(255,255,255,0.16);
+      background: linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.08) 100%);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
     .diretta-admin-controls .btn-start-countdown:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .diretta-admin-controls .btn-decree-now:disabled {
       opacity: 0.55;
       cursor: not-allowed;
     }
@@ -734,6 +748,7 @@
     <div id="diretta-countdown" class="hidden"></div>
     <div id="diretta-admin-controls" class="diretta-admin-controls hidden">
       <button id="btn-start-diretta-countdown" class="btn-start-countdown" type="button">🎬 Avvia countdown (admin)</button>
+      <button id="btn-diretta-decree-now" class="btn-decree-now" type="button">🏆 Proclamazione diretta (admin)</button>
       <div id="diretta-admin-note" class="diretta-admin-note">Controlli disponibili per admin autenticati.</div>
     </div>
   </section>
@@ -792,6 +807,7 @@
     const direttaCountdownEl = document.getElementById('diretta-countdown');
     const direttaAdminControls = document.getElementById('diretta-admin-controls');
     const startDirettaCountdownBtn = document.getElementById('btn-start-diretta-countdown');
+    const decreeDirettaNowBtn = document.getElementById('btn-diretta-decree-now');
     const direttaAdminNote = document.getElementById('diretta-admin-note');
     const photoModal = document.getElementById('photo-modal');
     const photoModalImg = document.getElementById('photo-modal-image');
@@ -994,7 +1010,7 @@
     }
 
     function renderDirettaAdminControls() {
-      if (!direttaAdminControls || !direttaAdminNote || !startDirettaCountdownBtn) return;
+      if (!direttaAdminControls || !direttaAdminNote || !startDirettaCountdownBtn || !decreeDirettaNowBtn) return;
       const direttaActive = Boolean(serata?.winner_reveal_countdown_active);
       const winnerDecreed = Boolean(serata?.vincitore_decretato);
       const countdownStarted = Number.isFinite(Date.parse(serata?.winner_reveal_countdown_ends_at || ''));
@@ -1003,13 +1019,14 @@
         return;
       }
       direttaAdminControls.classList.remove('hidden');
+      decreeDirettaNowBtn.disabled = direttaAdminActionInFlight;
       if (countdownStarted) {
         startDirettaCountdownBtn.disabled = true;
-        direttaAdminNote.textContent = 'Countdown già avviato da un pannello admin.';
+        direttaAdminNote.textContent = 'Countdown già avviato da un pannello admin. Puoi comunque proclamare subito il vincitore.';
         return;
       }
       startDirettaCountdownBtn.disabled = direttaAdminActionInFlight;
-      direttaAdminNote.textContent = 'Puoi avviare il countdown da qui (5 secondi) prima della proclamazione.';
+      direttaAdminNote.textContent = 'Puoi avviare il countdown da qui oppure proclamare subito il vincitore.';
     }
 
     async function startDirettaCountdownFromVota() {
@@ -1029,6 +1046,29 @@
         renderDiretta();
       } catch (error) {
         alert(error?.message || 'Non sono riuscito ad avviare il countdown.');
+      } finally {
+        direttaAdminActionInFlight = false;
+        renderDirettaAdminControls();
+      }
+    }
+
+    async function decreeWinnerDirectFromVota() {
+      if (!serata?.id || !direttaAdminToken || direttaAdminActionInFlight) return;
+      if (!confirm('Proclamare subito il vincitore senza countdown da questa pagina?')) return;
+      direttaAdminActionInFlight = true;
+      renderDirettaAdminControls();
+      try {
+        const result = await callAdmin('decree_winner', { serataId: serata.id, skipCountdown: true });
+        if (result?.serata) {
+          serata = result.serata;
+          votingOpen = Boolean(serata.voto_aperto);
+          showTotalsPublic = Boolean(serata.mostra_voti_totali);
+        }
+        updateBanner();
+        renderDiretta();
+        await loadSongs();
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito a proclamare il vincitore.');
       } finally {
         direttaAdminActionInFlight = false;
         renderDirettaAdminControls();
@@ -1090,7 +1130,7 @@
 
       const tick = () => {
         const msLeft = endsAtMs - Date.now();
-        const remaining = Math.max(0, Math.ceil(msLeft / 1000));
+        const remaining = Math.max(0, Math.ceil(msLeft / 1000) - 1);
         if (remaining !== direttaCountdownLastValue) {
           direttaCountdownLastValue = remaining;
           direttaCountdownEl.textContent = String(remaining).padStart(2, '0');
@@ -1106,7 +1146,7 @@
           void refreshSerata();
           return;
         }
-        const nextChangeInMs = msLeft - ((remaining - 1) * 1000);
+        const nextChangeInMs = msLeft - (remaining * 1000);
         const nextDelay = Math.max(45, Math.min(220, nextChangeInMs + 18));
         direttaCountdownTimer = setTimeout(tick, nextDelay);
       };
@@ -1495,6 +1535,7 @@
       renderDirettaAdminControls();
     });
     startDirettaCountdownBtn?.addEventListener('click', startDirettaCountdownFromVota);
+    decreeDirettaNowBtn?.addEventListener('click', decreeWinnerDirectFromVota);
 
     loadSerata();
   </script>
