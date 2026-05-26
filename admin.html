@@ -346,6 +346,16 @@
       width: 100%;
       text-align: center;
     }
+    .control-note {
+      grid-column: 1 / -1;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      line-height: 1.35;
+      color: var(--muted);
+    }
     .voto-label { font-size: 0.8rem; color: var(--muted); }
     .vota-link {
       font-size: 0.76rem;
@@ -1329,7 +1339,9 @@
           <div class="control-section">
             <div class="control-title">Azioni serata</div>
             <div class="control-grid">
-              ${winnerDecreed ? '' : (inProclamazioneMode ? `
+              ${winnerDecreed ? `
+                <div class="control-note">🏁 Karaoke concluso: le azioni della serata sono terminate. L'unica operazione disponibile è <strong>Chiudi karaoke</strong>.</div>
+              ` : (inProclamazioneMode ? `
                 <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
                   ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
                 </button>
@@ -1452,7 +1464,11 @@
 
     async function closeSerata() {
       if (!currentSerata) return;
-      if (!confirm('Chiudere il karaoke? Le prenotazioni verranno disabilitate.')) return;
+      const bookingsAlreadyClosed = currentSerata.prenotazioni_abilitate === false;
+      const closeConfirmMessage = bookingsAlreadyClosed
+        ? 'Chiudere il karaoke? Le prenotazioni sono già chiuse.'
+        : 'Chiudere il karaoke? Le prenotazioni verranno chiuse.';
+      if (!confirm(closeConfirmMessage)) return;
       const btn = document.getElementById('btn-close-serata');
       if (btn) btn.disabled = true;
       try {
