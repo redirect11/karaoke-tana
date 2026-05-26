@@ -962,6 +962,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="config.js"></script>
+  <script src="scripts/serata-sync.js"></script>
   <script defer src="scripts/test-banner.js"></script>
   <script>
     const config =
@@ -1007,7 +1008,7 @@
     let syncConnected = false;
     let activeQueueTab = 'pending';
     let adminToken = '';
-    let pollingTimer = null;
+    let serataSync = null;
     let winnerAutoDecreeInFlight = false;
     let winnerAutoDecreeTimer = null;
 
@@ -1143,10 +1144,7 @@
     function logoutAdmin() {
       if (supabaseClient) supabaseClient.auth.signOut().catch(() => {});
       adminToken = '';
-      if (pollingTimer) {
-        clearInterval(pollingTimer);
-        pollingTimer = null;
-      }
+      if (serataSync) serataSync.stop();
       clearWinnerAutoDecreeTimer();
       overlay.classList.remove('hidden');
       panel.style.display = 'none';
@@ -1163,11 +1161,17 @@
 
     async function initAdmin() {
       await refreshState();
-      if (!pollingTimer) {
-        pollingTimer = setInterval(() => {
-          refreshState(true);
-        }, 12000);
+      // Strategia unica realtime+poll: gli eventi su serate/prenotazioni e il
+      // poll di fallback (12s) richiamano tutti refreshState().
+      if (!serataSync) {
+        serataSync = createSerataSync({
+          db: supabaseClient,
+          tables: ['serate', 'prenotazioni'],
+          pollMs: 12000,
+          onChange: () => refreshState(true),
+        });
       }
+      serataSync.start();
     }
 
     function getWinnerRevealEndsAtMs(serata) {
