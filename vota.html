@@ -1139,8 +1139,8 @@
 
       const tick = () => {
         const msLeft = endsAtMs - Date.now();
-        const remainingByServer = Math.max(0, Math.ceil(msLeft / 1000));
-        let remaining = remainingByServer;
+        const remainingRaw = Math.max(0, Math.ceil(msLeft / 1000));
+        let remaining = remainingRaw;
         if (Number.isInteger(configuredSeconds) && configuredSeconds > 0) {
           const elapsedSinceSeen = Date.now() - direttaCountdownSeenAtMs;
           if (elapsedSinceSeen < 1000) remaining = Math.max(remaining, configuredSeconds);
@@ -1255,6 +1255,7 @@
 
       songs.forEach(s => { s._scores = scores[s.id] || { sum: 0, count: 0 }; });
       if (updateOnlyVisibleScores) {
+        // Se la griglia non è presente (prima renderizzazione/cambio schermata), riallineiamo con un render completo.
         if (!updateVisibleScoresOnly()) renderContent();
         return;
       }
