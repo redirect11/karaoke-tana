@@ -2257,6 +2257,7 @@
         showLeaderboard(false);
         setVotaBanner(false);
         clearRevealCountdownWatcher();
+        subscribeGlobalSerata();
         return false;
       }
       currentSerataId = data.id;
@@ -2423,6 +2424,8 @@
     // la tabella serate. Quando arriva un evento con aperta=true,
     // ri-eseguiamo checkSerataAperta() e mostriamo il flusso di prenotazione.
     let globalSerataChannel = null;
+    let globalSerataPollInterval = null;
+    let globalSerataPollInFlight = false;
 
     function subscribeGlobalSerata() {
       if (!db || globalSerataChannel) return;
@@ -2436,12 +2439,39 @@
             if (payload.new?.aperta && !currentSerataId) await handleNewSerataOpened();
           })
         .subscribe();
+      // Polling fallback: gli eventi realtime sulla tabella serate possono non
+      // arrivare (tabella non in pubblicazione, socket caduta, tab in background…).
+      // Controlliamo comunque ogni 8s se è stata aperta una serata, così la home
+      // passa al flusso di prenotazione anche senza realtime.
+      if (!globalSerataPollInterval) {
+        globalSerataPollInterval = setInterval(checkForOpenedSerata, 8000);
+      }
+    }
+
+    async function checkForOpenedSerata() {
+      if (!db || currentSerataId || globalSerataPollInFlight) return;
+      globalSerataPollInFlight = true;
+      try {
+        const { data } = await db
+          .from('serate')
+          .select('id, aperta')
+          .eq('aperta', true)
+          .limit(1)
+          .maybeSingle();
+        if (data?.aperta && !currentSerataId) await handleNewSerataOpened();
+      } finally {
+        globalSerataPollInFlight = false;
+      }
     }
 
     function clearGlobalSerataSubscription() {
       if (globalSerataChannel && db) {
         db.removeChannel(globalSerataChannel);
         globalSerataChannel = null;
+      }
+      if (globalSerataPollInterval) {
+        clearInterval(globalSerataPollInterval);
+        globalSerataPollInterval = null;
       }
     }
 
