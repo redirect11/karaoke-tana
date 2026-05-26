@@ -125,7 +125,7 @@
 
     .song-top-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       align-items: start;
       gap: 10px;
     }
@@ -173,15 +173,22 @@
       word-break: break-word;
     }
     .song-singer {
-      font-size: 1.05rem;
-      font-weight: 800;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text);
+      text-align: left;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      line-height: 1.2;
+      opacity: 0.9;
+      word-break: break-word;
+    }
+    .song-singer-icon {
+      margin-right: 4px;
+    }
+    .song-singer-name {
       color: #fff;
-      text-align: center;
       text-shadow: 0 2px 10px rgba(0,0,0,0.8);
-      letter-spacing: 0.01em;
-      justify-self: center;
-      align-self: start;
-      min-width: 0;
     }
 
     /* ── applause rating ── */
@@ -1236,10 +1243,10 @@
         ${selfieBgHtml}
         <div class="song-top-row">
           <div class="song-header">
+            <div class="song-singer"><span class="song-singer-icon" aria-hidden="true">🎤</span><span class="song-singer-name">${esc(s.nome)}</span></div>
             <div class="song-title">${esc(s.canzone)}</div>
             <div class="song-artist">${esc(s.artista)}</div>
           </div>
-          <div class="song-singer">🎤 ${esc(s.nome)}</div>
           <div class="song-index">#${Number.isInteger(s._displayIndex) ? s._displayIndex : '—'}</div>
         </div>
         <div class="${handsClass}" role="radiogroup" aria-label="Voto per ${esc(s.canzone)}">${btns}</div>
