@@ -18,6 +18,49 @@
     return window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY || '', options);
   }
 
+  function getBrowserStorage(name) {
+    if (typeof window === 'undefined') return null;
+    try {
+      return window[name] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function getAuthStorages() {
+    const storages = [];
+    const local = getBrowserStorage('localStorage');
+    const session = getBrowserStorage('sessionStorage');
+    if (local) storages.push(local);
+    if (session && session !== local) storages.push(session);
+    return storages;
+  }
+
+  async function getAccessToken(config) {
+    const storages = getAuthStorages();
+    for (const storage of storages) {
+      const authClient = createClient(config, {
+        auth: { persistSession: true, storage },
+      });
+      if (!authClient) continue;
+      try {
+        const { data } = await authClient.auth.getSession();
+        const token = data?.session?.access_token;
+        if (token) return token;
+      } catch {
+        // Prova lo storage successivo.
+      }
+    }
+    const fallbackClient = createClient(config);
+    if (!fallbackClient) return null;
+    try {
+      const { data } = await fallbackClient.auth.getSession();
+      return data?.session?.access_token || null;
+    } catch {
+      return null;
+    }
+  }
+
   function getAdminHeaders(token, config) {
     const headers = new Headers({
       'Content-Type': 'application/json',
@@ -48,13 +91,8 @@
       isAuthenticated: false,
       isAdmin: false,
     };
-    const authClient = createClient(config, {
-      auth: { persistSession: true, storage: window.sessionStorage },
-    });
-    if (!authClient) return state;
     try {
-      const { data } = await authClient.auth.getSession();
-      const token = data?.session?.access_token;
+      const token = await getAccessToken(config);
       if (!token) return state;
       state.isAuthenticated = true;
       const endpoint = `${String(config.SUPABASE_URL).replace(/\/+$/, '')}/functions/v1/admin-bookings`;

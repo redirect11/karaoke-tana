@@ -1031,10 +1031,10 @@
     const edgeBaseUrl = supabaseReady ? `${supabaseUrl.replace(/\/+$/, '')}/functions/v1` : '';
     const adminBookingsUrl = supabaseReady ? `${edgeBaseUrl}/admin-bookings` : '';
 
-    // Supabase Auth client – sessions persisted in sessionStorage (cleared when tab closes)
+    // Supabase Auth client – sessione persistita in localStorage (condivisa tra tab)
     const supabaseClient = supabaseReady
       ? window.supabase.createClient(supabaseUrl, config.SUPABASE_ANON_KEY || '', {
-          auth: { persistSession: true, storage: sessionStorage },
+          auth: { persistSession: true, storage: localStorage },
         })
       : null;
 
