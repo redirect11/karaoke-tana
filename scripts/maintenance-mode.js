@@ -32,7 +32,7 @@
     const local = getBrowserStorage('localStorage');
     const session = getBrowserStorage('sessionStorage');
     if (local) storages.push(local);
-    if (session && session !== local) storages.push(session);
+    if (session) storages.push(session);
     return storages;
   }
 
@@ -48,7 +48,7 @@
         const token = data?.session?.access_token;
         if (token) return token;
       } catch {
-        // Prova lo storage successivo.
+        // Ignora storage non accessibile e prova quello successivo.
       }
     }
     const fallbackClient = createClient(config);

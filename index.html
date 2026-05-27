@@ -1726,6 +1726,7 @@
       clearWaitingIntervals();
       clearSongListPolling();
       clearRevealCountdownWatcher();
+      // In manutenzione mostriamo solo il box dedicato: il box "Segui" non deve comparire.
       [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach((s) => { s.style.display = 'none'; });
       document.querySelector('.steps').style.display = 'none';
       setClosedState(
