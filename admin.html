@@ -439,17 +439,35 @@
       box-shadow: 0 0 0 0 rgba(255,107,107,0.7);
       animation: cs-pulse 1.6s ease-out infinite;
     }
+    .current-song-label.is-preparing {
+      color: #ffe08a;
+    }
+    .current-song-label.is-preparing .current-song-pulse {
+      background: #f5a623;
+      box-shadow: 0 0 0 0 rgba(245,166,35,0.7);
+      animation-name: cs-pulse-preparing;
+    }
     @keyframes cs-pulse {
       0%   { box-shadow: 0 0 0 0 rgba(255,107,107,0.7); }
       70%  { box-shadow: 0 0 0 10px rgba(255,107,107,0); }
       100% { box-shadow: 0 0 0 0 rgba(255,107,107,0); }
     }
-    /* La card della canzone corrente ha bordo rosso e tinta calda */
+    @keyframes cs-pulse-preparing {
+      0%   { box-shadow: 0 0 0 0 rgba(245,166,35,0.7); }
+      70%  { box-shadow: 0 0 0 10px rgba(245,166,35,0); }
+      100% { box-shadow: 0 0 0 0 rgba(245,166,35,0); }
+    }
+    /* La card della canzone corrente usa colori diversi per live/preparazione */
     #current-song-slot .booking-card {
       border: 1.5px solid #ff6b6b;
       background: rgba(155,28,46,0.18);
     }
+    #current-song-slot .booking-card.current-preparing {
+      border-color: #f5a623;
+      background: rgba(180,100,10,0.18);
+    }
     #current-song-slot .booking-card.next { border-color: #ff6b6b; background: rgba(155,28,46,0.18); }
+    #current-song-slot .booking-card.current-preparing.next { border-color: #f5a623; background: rgba(180,100,10,0.18); }
     #current-song-slot .card-pos { color: #ff9e9e; }
 
     /* ── Gestione serata collassabile ── */
@@ -818,6 +836,7 @@
     }
     .btn-approve { background: var(--gold); color: #12071f; }
     .btn-start { background: #f1c40f; color: #12071f; }
+    .btn-back-preparing { background: #f1c40f; color: #12071f; }
     .btn-done { background: var(--green); color: #12071f; }
     .btn-selfie-toggle { background: #2f86ff; color: #fff; }
     .btn-edit { background: #4b356f; color: #fff; }
@@ -979,7 +998,7 @@
     <div id="current-song-wrap" style="display:none;">
       <div class="current-song-label">
         <span class="current-song-pulse"></span>
-        Sta cantando
+        <span id="current-song-label-text">Sta cantando</span>
       </div>
       <div id="current-song-slot"></div>
     </div>
@@ -1772,6 +1791,8 @@
       queueWrap.querySelectorAll('.booking-card').forEach((el) => el.remove());
       const currentSongWrap = document.getElementById('current-song-wrap');
       const currentSongSlot = document.getElementById('current-song-slot');
+      const currentSongLabel = currentSongWrap?.querySelector('.current-song-label');
+      const currentSongLabelText = document.getElementById('current-song-label-text');
       if (currentSongSlot) currentSongSlot.innerHTML = '';
       const winnerDecreed = Boolean(currentSerata?.vincitore_decretato);
       const progressiveIndexMap = getProgressiveIndexMap(list);
@@ -1793,6 +1814,14 @@
 
       // Render canzone corrente
       if (currentSong && currentSongWrap && currentSongSlot) {
+        const isPreparingCurrent = Boolean(currentSong.in_preparazione);
+        if (currentSongLabel) {
+          currentSongLabel.classList.toggle('is-preparing', isPreparingCurrent);
+          currentSongLabel.classList.toggle('is-live', !isPreparingCurrent);
+        }
+        if (currentSongLabelText) {
+          currentSongLabelText.textContent = isPreparingCurrent ? 'Prossimo a cantare' : 'Sta cantando';
+        }
         const card = makeCard(currentSong, 0, 'current', winnerDecreed, progressiveIndexMap);
         currentSongSlot.appendChild(card);
         currentSongWrap.style.display = 'flex';
@@ -1848,7 +1877,7 @@
       let pillLabel = '';
       let showPill = true;
       if (isCurrent) {
-        pillLabel = isPreparing ? 'PREP' : 'LIVE';
+        pillLabel = isPreparing ? 'Getting ready' : 'LIVE';
       } else if (isApproved) {
         pillLabel = String(index);
       } else if (isPending) {
@@ -1864,7 +1893,7 @@
       const canOpenSelfie = hasRealSelfie && !selfieHidden;
       const selfieUrl = canOpenSelfie ? rawSelfieUrl : DEFAULT_SELFIE_URL;
       const hasSelfie = Boolean(selfieUrl);
-      card.className = `booking-card${isApproved && index === 0 ? ' next' : ''}${hasSelfie ? ' has-selfie' : ''}`;
+      card.className = `booking-card${isApproved && index === 0 ? ' next' : ''}${hasSelfie ? ' has-selfie' : ''}${isCurrent ? (isPreparing ? ' current-preparing' : ' current-live') : ''}`;
       card.dataset.id = booking.id;
 
       const time = new Date(booking.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
@@ -1876,7 +1905,7 @@
 
       const badgeHtml = isCurrent
         ? (isPreparing
-            ? '<span class="badge-preparing">⏳ Si sta preparando</span>'
+            ? ''
             : '<span class="badge-approved" style="background:rgba(255,107,107,0.22);color:#ffb3b3;">🎤 Adesso canta</span>')
         : (isCompleted
           ? '<span class="badge-approved">🎤 Conclusa</span>'
@@ -1888,7 +1917,7 @@
             isCurrent
               ? (isPreparing
                   ? '<button class="btn-action btn-start" data-action="start">▶ Inizia</button>'
-                  : '<button class="btn-action btn-done" data-action="done">✓ Fatto</button>')
+                  : '<button class="btn-action btn-back-preparing" data-action="back-preparing">↶ In preparazione</button><button class="btn-action btn-done" data-action="done">✓ Fatto</button>')
               : (isCompleted
                 ? ''
                 : (isApproved
@@ -1922,6 +1951,7 @@
       const approveBtn = card.querySelector('[data-action="approve"]');
       const startBtn = card.querySelector('[data-action="start"]');
       const doneBtn = card.querySelector('[data-action="done"]');
+      const backPreparingBtn = card.querySelector('[data-action="back-preparing"]');
       const editBtn = card.querySelector('[data-action="edit"]');
       const deleteBtn = card.querySelector('[data-action="delete"]');
       const selfieToggleBtn = card.querySelector('[data-action="toggle-selfie"]');
@@ -1929,6 +1959,7 @@
       if (approveBtn) approveBtn.addEventListener('click', () => approveBooking(booking.id, card));
       if (startBtn) startBtn.addEventListener('click', () => startBooking(booking.id, card));
       if (doneBtn) doneBtn.addEventListener('click', () => markDone(booking.id, card));
+      if (backPreparingBtn) backPreparingBtn.addEventListener('click', () => backToPreparing(booking.id, card));
       if (editBtn) editBtn.addEventListener('click', () => editBooking(booking, card));
       if (deleteBtn) deleteBtn.addEventListener('click', () => deleteBooking(booking, card));
       if (selfieToggleBtn) selfieToggleBtn.addEventListener('click', () => toggleSelfieVisibility(booking, card));
@@ -1990,6 +2021,17 @@
           restoreCardAfterError(card, error?.message || 'Non sono riuscito a segnare la prenotazione come completata.');
         }
       }, 280);
+    }
+
+    async function backToPreparing(id, card) {
+      if (!confirm('Confermi il ritorno alla fase "In preparazione"?')) return;
+      setCardBusy(card, true);
+      try {
+        await callAdmin('set_current_preparing', { bookingId: id });
+        await refreshState(true);
+      } catch (error) {
+        restoreCardAfterError(card, error?.message || 'Non sono riuscito a riportare la canzone in preparazione.');
+      }
     }
 
     async function editBooking(booking, card) {
