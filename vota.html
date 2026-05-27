@@ -1799,7 +1799,7 @@
       const revealOrder = [...top5].reverse();
 
       const direttaIcon = direttaWrap.querySelector('.diretta-icon');
-      const rankOrdinals = ['', '1°', '2°', '3°', '4°', '5°', '6°', '7°', '8°', '9°', '10°'];
+      const rankOrdinals = ['', '1°', '2°', '3°', '4°', '5°'];
 
       // Hide countdown and title/text, show reveal overlay
       direttaCountdownEl.classList.add('hidden');
@@ -1810,6 +1810,9 @@
       top5RevealOverlay.classList.add('active');
 
       let step = 0;
+
+      const WINNER_HOLD_MS = 4200;
+      const STANDARD_HOLD_MS = 2600;
 
       function showStep() {
         if (step >= revealOrder.length) {
@@ -1852,7 +1855,7 @@
         });
 
         // Hold duration: winner gets longer time
-        const holdMs = isWinner ? 4200 : 2600;
+        const holdMs = isWinner ? WINNER_HOLD_MS : STANDARD_HOLD_MS;
         setTimeout(() => {
           // Fade out before showing next
           revealCard.classList.remove('in');
