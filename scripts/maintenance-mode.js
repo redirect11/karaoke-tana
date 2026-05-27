@@ -13,11 +13,6 @@
     return !!url && !url.includes('TUO-PROGETTO');
   }
 
-  function createClient(config, options) {
-    if (!isSupabaseReady(config) || typeof window.supabase?.createClient !== 'function') return null;
-    return window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY || '', options);
-  }
-
   function getBrowserStorage(name) {
     if (typeof window === 'undefined') return null;
     try {
@@ -127,18 +122,22 @@
   }
 
   async function loadMaintenanceSettings(config) {
-    // persistSession:false -> non registra una GoTrue sulla storageKey condivisa.
-    const db = createClient(config, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    });
-    if (!db) return { ...DEFAULT_SETTINGS };
+    // Query via REST diretta: NON crea un client supabase (GoTrue). Evita la
+    // seconda istanza GoTrue sulla stessa storageKey, che causava il warning
+    // "Multiple GoTrueClient instances" e poteva bloccare l'init delle pagine
+    // (contesa sul lock della sessione).
+    if (!isSupabaseReady(config)) return { ...DEFAULT_SETTINGS };
+    const base = String(config.SUPABASE_URL || '').replace(/\/+$/, '');
+    const key = config.SUPABASE_ANON_KEY || '';
     try {
-      const { data } = await db
-        .from('impostazioni_pubbliche')
-        .select('manutenzione_abilitata')
-        .eq('id', 1)
-        .maybeSingle();
-      return { ...DEFAULT_SETTINGS, ...(data || {}) };
+      const res = await fetch(
+        `${base}/rest/v1/impostazioni_pubbliche?id=eq.1&select=manutenzione_abilitata`,
+        { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+      );
+      if (!res.ok) return { ...DEFAULT_SETTINGS };
+      const rows = await res.json().catch(() => null);
+      const row = Array.isArray(rows) ? rows[0] : rows;
+      return { ...DEFAULT_SETTINGS, ...(row || {}) };
     } catch {
       return { ...DEFAULT_SETTINGS };
     }

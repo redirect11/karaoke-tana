@@ -2,29 +2,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const STORAGE_KEY = 'sb-example-auth-token';
-
-function buildSupabaseMock({ manutenzioneAbilitata = true } = {}) {
-  // Dopo il fix il riconoscimento NON usa più getSession: legge il token
-  // direttamente dallo storage. Al client serve solo la query impostazioni.
-  const createClient = vi.fn(() => ({
-    from() {
-      return {
-        select() {
-          return {
-            eq() {
-              return {
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: { manutenzione_abilitata: manutenzioneAbilitata },
-                }),
-              };
-            },
-          };
-        },
-      };
-    },
-  }));
-  return { createClient };
-}
+const SETTINGS_URL = '/rest/v1/impostazioni_pubbliche';
+const PING_URL = '/functions/v1/admin-bookings';
 
 function storeSession(storage, token, key = STORAGE_KEY) {
   storage.setItem(key, JSON.stringify({
@@ -36,10 +15,31 @@ function storeSession(storage, token, key = STORAGE_KEY) {
   }));
 }
 
+// maintenance-mode NON crea client supabase: legge le impostazioni via REST
+// e fa il ping all'edge function. Il mock fetch instrada per endpoint.
+function installFetch({ manutenzione = true, isAdminFor = () => true } = {}) {
+  global.fetch = vi.fn(async (url, options) => {
+    const u = String(url);
+    if (u.includes(SETTINGS_URL)) {
+      return { ok: true, json: async () => ([{ manutenzione_abilitata: manutenzione }]) };
+    }
+    if (u.includes(PING_URL)) {
+      const auth = options?.headers?.get?.('Authorization') || '';
+      const ok = isAdminFor(auth);
+      return { ok, json: async () => (ok ? { success: true, data: { ok: true } } : { success: false }) };
+    }
+    return { ok: false, json: async () => ({}) };
+  });
+}
+function pingCalls() {
+  return global.fetch.mock.calls.filter((c) => String(c[0]).includes(PING_URL));
+}
+
 beforeEach(() => {
   vi.resetModules();
   vi.restoreAllMocks();
   delete window.KaraokeMaintenanceMode;
+  delete window.supabase;
   window.localStorage.clear();
   window.sessionStorage.clear();
   window.CONFIG = {
@@ -49,13 +49,20 @@ beforeEach(() => {
 });
 
 describe('KaraokeMaintenanceMode.getAccessState', () => {
-  it('riconosce admin da token in localStorage', async () => {
-    window.supabase = buildSupabaseMock();
+  it('non crea alcun client supabase (nessuna istanza GoTrue extra)', async () => {
+    window.supabase = { createClient: vi.fn() };
     storeSession(window.localStorage, 'local-token');
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ success: true, data: { ok: true } }),
-    });
+    installFetch();
+    await import('../../scripts/maintenance-mode.js');
+
+    await window.KaraokeMaintenanceMode.getAccessState(window.CONFIG);
+
+    expect(window.supabase.createClient).not.toHaveBeenCalled();
+  });
+
+  it('riconosce admin da token in localStorage', async () => {
+    storeSession(window.localStorage, 'local-token');
+    installFetch();
     await import('../../scripts/maintenance-mode.js');
 
     const state = await window.KaraokeMaintenanceMode.getAccessState(window.CONFIG);
@@ -63,31 +70,23 @@ describe('KaraokeMaintenanceMode.getAccessState', () => {
     expect(state.isAuthenticated).toBe(true);
     expect(state.isAdmin).toBe(true);
     expect(state.settings?.manutenzione_abilitata).toBe(true);
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-    const [, fetchOptions] = global.fetch.mock.calls[0];
-    expect(fetchOptions.headers.get('Authorization')).toContain('local-token');
+    expect(pingCalls()).toHaveLength(1);
+    expect(pingCalls()[0][1].headers.get('Authorization')).toContain('local-token');
   });
 
   it('riconosce admin da token in sessionStorage quando localStorage è vuoto', async () => {
-    window.supabase = buildSupabaseMock();
     storeSession(window.sessionStorage, 'session-token');
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ success: true, data: { ok: true } }),
-    });
+    installFetch();
     await import('../../scripts/maintenance-mode.js');
 
     const state = await window.KaraokeMaintenanceMode.getAccessState(window.CONFIG);
 
-    expect(state.isAuthenticated).toBe(true);
     expect(state.isAdmin).toBe(true);
-    const [, fetchOptions] = global.fetch.mock.calls[0];
-    expect(fetchOptions.headers.get('Authorization')).toContain('session-token');
+    expect(pingCalls()[0][1].headers.get('Authorization')).toContain('session-token');
   });
 
-  it('utente non loggato: nessun token in storage => non autenticato, niente ping', async () => {
-    window.supabase = buildSupabaseMock();
-    global.fetch = vi.fn();
+  it('utente non loggato: nessun token => non autenticato, nessun ping', async () => {
+    installFetch();
     await import('../../scripts/maintenance-mode.js');
 
     const state = await window.KaraokeMaintenanceMode.getAccessState(window.CONFIG);
@@ -95,31 +94,22 @@ describe('KaraokeMaintenanceMode.getAccessState', () => {
     expect(state.isAuthenticated).toBe(false);
     expect(state.isAdmin).toBe(false);
     expect(state.settings?.manutenzione_abilitata).toBe(true);
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(pingCalls()).toHaveLength(0);
   });
 
   it('prova i token successivi se il primo non è admin', async () => {
-    window.supabase = buildSupabaseMock();
     storeSession(window.localStorage, 'stale-token');
     storeSession(window.sessionStorage, 'admin-token');
-    global.fetch = vi.fn().mockImplementation(async (_url, options) => {
-      const authHeader = options?.headers?.get?.('Authorization') || '';
-      if (authHeader.includes('admin-token')) {
-        return { ok: true, json: async () => ({ success: true, data: { ok: true } }) };
-      }
-      return { ok: false, json: async () => ({ success: false }) };
-    });
+    installFetch({ isAdminFor: (auth) => auth.includes('admin-token') });
     await import('../../scripts/maintenance-mode.js');
 
     const state = await window.KaraokeMaintenanceMode.getAccessState(window.CONFIG);
 
-    expect(state.isAuthenticated).toBe(true);
     expect(state.isAdmin).toBe(true);
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(pingCalls()).toHaveLength(2);
   });
 
   it('legge la sessione anche se suddivisa in chunk con prefisso base64', async () => {
-    window.supabase = buildSupabaseMock();
     const sessionJson = JSON.stringify({
       access_token: 'chunky-token',
       refresh_token: 'r',
@@ -129,16 +119,12 @@ describe('KaraokeMaintenanceMode.getAccessState', () => {
     const mid = Math.ceil(encoded.length / 2);
     window.localStorage.setItem(`${STORAGE_KEY}.0`, encoded.slice(0, mid));
     window.localStorage.setItem(`${STORAGE_KEY}.1`, encoded.slice(mid));
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ success: true, data: { ok: true } }),
-    });
+    installFetch();
     await import('../../scripts/maintenance-mode.js');
 
     const state = await window.KaraokeMaintenanceMode.getAccessState(window.CONFIG);
 
     expect(state.isAdmin).toBe(true);
-    const [, fetchOptions] = global.fetch.mock.calls[0];
-    expect(fetchOptions.headers.get('Authorization')).toContain('chunky-token');
+    expect(pingCalls()[0][1].headers.get('Authorization')).toContain('chunky-token');
   });
 });
