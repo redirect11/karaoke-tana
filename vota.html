@@ -1606,7 +1606,7 @@
           && msLeft > ((configuredSeconds - 1) * 1000)
           && (now - direttaCountdownSeenAtMs) < 1000
         ) {
-          // Mantieni il primo valore visibile per ~1s anche con lieve latenza
+          // Mantieni il primo valore visibile per ~1s anche con leggera latenza
           // tra start server e primo render client.
           remaining = configuredSeconds;
         }
@@ -1922,7 +1922,7 @@
       if (!rank) {
         endRevealAnimation();
         direttaTitle.textContent = '🏆 Classifica in arrivo…';
-        direttaText.textContent = 'Reveal in inizializzazione…';
+        direttaText.textContent = 'Inizializzazione reveal…';
         return;
       }
       if (top5RevealActive && rank === lastRevealedRank) return;
