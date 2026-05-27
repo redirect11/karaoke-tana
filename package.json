@@ -1,0 +1,16 @@
+{
+  "name": "karaoke-tana",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App web statica per prenotazioni karaoke e votazioni, con database Supabase.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.0",
+    "jsdom": "^29.1.1",
+    "vitest": "^4.1.0"
+  }
+}
