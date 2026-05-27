@@ -1,0 +1,165 @@
+# requirements/requirements.yaml
+#
+# Requisiti funzionali strutturati — Karaoke Tana Test
+#
+# Formato:
+#   id:          Identificatore stabile (es. REQ-FOLLOW-001)
+#   title:       Titolo breve
+#   area:        Area del codice (file o modulo)
+#   description: Descrizione del requisito
+#   status:      implemented | partial | todo | deprecated
+#   generate_issue: true se si vuole creare automaticamente un'issue GitHub
+#                   (utile per requisiti nuovi o da implementare)
+#   labels:      Lista di label GitHub da applicare all'issue
+#   test_cases:  Lista di ID test case associati
+#
+# Per generare issue GitHub da questo file:
+#   node scripts/generate-issues.mjs
+#
+# Oppure, tramite workflow:
+#   GitHub → Actions → "Generate Issues from Requirements" → Run workflow
+
+requirements:
+
+  # ── Follow Flow ──────────────────────────────────────────────────────────────
+
+  - id: REQ-FOLLOW-001
+    title: "Box Segui: sempre visibile se ig_followed non impostato"
+    area: "index.html init, scripts/follow-flow.js"
+    description: >
+      Il box "Segui" deve essere mostrato sempre al caricamento della pagina se il
+      cookie ig_followed non è impostato a "true". Nessun altro cookie (es. ig_clicked)
+      deve bypassare questo comportamento.
+    status: implemented
+    generate_issue: false
+    labels: [follow-flow, ui]
+    test_cases: [TC-FOLLOW-001, TC-FOLLOW-002]
+
+  - id: REQ-FOLLOW-002
+    title: "Widget step: visibile al primo accesso senza follow"
+    area: "index.html init, scripts/follow-flow.js"
+    description: >
+      Al primo accesso o al ricaricamento senza follow, devono essere visibili il
+      widget degli step (.steps), il box Segui (#step-follow) con lo step 1 attivo.
+    status: implemented
+    generate_issue: false
+    labels: [follow-flow, ui]
+    test_cases: [TC-FOLLOW-001]
+
+  - id: REQ-FOLLOW-003
+    title: "Segui cliccato senza ricaricamento: form visibile, step 2 attivo"
+    area: "index.html → goToForm()"
+    description: >
+      Quando l'utente clicca "Segui" e ritorna alla pagina senza ricaricare,
+      il box Segui scompare, il form di prenotazione appare, il widget step
+      resta visibile con lo step 1 completato e lo step 2 attivo.
+    status: implemented
+    generate_issue: false
+    labels: [follow-flow, ui]
+    test_cases: [TC-FOLLOW-003]
+
+  - id: REQ-FOLLOW-004
+    title: "Ricaricamento con follow già completato: no box Segui, no widget step"
+    area: "index.html init"
+    description: >
+      Se ig_followed=true è presente al caricamento, il box Segui non viene mostrato,
+      il widget step non viene mostrato, e si passa direttamente al form di prenotazione,
+      salvo stati prioritari.
+    status: implemented
+    generate_issue: false
+    labels: [follow-flow, ui]
+    test_cases: [TC-FOLLOW-004]
+
+  - id: REQ-FOLLOW-005
+    title: "Nessuna riapparizione del box Segui dopo follow via realtime/polling"
+    area: "index.html → refreshSerataState, handleNewSerataOpened, handleReturn"
+    description: >
+      Dopo che il follow è stato completato (ig_followed=true al load o
+      followedInSession=true), gli eventi successivi (realtime, polling 8s, focus,
+      visibilitychange, pageshow) non devono far riapparire il box Segui né il widget
+      step. handleReturn procede a goToForm() solo se igOpened=true.
+    status: implemented
+    generate_issue: false
+    labels: [follow-flow, ui, realtime]
+    test_cases: [TC-FOLLOW-005, TC-FOLLOW-006]
+
+  # ── Step Widget ──────────────────────────────────────────────────────────────
+
+  - id: REQ-STEP-001
+    title: "Widget step: elemento statico, decisione al load"
+    area: "index.html init, scripts/follow-flow.js"
+    description: >
+      La visibilità del widget degli step viene decisa una sola volta al caricamento,
+      in modo deterministico, tramite computeFollowFlowVisibility. Gli eventi
+      successivi non modificano questa decisione se l'utente è già in un flusso
+      di prenotazione attivo.
+    status: implemented
+    generate_issue: false
+    labels: [step-widget, ui]
+    test_cases: []
+
+  - id: REQ-STEP-002
+    title: "Nessun flicker al ricaricamento"
+    area: "index.html (HTML statico: style=display:none)"
+    description: >
+      Gli elementi .steps, #step-follow, #step-form partono con style="display:none"
+      nell'HTML. Solo il loader #step-loading è visibile inizialmente. Questo impedisce
+      qualsiasi flash/flicker durante il caricamento.
+    status: implemented
+    generate_issue: false
+    labels: [step-widget, ui]
+    test_cases: []
+
+  # ── CI/CD ────────────────────────────────────────────────────────────────────
+
+  - id: REQ-CI-001
+    title: "Deploy GitHub Pages solo se i test sono verdi"
+    area: ".github/workflows/deploy.yml"
+    description: >
+      Il deploy su GitHub Pages e le operazioni di migrazione DB / deploy edge
+      functions non devono avvenire se la suite di test fallisce.
+      Pipeline: test → migrate → deploy-functions → deploy (Pages).
+    status: implemented
+    generate_issue: false
+    labels: [ci-cd, deploy]
+    test_cases: []
+
+  - id: REQ-CI-002
+    title: "Pipeline coerente: migrate prima di deploy-functions"
+    area: ".github/workflows/deploy.yml"
+    description: >
+      Le migrazioni database devono essere eseguite prima del deploy delle edge
+      functions, che devono completarsi prima del deploy Pages.
+    status: implemented
+    generate_issue: false
+    labels: [ci-cd, deploy]
+    test_cases: []
+
+  # ── Stati Prioritari ─────────────────────────────────────────────────────────
+
+  - id: REQ-PRIORITY-001
+    title: "Gli stati prioritari prevalgono sul follow flow"
+    area: "index.html, scripts/karaoke-state.js"
+    description: >
+      I seguenti stati hanno la precedenza assoluta: pending booking, waiting,
+      success, bookings disabled, reveal mode, closed state. Devono essere
+      mostrati anche se ig_followed=true.
+    status: implemented
+    generate_issue: false
+    labels: [priority-states, ui]
+    test_cases: []
+
+  # ── Esempi di requisiti "da implementare" (generate_issue: true) ─────────────
+  # Decommentare e impostare generate_issue: true per creare automaticamente
+  # un'issue GitHub. Esempio:
+  #
+  # - id: REQ-FOLLOW-006
+  #   title: "Notifica push quando la prenotazione viene approvata"
+  #   area: "index.html, sw.js"
+  #   description: >
+  #     L'utente deve ricevere una notifica push quando la sua prenotazione
+  #     viene approvata dallo staff.
+  #   status: todo
+  #   generate_issue: true
+  #   labels: [follow-flow, notifications, enhancement]
+  #   test_cases: []
