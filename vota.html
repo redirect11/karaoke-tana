@@ -1085,6 +1085,8 @@
     const DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS = 5;
     const MAX_WINNER_REVEAL_COUNTDOWN_SECONDS = 300;
     const DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS = 3;
+    const MIN_WINNER_REVEAL_AUTO_STEP_SECONDS = 1;
+    const MAX_WINNER_REVEAL_AUTO_STEP_SECONDS = 30;
 
     const content       = document.getElementById('content');
     const statusBanner  = document.getElementById('status-banner');
@@ -1340,7 +1342,9 @@
       return {
         enabled,
         mode,
-        autoStepSeconds: Number.isInteger(autoStepSeconds) && autoStepSeconds >= 1 && autoStepSeconds <= 30
+        autoStepSeconds: Number.isInteger(autoStepSeconds)
+          && autoStepSeconds >= MIN_WINNER_REVEAL_AUTO_STEP_SECONDS
+          && autoStepSeconds <= MAX_WINNER_REVEAL_AUTO_STEP_SECONDS
           ? autoStepSeconds
           : DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
       };
