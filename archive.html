@@ -597,13 +597,6 @@
     const edgeBaseUrl = supabaseReady ? `${supabaseUrl.replace(/\/+$/, '')}/functions/v1` : '';
     const adminBookingsUrl = supabaseReady ? `${edgeBaseUrl}/admin-bookings` : '';
     const db = supabaseReady ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY || '') : null;
-    // Client separato con sessionStorage per riprendere la sessione admin
-    // se l'utente ha fatto login da admin.html nella stessa scheda.
-    const authClient = supabaseReady
-      ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY || '', {
-          auth: { persistSession: true, storage: sessionStorage },
-        })
-      : null;
     const archiveRoot = document.getElementById('archive-root');
     const modalOverlay = document.getElementById('modal-overlay');
     const modalContent = document.getElementById('modal-content');
@@ -1233,9 +1226,11 @@
       return result.data;
     }
     async function detectAdmin() {
-      if (!authClient) return false;
+      if (!db) return false;
       try {
-        const { data } = await authClient.auth.getSession();
+        // La sessione admin (login da admin.html) è persistita in localStorage
+        // e condivisa same-origin: il client `db` la carica automaticamente.
+        const { data } = await db.auth.getSession();
         const token = data?.session?.access_token;
         if (!token) return false;
         // Verifica che il token sia di un admin chiamando ping
