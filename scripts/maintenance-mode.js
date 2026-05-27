@@ -36,7 +36,14 @@
     return storages;
   }
 
-  async function getAccessToken(config) {
+  async function getAccessTokens(config) {
+    const tokens = [];
+    const seen = new Set();
+    function pushToken(token) {
+      if (!token || seen.has(token)) return;
+      seen.add(token);
+      tokens.push(token);
+    }
     const storages = getAuthStorages();
     for (const storage of storages) {
       const authClient = createClient(config, {
@@ -45,20 +52,20 @@
       if (!authClient) continue;
       try {
         const { data } = await authClient.auth.getSession();
-        const token = data?.session?.access_token;
-        if (token) return token;
+        pushToken(data?.session?.access_token);
       } catch {
         // Ignora storage non accessibile e prova quello successivo.
       }
     }
     const fallbackClient = createClient(config);
-    if (!fallbackClient) return null;
+    if (!fallbackClient) return tokens;
     try {
       const { data } = await fallbackClient.auth.getSession();
-      return data?.session?.access_token || null;
+      pushToken(data?.session?.access_token);
     } catch {
-      return null;
+      // Ignora eventuali errori fallback.
     }
+    return tokens;
   }
 
   function getAdminHeaders(token, config) {
@@ -92,17 +99,22 @@
       isAdmin: false,
     };
     try {
-      const token = await getAccessToken(config);
-      if (!token) return state;
+      const tokens = await getAccessTokens(config);
+      if (tokens.length === 0) return state;
       state.isAuthenticated = true;
       const endpoint = `${String(config.SUPABASE_URL).replace(/\/+$/, '')}/functions/v1/admin-bookings`;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: getAdminHeaders(token, config),
-        body: JSON.stringify({ action: 'ping' }),
-      });
-      const result = await response.json().catch(() => null);
-      state.isAdmin = response.ok && result?.success === true && result?.data?.ok === true;
+      for (const token of tokens) {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: getAdminHeaders(token, config),
+          body: JSON.stringify({ action: 'ping' }),
+        });
+        const result = await response.json().catch(() => null);
+        if (response.ok && result?.success === true && result?.data?.ok === true) {
+          state.isAdmin = true;
+          break;
+        }
+      }
     } catch {
       return state;
     }
