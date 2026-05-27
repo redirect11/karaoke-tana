@@ -1411,6 +1411,7 @@
   <script defer src="scripts/vendor/cookieconsent.umd.js"></script>
   <script defer src="cookie-consent.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="scripts/maintenance-mode.js"></script>
   <script src="scripts/serata-sync.js"></script>
   <script src="scripts/follow-flow.js"></script>
   <script defer src="scripts/test-banner.js"></script>
@@ -1500,8 +1501,10 @@
     let songListChannel = null;
     let usingLegacySongFallback = false;
     let revealCountdownWatcherTimer = null;
+    let maintenanceAccess = { isAuthenticated: false, isAdmin: false };
     let publicSettings = {
       archivio_pubblico_abilitato: false,
+      manutenzione_abilitata: false,
       modalita_post_approvazione: 'direct_live',
       prossima_serata_data: null,
     };
@@ -1669,7 +1672,7 @@
       if (!db) return publicSettings;
       const { data, error } = await db
         .from('impostazioni_pubbliche')
-        .select('archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data')
+        .select('archivio_pubblico_abilitato, manutenzione_abilitata, modalita_post_approvazione, prossima_serata_data')
         .eq('id', 1)
         .maybeSingle();
       if (!error && data) {
@@ -1716,6 +1719,27 @@
       stepBookingsDisabled.style.display = 'block';
       showSongListCard(true);
       showLeaderboard(false);
+    }
+
+    function showMaintenanceModeHome() {
+      stepLoading.style.display = 'none';
+      clearWaitingIntervals();
+      clearSongListPolling();
+      clearRevealCountdownWatcher();
+      [stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach((s) => { s.style.display = 'none'; });
+      document.querySelector('.steps').style.display = 'none';
+      setClosedState(
+        '🚧 In manutenzione',
+        'Il sito è temporaneamente in manutenzione.<br>Solo gli admin possono accedere alle altre pagine.'
+      );
+      stepClosed.style.display = 'flex';
+      if (closedStateNextDate) closedStateNextDate.style.display = 'none';
+      if (closedArchiveLink) closedArchiveLink.style.display = 'none';
+      showSongListCard(false);
+      showLeaderboard(false);
+      setVotaBanner('hidden');
+      if (adsBannerContainerEl) adsBannerContainerEl.style.display = 'none';
+      stepFollow.style.display = 'block';
     }
 
     function getWinnerRevealEndsAtMs(serata) {
@@ -3266,6 +3290,18 @@
 
         // ── Init ─────────────────────────────────────────────────
     (async () => {
+      if (window.KaraokeMaintenanceMode) {
+        maintenanceAccess = await window.KaraokeMaintenanceMode.getAccessState(config);
+        publicSettings = { ...publicSettings, ...maintenanceAccess.settings };
+        if (publicSettings.manutenzione_abilitata) {
+          if (maintenanceAccess.isAdmin) {
+            window.KaraokeMaintenanceMode.injectAdminBanner('⚠️ Modalità manutenzione attiva');
+          } else {
+            showMaintenanceModeHome();
+            return;
+          }
+        }
+      }
       const open = await checkSerataAperta();
       stepLoading.style.display = 'none';
       startSerataStateSync();

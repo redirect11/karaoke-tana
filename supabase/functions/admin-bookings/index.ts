@@ -457,7 +457,7 @@ async function setPreparingBooking(
 async function getPublicSettings(admin: ReturnType<typeof createClient>) {
   const { data, error } = await admin
     .from("impostazioni_pubbliche")
-    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds, winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds")
+    .select("id, archivio_pubblico_abilitato, manutenzione_abilitata, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds, winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds")
     .eq("id", 1)
     .maybeSingle();
 
@@ -474,6 +474,7 @@ async function getPublicSettings(admin: ReturnType<typeof createClient>) {
     .insert({
       id: 1,
       archivio_pubblico_abilitato: false,
+      manutenzione_abilitata: false,
       modalita_post_approvazione: POST_APPROVAL_MODE_DIRECT_LIVE,
       prossima_serata_data: null,
       winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
@@ -481,7 +482,7 @@ async function getPublicSettings(admin: ReturnType<typeof createClient>) {
       winner_reveal_animation_mode: WINNER_REVEAL_MODE_AUTOMATIC,
       winner_reveal_auto_step_seconds: DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
     })
-    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds, winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds")
+    .select("id, archivio_pubblico_abilitato, manutenzione_abilitata, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds, winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds")
     .maybeSingle();
 
   if (insertError || !inserted) {
@@ -495,6 +496,7 @@ async function updatePublicSettings(
   admin: ReturnType<typeof createClient>,
   updates: {
     archivio_pubblico_abilitato?: boolean;
+    manutenzione_abilitata?: boolean;
     modalita_post_approvazione?: PostApprovalMode;
     prossima_serata_data?: string | null;
     winner_reveal_countdown_default_seconds?: number;
@@ -508,6 +510,9 @@ async function updatePublicSettings(
   const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (typeof updates.archivio_pubblico_abilitato === "boolean") {
     payload.archivio_pubblico_abilitato = updates.archivio_pubblico_abilitato;
+  }
+  if (typeof updates.manutenzione_abilitata === "boolean") {
+    payload.manutenzione_abilitata = updates.manutenzione_abilitata;
   }
   if (typeof updates.modalita_post_approvazione === "string") {
     payload.modalita_post_approvazione = normalizePostApprovalMode(updates.modalita_post_approvazione);
@@ -532,7 +537,7 @@ async function updatePublicSettings(
     .from("impostazioni_pubbliche")
     .update(payload)
     .eq("id", 1)
-    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds, winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds")
+    .select("id, archivio_pubblico_abilitato, manutenzione_abilitata, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds, winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds")
     .maybeSingle();
 
   if (error || !data) {
@@ -636,6 +641,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
     case "set_public_settings": {
       const updates: {
         archivio_pubblico_abilitato?: boolean;
+        manutenzione_abilitata?: boolean;
         modalita_post_approvazione?: PostApprovalMode;
         prossima_serata_data?: string | null;
         winner_reveal_countdown_default_seconds?: number;
@@ -645,6 +651,9 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       } = {};
       if (typeof body.archivioPubblicoAbilitato === "boolean") {
         updates.archivio_pubblico_abilitato = body.archivioPubblicoAbilitato;
+      }
+      if (typeof body.manutenzioneAbilitata === "boolean") {
+        updates.manutenzione_abilitata = body.manutenzioneAbilitata;
       }
       if (Object.prototype.hasOwnProperty.call(body, "modalitaPostApprovazione")) {
         updates.modalita_post_approvazione = normalizePostApprovalMode(body.modalitaPostApprovazione);
@@ -666,6 +675,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       }
       if (
         typeof updates.archivio_pubblico_abilitato !== "boolean"
+        && typeof updates.manutenzione_abilitata !== "boolean"
         && typeof updates.modalita_post_approvazione !== "string"
         && !Object.prototype.hasOwnProperty.call(updates, "prossima_serata_data")
         && !Number.isInteger(updates.winner_reveal_countdown_default_seconds)

@@ -210,6 +210,26 @@
 
   <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.2</footer>
 
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="scripts/maintenance-mode.js"></script>
   <script defer src="scripts/test-banner.js"></script>
+  <script>
+    (async () => {
+      if (!window.KaraokeMaintenanceMode) return;
+      const config =
+        (typeof window.CONFIG === 'object' && window.CONFIG)
+        || (typeof CONFIG === 'object' && CONFIG)
+        || {};
+      const maintenanceAccess = await window.KaraokeMaintenanceMode.getAccessState(config);
+      if (maintenanceAccess.settings?.manutenzione_abilitata === true) {
+        if (maintenanceAccess.isAdmin) {
+          window.KaraokeMaintenanceMode.injectAdminBanner('⚠️ Modalità manutenzione attiva');
+        } else if (!maintenanceAccess.isAuthenticated) {
+          window.KaraokeMaintenanceMode.redirectToHome();
+        }
+      }
+    })();
+  </script>
 </body>
 </html>
