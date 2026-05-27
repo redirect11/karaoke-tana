@@ -94,4 +94,34 @@ describe('KaraokeMaintenanceMode.getAccessState', () => {
     const [, fetchOptions] = global.fetch.mock.calls[0];
     expect(fetchOptions.headers.get('Authorization')).toContain('fallback-token');
   });
+
+  it('prova i token successivi se il primo non è admin', async () => {
+    window.supabase = buildSupabaseMock({ localToken: 'stale-token', sessionToken: 'admin-token' });
+    global.fetch = vi.fn().mockImplementation(async (_url, options) => {
+      const authHeader = options?.headers?.get?.('Authorization') || '';
+      if (authHeader.includes('stale-token')) {
+        return {
+          ok: false,
+          json: async () => ({ success: false }),
+        };
+      }
+      if (authHeader.includes('admin-token')) {
+        return {
+          ok: true,
+          json: async () => ({ success: true, data: { ok: true } }),
+        };
+      }
+      return {
+        ok: false,
+        json: async () => ({ success: false }),
+      };
+    });
+    await import('../../scripts/maintenance-mode.js');
+
+    const state = await window.KaraokeMaintenanceMode.getAccessState(window.CONFIG);
+
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.isAdmin).toBe(true);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
 });
