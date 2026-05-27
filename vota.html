@@ -1143,8 +1143,10 @@
     let direttaCountdownSeenAtMs = 0;
     let direttaCountdownKey = '';
     let direttaRevealPreloadPromise = null;
-    let forceWinnerReveal = false;
     let top5RevealActive = false;
+    let lastRevealedRank = null;
+    let revealWinnerPlaying = false;
+    const WINNER_REVEAL_HOLD_MS = 4200;
     let votiRealtimeRefreshTimer = null;
     let refreshingSerata = false;
     let direttaAdminToken = '';
@@ -1208,7 +1210,6 @@
       votingOpen = data.voto_aperto;
       showTotalsPublic = Boolean(data.mostra_voti_totali);
       await loadPublicRevealSettings();
-      forceWinnerReveal = false;
       updateBanner();
       renderDiretta();
       if (data.winner_reveal_countdown_active && !data.vincitore_decretato) {
@@ -1253,16 +1254,14 @@
           || Boolean(data.winner_reveal_countdown_active) !== Boolean(serata?.winner_reveal_countdown_active)
           || Boolean(data.vincitore_decretato)            !== Boolean(serata?.vincitore_decretato)
           || (data.winner_reveal_countdown_ends_at ?? null) !== (serata?.winner_reveal_countdown_ends_at ?? null)
-          || Number(data.vincitore_prenotazione_id || 0) !== Number(serata?.vincitore_prenotazione_id || 0);
+          || Number(data.vincitore_prenotazione_id || 0) !== Number(serata?.vincitore_prenotazione_id || 0)
+          || Number(data.winner_reveal_current_rank || 0) !== Number(serata?.winner_reveal_current_rank || 0);
         if (!changed) return;
 
         serata           = data;
         votingOpen       = Boolean(data.voto_aperto);
         showTotalsPublic = Boolean(data.mostra_voti_totali);
         await loadPublicRevealSettings();
-        if (!serata.winner_reveal_countdown_active && !serata.vincitore_decretato) {
-          forceWinnerReveal = false;
-        }
         updateBanner();
         renderDiretta();
         if (serata.winner_reveal_countdown_active && !serata.vincitore_decretato) {
@@ -1495,9 +1494,13 @@
 
       stopDirettaCountdown();
 
-      if (!direttaActive || winnerDecreed) {
-        if (top5RevealActive) return;
-        if (!winnerDecreed) forceWinnerReveal = false;
+      if (winnerDecreed) {
+        playWinnerRevealThenFinal();
+        return;
+      }
+
+      if (!direttaActive) {
+        endRevealAnimation();
         direttaWrap.style.display = 'none';
         content.style.display = '';
         direttaCountdownEl.classList.add('hidden');
@@ -1510,6 +1513,27 @@
       direttaWrap.style.display = 'flex';
       content.style.display = 'none';
       updateFullscreenBtnVisibility(true);
+
+      // Countdown finito: fase reveal scenico (animazione top-5 pilotata dal
+      // rank server `winner_reveal_current_rank`). L'animazione è la stessa in
+      // automatico (rank avanzato dal timer admin) e in manuale (avanzato dal
+      // pulsante admin): qui vota anima solo la posizione corrente.
+      if (hasCountdown && hasRevealCountdownEnded()) {
+        if (getWinnerRevealSettings().enabled) {
+          syncRevealAnimation();
+          return;
+        }
+        endRevealAnimation();
+        direttaWrap.style.display = 'none';
+        content.style.display = '';
+        updateFullscreenBtnVisibility(false);
+        renderContent();
+        renderDirettaAdminControls();
+        return;
+      }
+
+      // Countdown non ancora terminato: nessun reveal in corso.
+      endRevealAnimation();
 
       if (!hasCountdown) {
         direttaTitle.textContent = '⚡ Preparatevi… il momento è arrivato!';
@@ -1559,10 +1583,8 @@
         }
         if (remaining === 0) {
           stopDirettaCountdown();
-          forceWinnerReveal = true;
-          renderContent();
-          direttaWrap.style.display = 'none';
-          content.style.display = '';
+          // Countdown finito: entra nella fase reveal restando sul diretta-wrap.
+          renderDiretta();
           void refreshSerata();
           return;
         }
@@ -1686,13 +1708,16 @@
         return;
       }
 
-      if (serata?.vincitore_decretato || (forceWinnerReveal && !shouldShowProgressiveReveal())) {
+      if (serata?.vincitore_decretato) {
         renderFinalLeaderboard();
         return;
       }
 
+      // Durante il reveal scenico la schermata è nel diretta-wrap (overlay):
+      // qui non disegniamo la griglia, ma avviamo/aggiorniamo l'animazione una
+      // volta che canzoni e punteggi sono stati caricati.
       if (shouldShowProgressiveReveal()) {
-        renderProgressiveReveal();
+        syncRevealAnimation();
         return;
       }
 
@@ -1802,46 +1827,96 @@
         });
     }
 
-    function renderProgressiveReveal() {
+    // ── Reveal scenico top-5 (animazione #108 pilotata dal rank server) ──
+    function animateRevealCard(item, rank, isWinner) {
+      const rankOrdinals = ['', '1°', '2°', '3°', '4°', '5°'];
+      const direttaIcon = direttaWrap.querySelector('.diretta-icon');
+      direttaCountdownEl.classList.add('hidden');
+      direttaCountdownEl.classList.remove('tick', 'end');
+      if (direttaIcon) direttaIcon.style.display = 'none';
+      direttaTitle.style.display = 'none';
+      direttaText.style.display = 'none';
+      direttaAdminControls.classList.add('hidden');
+      top5RevealActive = true;
+      top5RevealOverlay.classList.add('active');
+
+      revealCard.classList.remove('in', 'winner-card');
+      revealRankLabel.classList.remove('in');
+      revealRankLabel.textContent = isWinner ? '🏆 AL PRIMO POSTO' : `AL ${rankOrdinals[rank] || rank + '°'} POSTO`;
+      revealCardRankNum.textContent = isWinner ? '🏆' : String(rank);
+      revealCardName.textContent = item.nome || '';
+      const songLabel = item.artista ? `${item.canzone} — ${item.artista}` : (item.canzone || '');
+      revealCardSong.textContent = songLabel;
+      revealCardPoints.textContent = `${item.scoreTotal} pt · ${item.scoreCount} vot${item.scoreCount === 1 ? 'o' : 'i'}`;
+      if (isWinner) revealCard.classList.add('winner-card');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          revealRankLabel.classList.add('in');
+          revealCard.classList.add('in');
+        });
+      });
+    }
+
+    function endRevealAnimation() {
+      if (top5RevealOverlay) top5RevealOverlay.classList.remove('active');
+      const direttaIcon = direttaWrap.querySelector('.diretta-icon');
+      if (direttaIcon) direttaIcon.style.display = '';
+      direttaTitle.style.display = '';
+      direttaText.style.display = '';
+      if (revealCard) revealCard.classList.remove('in', 'winner-card');
+      if (revealRankLabel) revealRankLabel.classList.remove('in');
+      top5RevealActive = false;
+      lastRevealedRank = null;
+      revealWinnerPlaying = false;
+    }
+
+    // Anima la posizione corrente del reveal in base al rank server. Avanza
+    // solo quando il rank cambia (timer admin in automatico, pulsante in
+    // manuale): l'animazione è la stessa nelle due modalità.
+    function syncRevealAnimation() {
       const ranking = buildRanking();
       const startRank = getRevealStartRank(ranking.length);
       if (!startRank) {
-        showEmpty('Classifica non disponibile.');
+        endRevealAnimation();
+        direttaTitle.textContent = '🏆 Classifica in arrivo…';
+        direttaText.textContent = 'Tra poco la proclamazione.';
         return;
       }
-      const topRanking = ranking.slice(0, startRank);
-      const revealRank = normalizeRevealRank(serata?.winner_reveal_current_rank, topRanking.length) || startRank;
-      const revealIndex = topRanking.length - revealRank;
-      const item = topRanking[revealIndex];
-      if (!item) {
-        renderFinalLeaderboard();
-        return;
+      const top5 = ranking.slice(0, startRank);
+      const rank = normalizeRevealRank(serata?.winner_reveal_current_rank, top5.length) || startRank;
+      if (top5RevealActive && rank === lastRevealedRank) return;
+      const item = top5[rank - 1];
+      if (!item) return;
+      lastRevealedRank = rank;
+      animateRevealCard(item, rank, rank === 1);
+    }
+
+    // Alla proclamazione: se eravamo in reveal, anima il vincitore (1°) e poi
+    // mostra la classifica finale; altrimenti vai diretto alla classifica.
+    function playWinnerRevealThenFinal() {
+      const goFinal = () => {
+        endRevealAnimation();
+        direttaWrap.style.display = 'none';
+        content.style.display = '';
+        updateFullscreenBtnVisibility(false);
+        renderContent();
+        renderDirettaAdminControls();
+      };
+      if (revealWinnerPlaying) return;
+      if (top5RevealActive && getWinnerRevealSettings().enabled) {
+        const ranking = buildRanking();
+        const winner = ranking[0];
+        if (winner) {
+          revealWinnerPlaying = true;
+          direttaWrap.style.display = 'flex';
+          content.style.display = 'none';
+          updateFullscreenBtnVisibility(true);
+          animateRevealCard(winner, 1, true);
+          setTimeout(goFinal, WINNER_REVEAL_HOLD_MS);
+          return;
+        }
       }
-      const isWinnerRank = revealRank === 1;
-      const songLabel = item.artista ? `${item.canzone} — ${item.artista}` : (item.canzone || '');
-      const subtitle = isWinnerRank
-        ? '🏆 Il vincitore sta per essere proclamato'
-        : `Posizione ${revealRank} della Top ${topRanking.length}`;
-      content.innerHTML = `
-        <section class="leaderboard-card">
-          <div class="leaderboard-header">
-            <h2>${isWinnerRank ? '🏆 Svelando il vincitore…' : `🎬 Svelando la posizione ${revealRank}`}</h2>
-            <p>${subtitle}</p>
-          </div>
-          <div class="leaderboard-list">
-            <article class="leaderboard-hero">
-              <div class="leaderboard-hero-bg placeholder"></div>
-              <div class="leaderboard-hero-gradient"></div>
-              <div class="leaderboard-hero-content">
-                <span class="leaderboard-winner-badge">${isWinnerRank ? '🏆 Vincitore' : `#${revealRank}`}</span>
-                <div class="leaderboard-winner-name">${esc(item.nome || '')}</div>
-                <div class="leaderboard-winner-song">${esc(songLabel)}</div>
-                <div class="leaderboard-winner-points">${item.scoreTotal} pt · ${item.scoreCount} vot${item.scoreCount === 1 ? 'o' : 'i'}</div>
-              </div>
-            </article>
-          </div>
-        </section>
-      `;
+      goFinal();
     }
 
     function renderFinalLeaderboard() {
@@ -1897,88 +1972,6 @@
           </div>
         </section>
       `;
-    }
-
-    function startTop5Reveal(onComplete) {
-      const ranking = buildRanking();
-      if (!ranking.length) {
-        onComplete();
-        return;
-      }
-
-      top5RevealActive = true;
-
-      const top5 = ranking.slice(0, Math.min(5, ranking.length));
-      // Reveal from 5th place down to 1st
-      const revealOrder = [...top5].reverse();
-
-      const direttaIcon = direttaWrap.querySelector('.diretta-icon');
-      const rankOrdinals = ['', '1°', '2°', '3°', '4°', '5°'];
-
-      // Hide countdown and title/text, show reveal overlay
-      direttaCountdownEl.classList.add('hidden');
-      if (direttaIcon) direttaIcon.style.display = 'none';
-      direttaTitle.style.display = 'none';
-      direttaText.style.display = 'none';
-      direttaAdminControls.classList.add('hidden');
-      top5RevealOverlay.classList.add('active');
-
-      let step = 0;
-
-      const WINNER_HOLD_MS = 4200;
-      const STANDARD_HOLD_MS = 2600;
-
-      function showStep() {
-        if (step >= revealOrder.length) {
-          // Restore diretta-wrap elements for consistency before callback
-          top5RevealOverlay.classList.remove('active');
-          if (direttaIcon) direttaIcon.style.display = '';
-          direttaTitle.style.display = '';
-          direttaText.style.display = '';
-          revealCard.classList.remove('in', 'winner-card');
-          revealRankLabel.classList.remove('in');
-          onComplete();
-          return;
-        }
-
-        const item = revealOrder[step];
-        const rank = top5.length - step; // 5, 4, 3, 2, 1
-        const isWinner = rank === 1;
-        step++;
-
-        // Reset animation classes
-        revealCard.classList.remove('in', 'winner-card');
-        revealRankLabel.classList.remove('in');
-
-        // Populate content
-        revealRankLabel.textContent = isWinner ? '🏆 AL PRIMO POSTO' : `AL ${rankOrdinals[rank] || rank + '°'} POSTO`;
-        revealCardRankNum.textContent = isWinner ? '🏆' : String(rank);
-        revealCardName.textContent = item.nome || '';
-        const songLabel = item.artista ? `${item.canzone} — ${item.artista}` : (item.canzone || '');
-        revealCardSong.textContent = songLabel;
-        revealCardPoints.textContent = `${item.scoreTotal} pt · ${item.scoreCount} vot${item.scoreCount === 1 ? 'o' : 'i'}`;
-
-        if (isWinner) revealCard.classList.add('winner-card');
-
-        // Trigger entrance animation on next frame
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            revealRankLabel.classList.add('in');
-            revealCard.classList.add('in');
-          });
-        });
-
-        // Hold duration: winner gets longer time
-        const holdMs = isWinner ? WINNER_HOLD_MS : STANDARD_HOLD_MS;
-        setTimeout(() => {
-          // Fade out before showing next
-          revealCard.classList.remove('in');
-          revealRankLabel.classList.remove('in');
-          setTimeout(showStep, 430);
-        }, holdMs);
-      }
-
-      showStep();
     }
 
     async function castVote(songId, voto, card) {
