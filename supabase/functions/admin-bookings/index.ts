@@ -924,6 +924,56 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       return { status: 200, data };
     }
 
+    case "set_current_preparing":
+    case "back_to_preparing": {
+      const bookingId = toPositiveInt(body.bookingId ?? body.id, "bookingId");
+      const { data: bookingToPrepare, error: bookingLoadError } = await admin
+        .from("prenotazioni")
+        .select("id, serata_id, approvata, cantata, in_preparazione")
+        .eq("id", bookingId)
+        .maybeSingle();
+
+      if (bookingLoadError) {
+        throw new ApiError(500, "query_failed", "Errore durante il caricamento della prenotazione.");
+      }
+      if (!bookingToPrepare) {
+        throw new ApiError(404, "not_found", "Prenotazione non trovata.");
+      }
+
+      const serataId = Number(bookingToPrepare.serata_id);
+      if (!Number.isInteger(serataId) || serataId <= 0) {
+        throw new ApiError(400, "invalid_state", "La prenotazione non appartiene a una serata valida.");
+      }
+      await ensureSerataAllowsMutations(admin, serataId);
+
+      const currentBooking = await getCurrentActiveBooking(admin, serataId);
+      if (Number(currentBooking?.id) !== bookingId) {
+        throw new ApiError(409, "not_current_booking", "Puoi aggiornare solo la canzone corrente.");
+      }
+      if (!bookingToPrepare.approvata || bookingToPrepare.cantata) {
+        throw new ApiError(409, "invalid_state", "La prenotazione non può tornare in preparazione.");
+      }
+      if (bookingToPrepare.in_preparazione) {
+        throw new ApiError(409, "already_preparing", "La canzone è già in preparazione.");
+      }
+
+      const { data, error } = await admin
+        .from("prenotazioni")
+        .update({ in_preparazione: true })
+        .eq("id", bookingId)
+        .select("id, approvata, cantata, in_preparazione")
+        .maybeSingle();
+
+      if (error) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito a riportare la canzone in preparazione.");
+      }
+      if (!data) {
+        throw new ApiError(404, "not_found", "Prenotazione non trovata.");
+      }
+
+      return { status: 200, data };
+    }
+
     case "open_serata":
     case "open_karaoke": {
       const openSerata = await getOpenSerata(admin);
