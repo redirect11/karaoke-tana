@@ -128,6 +128,11 @@ function normalizeOptionalDate(value: unknown, fieldName: string): string | null
 }
 
 const DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS = 5;
+const DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS = 3;
+const MIN_WINNER_REVEAL_AUTO_STEP_SECONDS = 1;
+const MAX_WINNER_REVEAL_AUTO_STEP_SECONDS = 30;
+const WINNER_REVEAL_MODE_AUTOMATIC = "automatic";
+const WINNER_REVEAL_MODE_MANUAL = "manual";
 
 function parseCountdownSeconds(value: unknown): number {
   if (value === null || value === undefined || value === "") return DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS;
@@ -136,6 +141,31 @@ function parseCountdownSeconds(value: unknown): number {
     throw new ApiError(400, "invalid_payload", "countdownSeconds deve essere compreso tra 5 e 300 secondi.");
   }
   return parsed;
+}
+
+function parseRevealAutoStepSeconds(value: unknown): number {
+  if (value === null || value === undefined || value === "") return DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS;
+  const parsed = toPositiveInt(value, "winnerRevealAutoStepSeconds");
+  if (parsed < MIN_WINNER_REVEAL_AUTO_STEP_SECONDS || parsed > MAX_WINNER_REVEAL_AUTO_STEP_SECONDS) {
+    throw new ApiError(
+      400,
+      "invalid_payload",
+      `winnerRevealAutoStepSeconds deve essere compreso tra ${MIN_WINNER_REVEAL_AUTO_STEP_SECONDS} e ${MAX_WINNER_REVEAL_AUTO_STEP_SECONDS} secondi.`,
+    );
+  }
+  return parsed;
+}
+
+function normalizeWinnerRevealMode(value: unknown): "manual" | "automatic" {
+  return value === WINNER_REVEAL_MODE_MANUAL ? WINNER_REVEAL_MODE_MANUAL : WINNER_REVEAL_MODE_AUTOMATIC;
+}
+
+function clearRevealProgressState() {
+  return {
+    winner_reveal_current_rank: null,
+    winner_reveal_total_ranks: null,
+    winner_reveal_step_started_at: null,
+  };
 }
 
 const POST_APPROVAL_MODE_DIRECT_LIVE = "direct_live";
@@ -427,7 +457,7 @@ async function setPreparingBooking(
 async function getPublicSettings(admin: ReturnType<typeof createClient>) {
   const { data, error } = await admin
     .from("impostazioni_pubbliche")
-    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds")
+    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds, winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds")
     .eq("id", 1)
     .maybeSingle();
 
@@ -447,8 +477,11 @@ async function getPublicSettings(admin: ReturnType<typeof createClient>) {
       modalita_post_approvazione: POST_APPROVAL_MODE_DIRECT_LIVE,
       prossima_serata_data: null,
       winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
+      winner_reveal_animation_enabled: true,
+      winner_reveal_animation_mode: WINNER_REVEAL_MODE_AUTOMATIC,
+      winner_reveal_auto_step_seconds: DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
     })
-    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds")
+    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds, winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds")
     .maybeSingle();
 
   if (insertError || !inserted) {
@@ -465,6 +498,9 @@ async function updatePublicSettings(
     modalita_post_approvazione?: PostApprovalMode;
     prossima_serata_data?: string | null;
     winner_reveal_countdown_default_seconds?: number;
+    winner_reveal_animation_enabled?: boolean;
+    winner_reveal_animation_mode?: "manual" | "automatic";
+    winner_reveal_auto_step_seconds?: number;
   },
 ) {
   await getPublicSettings(admin);
@@ -482,12 +518,21 @@ async function updatePublicSettings(
   if (Number.isInteger(updates.winner_reveal_countdown_default_seconds)) {
     payload.winner_reveal_countdown_default_seconds = updates.winner_reveal_countdown_default_seconds;
   }
+  if (typeof updates.winner_reveal_animation_enabled === "boolean") {
+    payload.winner_reveal_animation_enabled = updates.winner_reveal_animation_enabled;
+  }
+  if (typeof updates.winner_reveal_animation_mode === "string") {
+    payload.winner_reveal_animation_mode = normalizeWinnerRevealMode(updates.winner_reveal_animation_mode);
+  }
+  if (Number.isInteger(updates.winner_reveal_auto_step_seconds)) {
+    payload.winner_reveal_auto_step_seconds = updates.winner_reveal_auto_step_seconds;
+  }
 
   const { data, error } = await admin
     .from("impostazioni_pubbliche")
     .update(payload)
     .eq("id", 1)
-    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds")
+    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds, winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds")
     .maybeSingle();
 
   if (error || !data) {
@@ -594,6 +639,9 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         modalita_post_approvazione?: PostApprovalMode;
         prossima_serata_data?: string | null;
         winner_reveal_countdown_default_seconds?: number;
+        winner_reveal_animation_enabled?: boolean;
+        winner_reveal_animation_mode?: "manual" | "automatic";
+        winner_reveal_auto_step_seconds?: number;
       } = {};
       if (typeof body.archivioPubblicoAbilitato === "boolean") {
         updates.archivio_pubblico_abilitato = body.archivioPubblicoAbilitato;
@@ -607,16 +655,28 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       if (Object.prototype.hasOwnProperty.call(body, "winnerRevealCountdownDefaultSeconds")) {
         updates.winner_reveal_countdown_default_seconds = parseCountdownSeconds(body.winnerRevealCountdownDefaultSeconds);
       }
+      if (typeof body.winnerRevealAnimationEnabled === "boolean") {
+        updates.winner_reveal_animation_enabled = body.winnerRevealAnimationEnabled;
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "winnerRevealAnimationMode")) {
+        updates.winner_reveal_animation_mode = normalizeWinnerRevealMode(body.winnerRevealAnimationMode);
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "winnerRevealAutoStepSeconds")) {
+        updates.winner_reveal_auto_step_seconds = parseRevealAutoStepSeconds(body.winnerRevealAutoStepSeconds);
+      }
       if (
         typeof updates.archivio_pubblico_abilitato !== "boolean"
         && typeof updates.modalita_post_approvazione !== "string"
         && !Object.prototype.hasOwnProperty.call(updates, "prossima_serata_data")
         && !Number.isInteger(updates.winner_reveal_countdown_default_seconds)
+        && typeof updates.winner_reveal_animation_enabled !== "boolean"
+        && typeof updates.winner_reveal_animation_mode !== "string"
+        && !Number.isInteger(updates.winner_reveal_auto_step_seconds)
       ) {
         throw new ApiError(
           400,
           "invalid_payload",
-          "Specifica almeno archivioPubblicoAbilitato, modalitaPostApprovazione, prossimaSerataData o winnerRevealCountdownDefaultSeconds.",
+          "Specifica almeno archivioPubblicoAbilitato, modalitaPostApprovazione, prossimaSerataData, winnerRevealCountdownDefaultSeconds, winnerRevealAnimationEnabled, winnerRevealAnimationMode o winnerRevealAutoStepSeconds.",
         );
       }
       const updatedSettings = await updatePublicSettings(admin, updates);
@@ -999,6 +1059,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           winner_reveal_countdown_started_at: null,
           winner_reveal_countdown_ends_at: null,
           winner_reveal_countdown_seconds: null,
+          ...clearRevealProgressState(),
           notifiche_telegram_abilitate: true,
           notifiche_browser_abilitate: true,
           vincitore_decretato: false,
@@ -1038,6 +1099,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           winner_reveal_countdown_started_at: null,
           winner_reveal_countdown_ends_at: null,
           winner_reveal_countdown_seconds: null,
+          ...clearRevealProgressState(),
         })
         .eq("id", serataId)
         .select("*")
@@ -1174,6 +1236,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           winner_reveal_countdown_started_at: startedAt.toISOString(),
           winner_reveal_countdown_ends_at: endsAt.toISOString(),
           winner_reveal_countdown_seconds: countdownSeconds,
+          ...clearRevealProgressState(),
         })
         .eq("id", currentSerata.id)
         .select("*")
@@ -1280,6 +1343,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           winner_reveal_countdown_started_at: null,
           winner_reveal_countdown_ends_at: null,
           winner_reveal_countdown_seconds: null,
+          ...clearRevealProgressState(),
         })
         .eq("id", currentSerata.id)
         .select("*")
@@ -1314,6 +1378,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           winner_reveal_countdown_started_at: null,
           winner_reveal_countdown_ends_at: null,
           winner_reveal_countdown_seconds: null,
+          ...clearRevealProgressState(),
         })
         .eq("id", currentSerata.id)
         .select("*")
@@ -1327,6 +1392,86 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       }
 
       return { status: 200, data };
+    }
+
+    case "advance_winner_reveal": {
+      const currentSerata = body.serataId != null
+        ? await getSerataById(admin, toPositiveInt(body.serataId, "serataId"))
+        : await getOpenSerata(admin);
+
+      if (!currentSerata?.id) {
+        throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
+      }
+      if (currentSerata.vincitore_decretato) {
+        throw new ApiError(409, "winner_already_decreed", "Il vincitore è già stato decretato.");
+      }
+      if (!currentSerata.winner_reveal_countdown_active) {
+        throw new ApiError(409, "reveal_not_active", "Reveal non attivo.");
+      }
+
+      const endsAt = Date.parse(String(currentSerata.winner_reveal_countdown_ends_at || ""));
+      if (!Number.isFinite(endsAt)) {
+        throw new ApiError(409, "countdown_not_started", "Avvia prima il countdown del reveal.");
+      }
+      if (endsAt > Date.now()) {
+        throw new ApiError(409, "countdown_running", "Il countdown non è ancora terminato.");
+      }
+
+      const { data: serataBookings, error: bookingsError } = await admin
+        .from("prenotazioni")
+        .select("*")
+        .eq("serata_id", currentSerata.id)
+        .order("created_at", { ascending: true });
+
+      if (bookingsError) {
+        throw new ApiError(500, "query_failed", "Errore durante il caricamento delle prenotazioni.");
+      }
+
+      const allBookings = (serataBookings ?? []) as Array<Record<string, unknown>>;
+      const approvedBookings = allBookings.filter((booking) => Boolean(booking.approvata));
+      const scoreMap = await getBookingScores(admin, allBookings);
+      const top5 = buildRanking(approvedBookings, scoreMap).slice(0, 5);
+      if (top5.length === 0) {
+        throw new ApiError(409, "no_ranking_available", "Impossibile calcolare la classifica finale.");
+      }
+
+      const maxRank = top5.length;
+      const currentRank = Number(currentSerata.winner_reveal_current_rank);
+      const hasCurrentRank = Number.isInteger(currentRank) && currentRank >= 1 && currentRank <= maxRank;
+      let nextRank = maxRank;
+      if (hasCurrentRank) {
+        if (currentRank <= 2) {
+          throw new ApiError(409, "winner_ready", "Posizione finale pronta: usa Svela vincitore.");
+        }
+        nextRank = currentRank - 1;
+      }
+
+      const { data: updatedSerata, error: updateError } = await admin
+        .from("serate")
+        .update({
+          winner_reveal_current_rank: nextRank,
+          winner_reveal_total_ranks: maxRank,
+          winner_reveal_step_started_at: new Date().toISOString(),
+        })
+        .eq("id", currentSerata.id)
+        .select("*")
+        .maybeSingle();
+
+      if (updateError) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito ad avanzare il reveal.");
+      }
+      if (!updatedSerata) {
+        throw new ApiError(404, "not_found", "Serata non trovata.");
+      }
+
+      return {
+        status: 200,
+        data: {
+          serata: updatedSerata,
+          reveal_rank: nextRank,
+          top5,
+        },
+      };
     }
 
     case "decree_winner":
@@ -1381,6 +1526,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
             winner_reveal_countdown_started_at: startedAt.toISOString(),
             winner_reveal_countdown_ends_at: endsAt.toISOString(),
             winner_reveal_countdown_seconds: countdownSeconds,
+            ...clearRevealProgressState(),
           })
           .eq("id", currentSerata.id)
           .select("*")
@@ -1419,6 +1565,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           winner_reveal_countdown_started_at: null,
           winner_reveal_countdown_ends_at: null,
           winner_reveal_countdown_seconds: null,
+          ...clearRevealProgressState(),
         })
         .eq("id", currentSerata.id)
         .select("*")
@@ -1518,6 +1665,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           winner_reveal_countdown_started_at: null,
           winner_reveal_countdown_ends_at: null,
           winner_reveal_countdown_seconds: null,
+          ...clearRevealProgressState(),
         })
         .eq("id", currentSerata.id)
         .select("*")

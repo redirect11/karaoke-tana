@@ -177,6 +177,46 @@ requirements:
     labels: [queue, ui, admin]
     test_cases: [TC-QUEUE-002, TC-QUEUE-003]
 
+  # ── Reveal vincitore ────────────────────────────────────────────────────────
+
+  - id: REQ-REVEAL-001
+    title: "Reveal classifica finale opzionale dopo countdown"
+    area: "admin-tools.html, admin.html, vota.html, admin-bookings"
+    description: >
+      Deve esistere un'impostazione per attivare/disattivare il reveal progressivo
+      della Top 5 dopo il countdown di proclamazione. Se disattivato, al termine del
+      countdown viene mostrata subito la classifica finale completa.
+    status: implemented
+    generate_issue: false
+    labels: [winner-reveal, settings, ui]
+    test_cases: [TC-REVEAL-001]
+
+  - id: REQ-REVEAL-002
+    title: "Reveal manuale gestito da admin"
+    area: "admin.html, vota.html, admin-bookings"
+    description: >
+      Con reveal attivo in modalità manuale, al termine del countdown viene mostrata
+      subito la posizione più bassa della Top 5 (o equivalente se meno elementi),
+      e l'admin svela le posizioni successive con un controllo dinamico fino al
+      pulsante finale "Svela vincitore".
+    status: implemented
+    generate_issue: false
+    labels: [winner-reveal, admin, control]
+    test_cases: [TC-REVEAL-002]
+
+  - id: REQ-REVEAL-003
+    title: "Reveal automatico con intervallo configurabile e feedback admin"
+    area: "admin-tools.html, admin.html, vota.html, admin-bookings"
+    description: >
+      Con reveal attivo in modalità automatica, l'intervallo tra una posizione e
+      la successiva deve essere configurabile nelle impostazioni. Nel pannello admin
+      devono comparire solo annuncio dinamico ("Svelando la posizione X") e timer
+      di avanzamento che si resetta a ogni step.
+    status: implemented
+    generate_issue: false
+    labels: [winner-reveal, admin, automation]
+    test_cases: [TC-REVEAL-003]
+
   # ── Esempi di requisiti "da implementare" (generate_issue: true) ─────────────
   # Decommentare e impostare generate_issue: true per creare automaticamente
   # un'issue GitHub. Esempio:

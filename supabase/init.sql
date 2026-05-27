@@ -30,12 +30,25 @@ CREATE TABLE IF NOT EXISTS impostazioni_pubbliche (
   id BIGINT PRIMARY KEY CHECK (id = 1),
   archivio_pubblico_abilitato BOOLEAN NOT NULL DEFAULT FALSE,
   modalita_post_approvazione TEXT NOT NULL DEFAULT 'direct_live',
+  winner_reveal_animation_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  winner_reveal_animation_mode TEXT NOT NULL DEFAULT 'automatic',
+  winner_reveal_auto_step_seconds INTEGER NOT NULL DEFAULT 3,
+  winner_reveal_countdown_default_seconds INTEGER NOT NULL DEFAULT 5,
   prossima_serata_data DATE,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-INSERT INTO impostazioni_pubbliche (id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data)
-VALUES (1, FALSE, 'direct_live', NULL)
+INSERT INTO impostazioni_pubbliche (
+  id,
+  archivio_pubblico_abilitato,
+  modalita_post_approvazione,
+  winner_reveal_animation_enabled,
+  winner_reveal_animation_mode,
+  winner_reveal_auto_step_seconds,
+  winner_reveal_countdown_default_seconds,
+  prossima_serata_data
+)
+VALUES (1, FALSE, 'direct_live', TRUE, 'automatic', 3, 5, NULL)
 ON CONFLICT (id) DO NOTHING;
 
 -- Impedisce più di una serata aperta contemporaneamente
@@ -91,10 +104,40 @@ ALTER TABLE prenotazioni
 ALTER TABLE impostazioni_pubbliche
   ADD COLUMN IF NOT EXISTS modalita_post_approvazione TEXT NOT NULL DEFAULT 'direct_live';
 
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS winner_reveal_animation_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS winner_reveal_animation_mode TEXT NOT NULL DEFAULT 'automatic';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS winner_reveal_auto_step_seconds INTEGER NOT NULL DEFAULT 3;
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS winner_reveal_countdown_default_seconds INTEGER NOT NULL DEFAULT 5;
+
 DO $$ BEGIN
   ALTER TABLE impostazioni_pubbliche
     ADD CONSTRAINT impostazioni_pubbliche_modalita_post_approvazione_check
     CHECK (modalita_post_approvazione IN ('direct_live', 'preparation_then_live'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE impostazioni_pubbliche
+    ADD CONSTRAINT impostazioni_pubbliche_winner_reveal_animation_mode_check
+    CHECK (winner_reveal_animation_mode IN ('manual', 'automatic'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE impostazioni_pubbliche
+    ADD CONSTRAINT impostazioni_pubbliche_winner_reveal_auto_step_seconds_check
+    CHECK (winner_reveal_auto_step_seconds BETWEEN 1 AND 30);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE impostazioni_pubbliche
+    ADD CONSTRAINT impostazioni_pubbliche_winner_reveal_countdown_default_seconds_check
+    CHECK (winner_reveal_countdown_default_seconds BETWEEN 5 AND 300);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 ALTER TABLE serate
@@ -105,6 +148,45 @@ ALTER TABLE serate
 
 ALTER TABLE serate
   ADD COLUMN IF NOT EXISTS vincitore_prenotazione_id BIGINT;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS winner_reveal_countdown_active BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS winner_reveal_countdown_started_at TIMESTAMPTZ;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS winner_reveal_countdown_ends_at TIMESTAMPTZ;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS winner_reveal_countdown_seconds INTEGER;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS winner_reveal_current_rank INTEGER;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS winner_reveal_total_ranks INTEGER;
+
+ALTER TABLE serate
+  ADD COLUMN IF NOT EXISTS winner_reveal_step_started_at TIMESTAMPTZ;
+
+DO $$ BEGIN
+  ALTER TABLE serate
+    ADD CONSTRAINT serate_winner_reveal_countdown_seconds_check
+    CHECK (winner_reveal_countdown_seconds IS NULL OR winner_reveal_countdown_seconds BETWEEN 5 AND 300);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE serate
+    ADD CONSTRAINT serate_winner_reveal_current_rank_check
+    CHECK (winner_reveal_current_rank IS NULL OR winner_reveal_current_rank BETWEEN 1 AND 5);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE serate
+    ADD CONSTRAINT serate_winner_reveal_total_ranks_check
+    CHECK (winner_reveal_total_ranks IS NULL OR winner_reveal_total_ranks BETWEEN 1 AND 5);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Compatibilità con installazioni esistenti che hanno creato `serate`
 -- prima dell'introduzione dei toggle notifiche.

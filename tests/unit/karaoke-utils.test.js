@@ -21,9 +21,16 @@ const {
   getCurrentStoredSerataId,
   getStatusSerataId,
   getWinnerRevealEndsAtMs,
+  getWinnerRevealSettings,
+  getWinnerRevealStartRank,
+  normalizeWinnerRevealRank,
+  getWinnerRevealAdminAction,
   setDisplayIndexes,
   buildRanking,
   PENDING_EXPIRY_MIN_DEFAULT,
+  DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
+  MIN_WINNER_REVEAL_AUTO_STEP_SECONDS,
+  MAX_WINNER_REVEAL_AUTO_STEP_SECONDS,
 } = utils;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -423,6 +430,83 @@ describe('getWinnerRevealEndsAtMs', () => {
 
   it('returns null when field is a number (not a string)', () => {
     expect(getWinnerRevealEndsAtMs({ winner_reveal_countdown_ends_at: 12345 })).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('getWinnerRevealSettings', () => {
+  it('defaults to enabled + automatic + default auto seconds', () => {
+    expect(getWinnerRevealSettings(null)).toEqual({
+      enabled: true,
+      mode: 'automatic',
+      autoStepSeconds: DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
+    });
+  });
+
+  it('supports manual mode and disabled animation', () => {
+    expect(getWinnerRevealSettings({
+      winner_reveal_animation_enabled: false,
+      winner_reveal_animation_mode: 'manual',
+      winner_reveal_auto_step_seconds: 7,
+    })).toEqual({
+      enabled: false,
+      mode: 'manual',
+      autoStepSeconds: 7,
+    });
+  });
+
+  it('falls back to default auto seconds when out of range', () => {
+    const low = getWinnerRevealSettings({ winner_reveal_auto_step_seconds: MIN_WINNER_REVEAL_AUTO_STEP_SECONDS - 1 });
+    const high = getWinnerRevealSettings({ winner_reveal_auto_step_seconds: MAX_WINNER_REVEAL_AUTO_STEP_SECONDS + 1 });
+    expect(low.autoStepSeconds).toBe(DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS);
+    expect(high.autoStepSeconds).toBe(DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('getWinnerRevealStartRank', () => {
+  it('returns null for empty rankings', () => {
+    expect(getWinnerRevealStartRank(0)).toBeNull();
+  });
+
+  it('caps reveal start rank to top-5', () => {
+    expect(getWinnerRevealStartRank(10)).toBe(5);
+  });
+
+  it('returns ranking length when below top-5', () => {
+    expect(getWinnerRevealStartRank(3)).toBe(3);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('normalizeWinnerRevealRank', () => {
+  it('returns null when rank is outside reveal range', () => {
+    expect(normalizeWinnerRevealRank(6, 8)).toBeNull();
+    expect(normalizeWinnerRevealRank(0, 8)).toBeNull();
+  });
+
+  it('returns rank when valid', () => {
+    expect(normalizeWinnerRevealRank(4, 8)).toBe(4);
+  });
+
+  it('returns null when ranking is empty', () => {
+    expect(normalizeWinnerRevealRank(1, 0)).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('getWinnerRevealAdminAction', () => {
+  it('returns null when no further reveal action is available', () => {
+    expect(getWinnerRevealAdminAction(1)).toBeNull();
+    expect(getWinnerRevealAdminAction(null)).toBeNull();
+  });
+
+  it('returns winner action when current rank is 2', () => {
+    expect(getWinnerRevealAdminAction(2)).toEqual({ label: '🏆 Svela vincitore', winnerAction: true });
+  });
+
+  it('returns positional action when current rank is above 2', () => {
+    expect(getWinnerRevealAdminAction(5)).toEqual({ label: 'Svela la posizione 4', winnerAction: false });
   });
 });
 

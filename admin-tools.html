@@ -324,6 +324,27 @@
             <button class="action-btn btn-public-settings" id="btn-save-winner-reveal-countdown" type="button">Salva countdown</button>
           </div>
         </div>
+
+        <div class="setting-sub-box">
+          <label class="setting-label" for="winner-reveal-animation-enabled">Animazione reveal classifica</label>
+          <p>Se disattivata, al termine del countdown viene mostrata subito tutta la classifica finale.</p>
+          <div class="next-date-controls">
+            <select class="next-date-input" id="winner-reveal-animation-enabled">
+              <option value="enabled">Attiva reveal progressivo</option>
+              <option value="disabled">Disattiva reveal progressivo</option>
+            </select>
+          </div>
+          <label class="setting-label" for="winner-reveal-animation-mode">Modalità reveal</label>
+          <p>Manuale: l'admin svela le posizioni una alla volta. Automatica: avanzamento automatico con intervallo configurabile.</p>
+          <div class="next-date-controls">
+            <select class="next-date-input" id="winner-reveal-animation-mode">
+              <option value="automatic">Automatica</option>
+              <option value="manual">Manuale</option>
+            </select>
+            <input class="next-date-input" id="winner-reveal-auto-step-seconds" type="number" min="1" max="30" step="1" inputmode="numeric" />
+            <button class="action-btn btn-public-settings" id="btn-save-winner-reveal-settings" type="button">Salva reveal</button>
+          </div>
+        </div>
       </section>
 
       <!-- ── NOTIFICHE ──────────────────────────────────────── -->
@@ -416,11 +437,18 @@
     const btnClearNextDate = document.getElementById('btn-clear-next-date');
     const winnerRevealCountdownInput = document.getElementById('winner-reveal-countdown-seconds');
     const btnSaveWinnerRevealCountdown = document.getElementById('btn-save-winner-reveal-countdown');
+    const winnerRevealAnimationEnabledSelect = document.getElementById('winner-reveal-animation-enabled');
+    const winnerRevealAnimationModeSelect = document.getElementById('winner-reveal-animation-mode');
+    const winnerRevealAutoStepSecondsInput = document.getElementById('winner-reveal-auto-step-seconds');
+    const btnSaveWinnerRevealSettings = document.getElementById('btn-save-winner-reveal-settings');
     const pwdBtn = document.getElementById('pwd-btn');
 
     const ADMIN_EMAIL = 'admin@tana.it';
     const DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS = 5;
     const MAX_WINNER_REVEAL_COUNTDOWN_SECONDS = 300;
+    const DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS = 3;
+    const MIN_WINNER_REVEAL_AUTO_STEP_SECONDS = 1;
+    const MAX_WINNER_REVEAL_AUTO_STEP_SECONDS = 30;
 
     function isDevelopmentEnvironment() {
       return config.APP_ENV === 'test';
@@ -433,6 +461,9 @@
       modalita_post_approvazione: 'direct_live',
       prossima_serata_data: null,
       winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
+      winner_reveal_animation_enabled: true,
+      winner_reveal_animation_mode: 'automatic',
+      winner_reveal_auto_step_seconds: DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
     };
 
     document.getElementById('pwd-btn').addEventListener('click', loginAdmin);
@@ -446,6 +477,9 @@
     btnSaveNextDate.addEventListener('click', saveNextKaraokeDate);
     btnClearNextDate.addEventListener('click', clearNextKaraokeDate);
     btnSaveWinnerRevealCountdown.addEventListener('click', saveWinnerRevealCountdown);
+    btnSaveWinnerRevealSettings.addEventListener('click', saveWinnerRevealSettings);
+    winnerRevealAnimationEnabledSelect.addEventListener('change', syncWinnerRevealSettingsControls);
+    winnerRevealAnimationModeSelect.addEventListener('change', syncWinnerRevealSettingsControls);
 
     if (supabaseClient) {
       supabaseClient.auth.getSession().then(({ data }) => {
@@ -631,6 +665,12 @@
 
       const winnerRevealCountdownSeconds = getWinnerRevealCountdownSeconds();
       winnerRevealCountdownInput.value = String(winnerRevealCountdownSeconds);
+
+      const revealSettings = getWinnerRevealSettings();
+      winnerRevealAnimationEnabledSelect.value = revealSettings.enabled ? 'enabled' : 'disabled';
+      winnerRevealAnimationModeSelect.value = revealSettings.mode;
+      winnerRevealAutoStepSecondsInput.value = String(revealSettings.autoStepSeconds);
+      syncWinnerRevealSettingsControls();
     }
 
     function getWinnerRevealCountdownSeconds() {
@@ -640,6 +680,28 @@
         && value <= MAX_WINNER_REVEAL_COUNTDOWN_SECONDS
         ? value
         : DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS;
+    }
+
+    function getWinnerRevealSettings() {
+      const enabled = publicSettings?.winner_reveal_animation_enabled !== false;
+      const mode = publicSettings?.winner_reveal_animation_mode === 'manual' ? 'manual' : 'automatic';
+      const autoStepSeconds = Number(publicSettings?.winner_reveal_auto_step_seconds);
+      return {
+        enabled,
+        mode,
+        autoStepSeconds: Number.isInteger(autoStepSeconds)
+          && autoStepSeconds >= MIN_WINNER_REVEAL_AUTO_STEP_SECONDS
+          && autoStepSeconds <= MAX_WINNER_REVEAL_AUTO_STEP_SECONDS
+          ? autoStepSeconds
+          : DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
+      };
+    }
+
+    function syncWinnerRevealSettingsControls() {
+      const enabled = winnerRevealAnimationEnabledSelect.value !== 'disabled';
+      const mode = winnerRevealAnimationModeSelect.value === 'manual' ? 'manual' : 'automatic';
+      winnerRevealAnimationModeSelect.disabled = !enabled;
+      winnerRevealAutoStepSecondsInput.disabled = !enabled || mode !== 'automatic';
     }
 
     async function toggleArchivePublic() {
@@ -714,6 +776,37 @@
       } finally {
         btnSaveWinnerRevealCountdown.disabled = false;
         btnSaveWinnerRevealCountdown.textContent = 'Salva countdown';
+      }
+    }
+
+    async function saveWinnerRevealSettings() {
+      const enabled = winnerRevealAnimationEnabledSelect.value !== 'disabled';
+      const mode = winnerRevealAnimationModeSelect.value === 'manual' ? 'manual' : 'automatic';
+      const parsedAutoStepSeconds = Number.parseInt((winnerRevealAutoStepSecondsInput.value || '').trim(), 10);
+      const autoStepSeconds = Number.isInteger(parsedAutoStepSeconds)
+        ? parsedAutoStepSeconds
+        : DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS;
+      if (mode === 'automatic' && (
+        autoStepSeconds < MIN_WINNER_REVEAL_AUTO_STEP_SECONDS
+        || autoStepSeconds > MAX_WINNER_REVEAL_AUTO_STEP_SECONDS
+      )) {
+        setStatus(`Il tempo reveal automatico deve essere compreso tra ${MIN_WINNER_REVEAL_AUTO_STEP_SECONDS} e ${MAX_WINNER_REVEAL_AUTO_STEP_SECONDS} secondi.`, true);
+        renderPublicSettings();
+        return;
+      }
+      setBusy(btnSaveWinnerRevealSettings, true, 'Salvataggio…');
+      try {
+        publicSettings = await callAdmin('set_public_settings', {
+          winnerRevealAnimationEnabled: enabled,
+          winnerRevealAnimationMode: mode,
+          winnerRevealAutoStepSeconds: autoStepSeconds,
+        });
+        renderPublicSettings();
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito ad aggiornare le impostazioni reveal.', true);
+      } finally {
+        btnSaveWinnerRevealSettings.disabled = false;
+        btnSaveWinnerRevealSettings.textContent = 'Salva reveal';
       }
     }
 

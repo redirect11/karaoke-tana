@@ -961,7 +961,7 @@
                 <ol type="a">
                   <li>Dal computer collegato al proiettore, apri la pagina pubblica <code>vota.html</code> e proiettala in sala (usa il pulsante <em>Apri pagina voti/countdown ↗</em> nell'app admin per aprirla velocemente).</li>
                   <li>Dall'app admin (sullo smartphone o su un secondo dispositivo), premi <strong>Avvia countdown</strong>: comparirà subito il numero iniziale e poi partirà il conto alla rovescia visibile sul proiettore.</li>
-                  <li>Allo scadere del countdown il vincitore viene decretato automaticamente e il risultato compare sulla pagina proiettata in sala.</li>
+                  <li>Allo scadere del countdown parte il reveal: in base alle impostazioni può essere manuale (con pulsante admin) o automatico (con timer), oppure può essere saltato mostrando subito la classifica finale.</li>
                   <li>Se preferisci saltare il countdown, usa direttamente <strong>Proclamazione diretta</strong> per pubblicare il risultato immediatamente.</li>
                 </ol>
               </li>
@@ -1020,6 +1020,7 @@
   <script src="config.js"></script>
   <script src="scripts/serata-sync.js"></script>
   <script defer src="scripts/test-banner.js"></script>
+  <script src="./scripts/karaoke-utils.js"></script>
   <script>
     const config =
       (typeof window.CONFIG === 'object' && window.CONFIG)
@@ -1060,11 +1061,17 @@
     const DEFAULT_SELFIE_URL = 'logo.png';
     const DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS = 5;
     const MAX_WINNER_REVEAL_COUNTDOWN_SECONDS = 300;
+    const DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS = 3;
+    const MIN_WINNER_REVEAL_AUTO_STEP_SECONDS = 1;
+    const MAX_WINNER_REVEAL_AUTO_STEP_SECONDS = 30;
 
     let bookings = [];
     let currentSerata = null;
     let publicSettings = {
       winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
+      winner_reveal_animation_enabled: true,
+      winner_reveal_animation_mode: 'automatic',
+      winner_reveal_auto_step_seconds: DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
     };
     let syncConnected = false;
     let activeQueueTab = 'pending';
@@ -1072,6 +1079,8 @@
     let serataSync = null;
     let winnerAutoDecreeInFlight = false;
     let winnerAutoDecreeTimer = null;
+    let autoRevealStepInFlight = false;
+    let autoRevealStepTimer = null;
 
     document.getElementById('pwd-btn').addEventListener('click', loginAdmin);
     pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAdmin(); });
@@ -1207,6 +1216,7 @@
       adminToken = '';
       if (serataSync) serataSync.stop();
       clearWinnerAutoDecreeTimer();
+      clearAutoRevealStepTimer();
       overlay.classList.remove('hidden');
       panel.style.display = 'none';
       pwdInput.value = '';
@@ -1236,11 +1246,30 @@
     }
 
     function getWinnerRevealEndsAtMs(serata) {
+      if (typeof window.getWinnerRevealEndsAtMs === 'function') {
+        return window.getWinnerRevealEndsAtMs(serata);
+      }
       const iso = typeof serata?.winner_reveal_countdown_ends_at === 'string'
         ? serata.winner_reveal_countdown_ends_at
         : '';
       const ts = Date.parse(iso);
       return Number.isFinite(ts) ? ts : null;
+    }
+
+    function getWinnerRevealSettings() {
+      if (typeof window.getWinnerRevealSettings === 'function') {
+        return window.getWinnerRevealSettings(publicSettings);
+      }
+      const enabled = publicSettings?.winner_reveal_animation_enabled !== false;
+      const mode = publicSettings?.winner_reveal_animation_mode === 'manual' ? 'manual' : 'automatic';
+      const step = Number(publicSettings?.winner_reveal_auto_step_seconds);
+      return {
+        enabled,
+        mode,
+        autoStepSeconds: Number.isInteger(step) && step >= MIN_WINNER_REVEAL_AUTO_STEP_SECONDS && step <= MAX_WINNER_REVEAL_AUTO_STEP_SECONDS
+          ? step
+          : DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
+      };
     }
 
     function clearWinnerAutoDecreeTimer() {
@@ -1250,38 +1279,107 @@
       }
     }
 
-    function scheduleWinnerAutoDecree() {
-      clearWinnerAutoDecreeTimer();
-      if (!currentSerata || currentSerata.vincitore_decretato || !currentSerata.winner_reveal_countdown_active) return;
-      const endsAtMs = getWinnerRevealEndsAtMs(currentSerata);
-      if (!endsAtMs) return;
-      const delay = Math.max(0, endsAtMs - Date.now());
-      winnerAutoDecreeTimer = setTimeout(() => {
-        void maybeAutoDecreeWinner();
-      }, delay + 20);
+    function clearAutoRevealStepTimer() {
+      if (autoRevealStepTimer) {
+        clearTimeout(autoRevealStepTimer);
+        autoRevealStepTimer = null;
+      }
     }
 
-    async function maybeAutoDecreeWinner() {
-      if (!currentSerata || winnerAutoDecreeInFlight) return;
-      if (currentSerata.vincitore_decretato) return;
-      if (!currentSerata.winner_reveal_countdown_active) return;
+    function scheduleAutoRevealStatusTick() {
+      clearAutoRevealStepTimer();
+      if (!currentSerata || currentSerata.vincitore_decretato || !currentSerata.winner_reveal_countdown_active) return;
+      const revealSettings = getWinnerRevealSettings();
+      if (!revealSettings.enabled || revealSettings.mode !== 'automatic') return;
+      const endsAtMs = getWinnerRevealEndsAtMs(currentSerata);
+      if (!endsAtMs || endsAtMs > Date.now()) return;
+      const currentRank = Number(currentSerata.winner_reveal_current_rank);
+      if (!Number.isInteger(currentRank) || currentRank <= 1) return;
+      autoRevealStepTimer = setTimeout(() => {
+        renderSerata();
+      }, 1000);
+    }
+
+    function scheduleWinnerRevealAutomation(delayMs) {
+      clearWinnerAutoDecreeTimer();
+      const delay = Math.max(0, Number(delayMs) || 0);
+      winnerAutoDecreeTimer = setTimeout(() => {
+        void maybeAutoManageWinnerReveal();
+      }, delay);
+    }
+
+    async function maybeAutoManageWinnerReveal() {
+      if (!currentSerata || winnerAutoDecreeInFlight || autoRevealStepInFlight) return;
+      if (currentSerata.vincitore_decretato || !currentSerata.winner_reveal_countdown_active) return;
       const endsAtMs = getWinnerRevealEndsAtMs(currentSerata);
       if (!endsAtMs) return;
-      if (endsAtMs > Date.now()) {
-        scheduleWinnerAutoDecree();
+
+      const now = Date.now();
+      if (endsAtMs > now) {
+        scheduleWinnerRevealAutomation((endsAtMs - now) + 20);
         return;
       }
-      winnerAutoDecreeInFlight = true;
+
+      const revealSettings = getWinnerRevealSettings();
+      if (!revealSettings.enabled) {
+        winnerAutoDecreeInFlight = true;
+        try {
+          await callAdmin('decree_winner', { serataId: currentSerata.id });
+          await refreshState(true);
+        } catch (error) {
+          console.warn('Auto decreto vincitore non riuscito:', error);
+        } finally {
+          winnerAutoDecreeInFlight = false;
+        }
+        return;
+      }
+
+      const currentRank = Number(currentSerata.winner_reveal_current_rank);
+      const hasRank = Number.isInteger(currentRank) && currentRank >= 1;
+      if (!hasRank) {
+        autoRevealStepInFlight = true;
+        try {
+          await callAdmin('advance_winner_reveal', { serataId: currentSerata.id });
+          await refreshState(true);
+        } catch (error) {
+          console.warn('Inizializzazione reveal non riuscita:', error);
+        } finally {
+          autoRevealStepInFlight = false;
+        }
+        return;
+      }
+
+      if (revealSettings.mode === 'manual') return;
+
+      const stepStartedAtMs = Date.parse(String(currentSerata.winner_reveal_step_started_at || ''));
+      const elapsedMs = Number.isFinite(stepStartedAtMs) ? (now - stepStartedAtMs) : revealSettings.autoStepSeconds * 1000;
+      const msUntilNextStep = (revealSettings.autoStepSeconds * 1000) - elapsedMs;
+      if (msUntilNextStep > 20) {
+        scheduleWinnerRevealAutomation(msUntilNextStep + 20);
+        return;
+      }
+
+      if (currentRank <= 2) {
+        winnerAutoDecreeInFlight = true;
+        try {
+          await callAdmin('decree_winner', { serataId: currentSerata.id, skipCountdown: true });
+          await refreshState(true);
+        } catch (error) {
+          console.warn('Auto reveal vincitore non riuscito:', error);
+        } finally {
+          winnerAutoDecreeInFlight = false;
+        }
+        return;
+      }
+
+      autoRevealStepInFlight = true;
       try {
-        await callAdmin('decree_winner', { serataId: currentSerata.id });
-        const state = await callAdmin('get_state');
-        currentSerata = state?.serata || null;
-        bookings = Array.isArray(state?.bookings) ? state.bookings : bookings;
+        await callAdmin('advance_winner_reveal', { serataId: currentSerata.id });
+        await refreshState(true);
       } catch (error) {
-        console.warn('Auto decreto vincitore non riuscito:', error);
+        console.warn('Avanzamento reveal automatico non riuscito:', error);
       } finally {
-        winnerAutoDecreeInFlight = false;
-        scheduleWinnerAutoDecree();
+        autoRevealStepInFlight = false;
       }
     }
 
@@ -1291,17 +1389,18 @@
         currentSerata = state?.serata || null;
         bookings = Array.isArray(state?.bookings) ? state.bookings : [];
         publicSettings = state?.settings || publicSettings;
-        await maybeAutoDecreeWinner();
+        await maybeAutoManageWinnerReveal();
         syncConnected = true;
         renderSerata();
         renderQueue(bookings);
         renderAdminFinalRanking();
         updateLiveDot();
-        scheduleWinnerAutoDecree();
+        scheduleWinnerRevealAutomation(400);
       } catch (error) {
         syncConnected = false;
         updateLiveDot();
         clearWinnerAutoDecreeTimer();
+        clearAutoRevealStepTimer();
         if (!silent) {
           alert(error?.message || 'Errore durante il caricamento del pannello admin.');
         }
@@ -1325,6 +1424,7 @@
     let serataPanelOpen = false;
 
     function renderSerata() {
+      clearAutoRevealStepTimer();
       // Inner content (la vecchia logica) viene generato senza il wrapper
       let summaryStatus, summarySub, dotClass, innerCard;
 
@@ -1352,10 +1452,31 @@
         const showTotals = Boolean(currentSerata.mostra_voti_totali);
         const winnerDecreed = Boolean(currentSerata.vincitore_decretato);
         const winnerRevealCountdownActive = Boolean(currentSerata.winner_reveal_countdown_active);
+        const revealSettings = getWinnerRevealSettings();
         const revealCountdownEndsAtMs = getWinnerRevealEndsAtMs(currentSerata);
         const revealCountdownLabel = revealCountdownEndsAtMs
           ? new Date(revealCountdownEndsAtMs).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
           : 'in corso';
+        const countdownEnded = Boolean(revealCountdownEndsAtMs) && revealCountdownEndsAtMs <= Date.now();
+        const revealCurrentRank = Number(currentSerata.winner_reveal_current_rank);
+        const hasRevealCurrentRank = Number.isInteger(revealCurrentRank) && revealCurrentRank >= 1;
+        const revealPhaseActive = winnerRevealCountdownActive && !winnerDecreed && countdownEnded && revealSettings.enabled;
+        const revealManualMode = revealPhaseActive && revealSettings.mode === 'manual';
+        const revealAutomaticMode = revealPhaseActive && revealSettings.mode === 'automatic';
+        const manualRevealAction = hasRevealCurrentRank
+          ? (typeof window.getWinnerRevealAdminAction === 'function'
+            ? window.getWinnerRevealAdminAction(revealCurrentRank)
+            : (revealCurrentRank === 2
+              ? { label: '🏆 Svela vincitore', winnerAction: true }
+              : (revealCurrentRank > 2 ? { label: `Svela la posizione ${revealCurrentRank - 1}`, winnerAction: false } : null)))
+          : null;
+        const revealStepStartedAtMs = Date.parse(String(currentSerata.winner_reveal_step_started_at || ''));
+        const autoRevealMsLeft = revealAutomaticMode && hasRevealCurrentRank && revealCurrentRank > 1
+          ? Math.max(0, (revealSettings.autoStepSeconds * 1000) - (Number.isFinite(revealStepStartedAtMs) ? (Date.now() - revealStepStartedAtMs) : 0))
+          : 0;
+        const autoRevealTimerLabel = revealAutomaticMode && hasRevealCurrentRank && revealCurrentRank > 1
+          ? `${Math.ceil(autoRevealMsLeft / 1000)}s`
+          : '';
         const inProclamazioneMode = winnerRevealCountdownActive && !winnerDecreed;
 
         if (inProclamazioneMode) {
@@ -1386,7 +1507,7 @@
                 </span>
               </div>
               ${inProclamazioneMode
-                ? `<div class="reveal-status">🎬 Modalità proclamazione${revealCountdownEndsAtMs ? ` · countdown fine ${revealCountdownLabel}` : ''}</div>`
+                ? `<div class="reveal-status">🎬 Modalità proclamazione${revealCountdownEndsAtMs ? ` · countdown fine ${revealCountdownLabel}` : ''}${revealPhaseActive ? ` · reveal ${revealSettings.mode === 'manual' ? 'manuale' : 'automatico'}` : ''}</div>`
                 : ''}
             </div>
             <div class="serata-primary-action">
@@ -1410,6 +1531,18 @@
                 </button>
                 <button class="btn-serata btn-winner" id="btn-decree-winner">🏆 Proclamazione diretta</button>
                 <button class="btn-serata btn-secondary" id="btn-disable-diretta">Annulla proclamazione</button>
+                ${revealManualMode ? `
+                  <button class="btn-serata btn-winner${manualRevealAction?.winnerAction ? '' : ' btn-secondary'}" id="btn-manual-reveal-next"${manualRevealAction ? '' : ' disabled'}>
+                    ${manualRevealAction ? manualRevealAction.label : 'Attendi inizializzazione reveal…'}
+                  </button>
+                ` : ''}
+                ${revealAutomaticMode ? `
+                  <div class="control-note" id="auto-reveal-status-note">
+                    ${hasRevealCurrentRank
+                      ? `🎯 Svelando la posizione ${revealCurrentRank > 1 ? revealCurrentRank : 'vincitore'}${autoRevealTimerLabel ? ` · prossimo step tra ${autoRevealTimerLabel}` : ''}`
+                      : '🎯 Inizializzazione reveal automatico…'}
+                  </div>
+                ` : ''}
               ` : `
                 <button class="btn-serata ${prenOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-prenotazioni">
                   ${prenOpen ? '🚫 Disabilita prenotazioni' : '✅ Abilita prenotazioni'}
@@ -1473,6 +1606,8 @@
           document.getElementById('btn-start-winner-countdown').addEventListener('click', startWinnerCountdown);
           document.getElementById('btn-decree-winner').addEventListener('click', decreeWinnerDirect);
           document.getElementById('btn-disable-diretta').addEventListener('click', disableDiretta);
+          const manualRevealBtn = document.getElementById('btn-manual-reveal-next');
+          if (manualRevealBtn) manualRevealBtn.addEventListener('click', revealNextWinnerPosition);
         } else {
           document.getElementById('btn-toggle-prenotazioni').addEventListener('click', togglePrenotazioni);
           document.getElementById('btn-toggle-voto').addEventListener('click', toggleVoto);
@@ -1482,6 +1617,7 @@
         }
       }
       renderAdminFinalRanking();
+      scheduleAutoRevealStatusTick();
     }
 
     function openVotaPage(event) {
@@ -1650,6 +1786,34 @@
         && configuredSeconds <= MAX_WINNER_REVEAL_COUNTDOWN_SECONDS
         ? configuredSeconds
         : DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS;
+    }
+
+    async function revealNextWinnerPosition() {
+      if (!currentSerata || !currentSerata.winner_reveal_countdown_active || currentSerata.vincitore_decretato) return;
+      const revealSettings = getWinnerRevealSettings();
+      if (!revealSettings.enabled || revealSettings.mode !== 'manual') return;
+      const currentRank = Number(currentSerata.winner_reveal_current_rank);
+      const revealAction = (typeof window.getWinnerRevealAdminAction === 'function')
+        ? window.getWinnerRevealAdminAction(currentRank)
+        : (currentRank === 2
+          ? { label: '🏆 Svela vincitore', winnerAction: true }
+          : (currentRank > 2 ? { label: `Svela la posizione ${currentRank - 1}`, winnerAction: false } : null));
+      const btn = document.getElementById('btn-manual-reveal-next');
+      if (btn) btn.disabled = true;
+      try {
+        if (revealAction?.winnerAction) {
+          const result = await callAdmin('decree_winner', { serataId: currentSerata.id, skipCountdown: true });
+          currentSerata = result?.serata || currentSerata;
+        } else {
+          const result = await callAdmin('advance_winner_reveal', { serataId: currentSerata.id });
+          currentSerata = result?.serata || currentSerata;
+        }
+        syncConnected = true;
+        await refreshState(true);
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito ad avanzare il reveal.');
+        if (btn) btn.disabled = false;
+      }
     }
 
     async function decreeWinnerDirect() {
