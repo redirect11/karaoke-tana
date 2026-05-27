@@ -1371,6 +1371,7 @@
   <script defer src="cookie-consent.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="scripts/serata-sync.js"></script>
+  <script src="scripts/follow-flow.js"></script>
   <script defer src="scripts/test-banner.js"></script>
   <script src="./scripts/ads-config.js"></script>
   <script src="./scripts/ads-banner.js"></script>
@@ -1487,6 +1488,9 @@
     // Snapshot al load: i realtime update non devono cambiare la visibilità
     // degli step dopo che l'utente ha appena premuto "Segui".
     const followedAtPageLoad = getCookie('ig_followed') === 'true';
+    // Flag in-session: diventa true quando l'utente clicca Segui senza ricaricare.
+    // Usato per distinguere "mai seguito" da "appena seguito" nei refresh realtime.
+    let followedInSession = false;
 
     // ── Selfie lightbox: apertura via delega + chiusura ──────
     const selfieLightboxEl = document.getElementById('selfie-lightbox');
@@ -2487,19 +2491,30 @@
           }
         } else {
           stepBookingsDisabled.style.display = 'none';
-          // Only restore the steps/form if not in waiting mode already.
-          if (stepWaiting.style.display !== 'flex' && stepSuccess.style.display !== 'flex') {
-            const alreadyFollowed = followedAtPageLoad;
-            // Only show .steps when the user has NOT yet followed — never
-            // re-enable them for a user who already completed that step.
-            if (!alreadyFollowed) {
-              document.querySelector('.steps').style.display = '';
-            }
-            // Check if there's a pending booking, otherwise show form.
+          // Ripristina il flusso di follow solo se non siamo già in uno stato attivo.
+          // FollowFlow.shouldRestoreFollowFlow evita di riaccendere il box Segui
+          // o il form quando l'utente è già in una schermata di prenotazione.
+          const inBookingFlow = stepForm.style.display === 'block' ||
+                                stepFollow.style.display === 'block';
+          const needsRestore = FollowFlow.shouldRestoreFollowFlow({
+            isWaiting: stepWaiting.style.display === 'flex',
+            isSuccess: stepSuccess.style.display === 'flex',
+            isInBookingFlow: inBookingFlow,
+          });
+          if (needsRestore) {
+            // Check if there's a pending booking, otherwise restore follow flow.
             const pending = await checkPendingBooking();
             if (!pending) {
-              if (alreadyFollowed) showForm({ hideSteps: true });
-              else stepFollow.style.display = 'block';
+              const flowState = FollowFlow.computeFollowFlowVisibility({
+                followedAtPageLoad,
+                followedInSession,
+              });
+              if (flowState.showForm) {
+                showForm({ hideSteps: !flowState.showSteps });
+              } else {
+                document.querySelector('.steps').style.display = '';
+                stepFollow.style.display = 'block';
+              }
             }
           }
         }
@@ -2537,9 +2552,9 @@
       if (!open) return;
       const pending = await checkPendingBooking();
       if (pending) return;
-      const alreadyFollowed = followedAtPageLoad;
-      if (alreadyFollowed) {
-        showForm({ hideSteps: true });
+      const flowState = FollowFlow.computeFollowFlowVisibility({ followedAtPageLoad, followedInSession });
+      if (flowState.showForm) {
+        showForm({ hideSteps: !flowState.showSteps });
       } else {
         document.querySelector('.steps').style.display = '';
         stepClosed.style.display = 'none';
@@ -2896,6 +2911,8 @@
     // Quando l'utente torna alla pagina dopo aver aperto Instagram
     async function handleReturn() {
       if (igOpened || getCookie('ig_clicked')) {
+        // Già seguito (al caricamento o in questa sessione): non riavviare il flusso.
+        if (followedAtPageLoad || followedInSession) return;
         const open = await checkSerataAperta();
         if (open) goToForm();
       }
@@ -2908,6 +2925,7 @@
     window.addEventListener('pageshow', handleReturn);
 
     async function goToForm() {
+      followedInSession = true;
       setCookie('ig_followed', 'true', 6 * 24 * 3600);
       stepFollow.style.display = 'none';
       showSongListCard(true);
