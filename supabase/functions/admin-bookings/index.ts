@@ -944,6 +944,8 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         throw new ApiError(500, "insert_failed", "Non sono riuscito ad aprire la serata.");
       }
 
+      await updatePublicSettings(admin, { prossima_serata_data: null });
+
       return { status: 201, data };
     }
 
@@ -980,6 +982,8 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       if (!data) {
         throw new ApiError(404, "not_found", "Serata non trovata.");
       }
+
+      await updatePublicSettings(admin, { prossima_serata_data: null });
 
       return { status: 200, data };
     }

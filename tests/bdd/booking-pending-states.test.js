@@ -315,25 +315,20 @@ describe('Feature: Queue position logic', () => {
   // ── Queue position matrix ─────────────────────────────────────────────────
   describe('Position matrix', () => {
     const queue = [{ id: 10 }, { id: 20 }, { id: 30 }, { id: 40 }];
+    const queueWithPreparingCurrent = [{ id: 10, in_preparazione: true }, { id: 20 }, { id: 30 }, { id: 40 }];
 
     const cases = [
-      [null,  'no-booking', -1],
-      [99,    'not-found',  -1],
-      [{ id: 10, in_preparazione: true }, 'preparing', 0],
-      [10,    'turn',        0],
-      [20,    'next',        1],
-      [30,    'waiting',     2],
-      [40,    'waiting',     3],
+      { bookingId: null, queueItems: queue, expectedStatus: 'no-booking', expectedIndex: -1 },
+      { bookingId: 99, queueItems: queue, expectedStatus: 'not-found', expectedIndex: -1 },
+      { bookingId: 10, queueItems: queueWithPreparingCurrent, expectedStatus: 'preparing', expectedIndex: 0 },
+      { bookingId: 10, queueItems: queue, expectedStatus: 'turn', expectedIndex: 0 },
+      { bookingId: 20, queueItems: queue, expectedStatus: 'next', expectedIndex: 1 },
+      { bookingId: 30, queueItems: queue, expectedStatus: 'waiting', expectedIndex: 2 },
+      { bookingId: 40, queueItems: queue, expectedStatus: 'waiting', expectedIndex: 3 },
     ];
 
-    it.each(cases)('bookingId=%s → status=%s, index=%s', (bookingIdOrOverride, expectedStatus, expectedIndex) => {
-      const localQueue = typeof bookingIdOrOverride === 'object' && bookingIdOrOverride !== null
-        ? [bookingIdOrOverride, ...queue.slice(1)]
-        : queue;
-      const bookingId = typeof bookingIdOrOverride === 'object' && bookingIdOrOverride !== null
-        ? 10
-        : bookingIdOrOverride;
-      const result = computeQueuePosition(bookingId, localQueue);
+    it.each(cases)('bookingId=$bookingId → status=$expectedStatus, index=$expectedIndex', ({ bookingId, queueItems, expectedStatus, expectedIndex }) => {
+      const result = computeQueuePosition(bookingId, queueItems);
       expect(result.status).toBe(expectedStatus);
       expect(result.index).toBe(expectedIndex);
     });

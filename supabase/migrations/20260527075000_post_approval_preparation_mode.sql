@@ -1,10 +1,6 @@
 ALTER TABLE public.impostazioni_pubbliche
   ADD COLUMN IF NOT EXISTS modalita_post_approvazione TEXT NOT NULL DEFAULT 'direct_live';
 
-UPDATE public.impostazioni_pubbliche
-SET modalita_post_approvazione = 'direct_live'
-WHERE modalita_post_approvazione IS NULL;
-
 DO $$ BEGIN
   ALTER TABLE public.impostazioni_pubbliche
     ADD CONSTRAINT impostazioni_pubbliche_modalita_post_approvazione_check
