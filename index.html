@@ -1296,6 +1296,7 @@
   <!-- STEP closed: nessuna serata aperta -->
   <div class="card" id="step-closed" style="display:none">
     <p id="closed-state-alert" class="closed-state-alert">Le votazioni sono terminate</p>
+    <p id="closed-state-booking-disabled-message" style="display:none; font-size:0.92rem; color:var(--gold); margin:4px 0 10px; font-weight:700;">Da ora non è più possibile prenotarsi.</p>
     <img
       id="closed-state-hero-image"
       class="closed-state-hero-image"
@@ -1477,6 +1478,7 @@
     const stepClosedTitle = stepClosed.querySelector('h2');
     const stepClosedText = document.getElementById('closed-state-message');
     const closedStateNextDate = document.getElementById('closed-state-next-date');
+    const closedStateBookingDisabledMessage = document.getElementById('closed-state-booking-disabled-message');
     const closedStateIcon = document.getElementById('closed-state-icon');
     const closedStateHeroImage = document.getElementById('closed-state-hero-image');
     const closedStateAlert = document.getElementById('closed-state-alert');
@@ -1603,6 +1605,9 @@
       if (stepClosedTitle) stepClosedTitle.textContent = title;
       if (stepClosedText) stepClosedText.innerHTML = message;
       if (closedStateAlert) closedStateAlert.classList.toggle('is-visible', showVotingClosedHighlight);
+      if (closedStateBookingDisabledMessage) {
+        closedStateBookingDisabledMessage.style.display = showVotingClosedHighlight ? 'block' : 'none';
+      }
       if (closedStateHeroImage) closedStateHeroImage.classList.toggle('is-visible', showVotingClosedHighlight);
       if (closedStateIcon) closedStateIcon.classList.toggle('is-hidden', showVotingClosedHighlight);
     }
@@ -1633,12 +1638,15 @@
       return publicSettings;
     }
 
-    function updateClosedPromoContent() {
+    function updateClosedPromoContent(options = {}) {
+      const showNextDate = options.showNextDate !== false;
       if (closedStateNextDate) {
         const formattedDate = formatPublicDateLabel(publicSettings?.prossima_serata_data, true);
-        closedStateNextDate.textContent = formattedDate
+        const shouldShowNextDate = showNextDate && Boolean(formattedDate);
+        closedStateNextDate.style.display = shouldShowNextDate ? 'block' : 'none';
+        closedStateNextDate.textContent = shouldShowNextDate
           ? `Data del prossimo karaoke: ${formattedDate}.`
-          : 'Data del prossimo karaoke in aggiornamento.';
+          : '';
       }
       if (closedArchiveLink) {
         // Link sempre visibile: se l'archivio è chiuso al pubblico,
@@ -1706,7 +1714,7 @@
           : 'Clicca il pulsante in alto per scoprire il vincitore di questa edizione del Karaoke della <strong class="brand-highlight">Tana Del Coniglio</strong>.',
         { showVotingClosedHighlight: true }
       );
-      updateClosedPromoContent();
+      updateClosedPromoContent({ showNextDate: false });
       showLeaderboard(false);
       await preloadRevealLeaderboard(serataData);
     }
@@ -1726,7 +1734,7 @@
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
         setClosedState('🏆 Classifica finale', 'Ecco il risultato finale della serata.');
-        updateClosedPromoContent();
+        updateClosedPromoContent({ showNextDate: false });
         showLeaderboard(true);
         await loadFinalLeaderboard(serataData.id, serataData.vincitore_prenotazione_id);
       }, delay + 25);
@@ -2386,7 +2394,7 @@
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
         setClosedState('🏁 Karaoke concluso', 'Il vincitore è stato decretato e le prenotazioni sono chiuse per questa serata.');
-        updateClosedPromoContent();
+        updateClosedPromoContent({ showNextDate: false });
         showLeaderboard(true);
         await loadFinalLeaderboard(data.id, data.vincitore_prenotazione_id);
         return false;
@@ -2468,7 +2476,7 @@
           stepClosed.style.display = 'flex';
           document.querySelector('.steps').style.display = 'none';
           setClosedState('🏁 Karaoke concluso', 'Il vincitore è stato decretato e le prenotazioni sono chiuse per questa serata.');
-          updateClosedPromoContent();
+          updateClosedPromoContent({ showNextDate: false });
           showLeaderboard(true);
           loadFinalLeaderboard(serataId, data.vincitore_prenotazione_id);
           return;
