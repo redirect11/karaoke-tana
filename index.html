@@ -2494,14 +2494,14 @@
           // Ripristina il flusso di follow solo se non siamo già in uno stato attivo.
           // FollowFlow.shouldRestoreFollowFlow evita di riaccendere il box Segui
           // o il form quando l'utente è già in una schermata di prenotazione.
-          const inBookingFlow = stepForm.style.display === 'block' ||
+          const isInBookingFlow = stepForm.style.display === 'block' ||
                                 stepFollow.style.display === 'block';
-          const needsRestore = FollowFlow.shouldRestoreFollowFlow({
+          const shouldRestore = FollowFlow.shouldRestoreFollowFlow({
             isWaiting: stepWaiting.style.display === 'flex',
             isSuccess: stepSuccess.style.display === 'flex',
-            isInBookingFlow: inBookingFlow,
+            isInBookingFlow: isInBookingFlow,
           });
-          if (needsRestore) {
+          if (shouldRestore) {
             // Check if there's a pending booking, otherwise restore follow flow.
             const pending = await checkPendingBooking();
             if (!pending) {

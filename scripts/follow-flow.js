@@ -78,4 +78,4 @@
   } else {
     global.FollowFlow = FollowFlow;
   }
-}(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this)));
+}(typeof window !== 'undefined' ? window : globalThis));

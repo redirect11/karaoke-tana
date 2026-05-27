@@ -184,7 +184,7 @@ test('closed/reveal/winnerDecreed: nessun impact su computeFollowFlowVisibility 
     { followedAtPageLoad: true,  followedInSession: false },
     { followedAtPageLoad: false, followedInSession: true  },
   ];
-  cases.forEach(function (params) {
+  cases.forEach((params) => {
     const s = FollowFlow.computeFollowFlowVisibility(params);
     // La funzione deve sempre restituire un oggetto con le proprietà attese
     assert.ok(typeof s.showSteps === 'boolean', 'showSteps deve essere boolean');
