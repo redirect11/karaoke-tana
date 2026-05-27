@@ -687,12 +687,12 @@
     function getCrc32Table() {
       if (crc32Table) return crc32Table;
       crc32Table = new Uint32Array(256);
-      for (let i = 0; i < 256; i += 1) {
-        let c = i;
-        for (let j = 0; j < 8; j += 1) {
+      for (let tableIndex = 0; tableIndex < 256; tableIndex += 1) {
+        let c = tableIndex;
+        for (let bit = 0; bit < 8; bit += 1) {
           c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
         }
-        crc32Table[i] = c >>> 0;
+        crc32Table[tableIndex] = c >>> 0;
       }
       return crc32Table;
     }
@@ -700,8 +700,8 @@
     function computeCrc32(bytes) {
       const table = getCrc32Table();
       let crc = 0xFFFFFFFF;
-      for (let i = 0; i < bytes.length; i += 1) {
-        crc = table[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+      for (let byteIndex = 0; byteIndex < bytes.length; byteIndex += 1) {
+        crc = table[(crc ^ bytes[byteIndex]) & 0xFF] ^ (crc >>> 8);
       }
       return (crc ^ 0xFFFFFFFF) >>> 0;
     }
