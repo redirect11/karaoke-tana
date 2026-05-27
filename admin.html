@@ -1019,6 +1019,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="config.js"></script>
+  <script src="scripts/maintenance-mode.js"></script>
   <script src="scripts/serata-sync.js"></script>
   <script defer src="scripts/test-banner.js"></script>
   <script src="./scripts/karaoke-utils.js"></script>
@@ -1069,6 +1070,7 @@
     let bookings = [];
     let currentSerata = null;
     let publicSettings = {
+      manutenzione_abilitata: false,
       winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
       winner_reveal_animation_enabled: true,
       winner_reveal_animation_mode: 'automatic',
@@ -1231,6 +1233,16 @@
       initAdmin();
     }
 
+    function syncMaintenanceBanner() {
+      if (!window.KaraokeMaintenanceMode) return;
+      const maintenanceEnabled = publicSettings?.manutenzione_abilitata === true;
+      if (maintenanceEnabled) {
+        window.KaraokeMaintenanceMode.injectAdminBanner('⚠️ Modalità manutenzione attiva');
+        return;
+      }
+      document.getElementById('karaoke-maintenance-banner')?.remove();
+    }
+
     async function initAdmin() {
       await refreshState();
       // Strategia unica realtime+poll: gli eventi su serate/prenotazioni e il
@@ -1390,6 +1402,7 @@
         currentSerata = state?.serata || null;
         bookings = Array.isArray(state?.bookings) ? state.bookings : [];
         publicSettings = state?.settings || publicSettings;
+        syncMaintenanceBanner();
         await maybeAutoManageWinnerReveal();
         syncConnected = true;
         renderSerata();

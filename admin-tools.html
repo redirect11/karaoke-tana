@@ -410,6 +410,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="config.js"></script>
+  <script src="scripts/maintenance-mode.js"></script>
   <script defer src="scripts/test-banner.js"></script>
   <script>
     const config =
@@ -675,6 +676,13 @@
       const maintenanceStatus = maintenanceEnabled ? '🟡 attiva' : '⭕ disattivata';
       maintenanceModeStatusBox.innerHTML = `<strong>Modalità manutenzione: ${escapeHtml(maintenanceStatus)}</strong>`;
       btnToggleMaintenanceMode.textContent = maintenanceEnabled ? 'Disattiva manutenzione' : 'Attiva manutenzione';
+      if (window.KaraokeMaintenanceMode) {
+        if (maintenanceEnabled) {
+          window.KaraokeMaintenanceMode.injectAdminBanner('⚠️ Modalità manutenzione attiva');
+        } else {
+          document.getElementById('karaoke-maintenance-banner')?.remove();
+        }
+      }
 
       const postApprovalMode = publicSettings?.modalita_post_approvazione === 'preparation_then_live'
         ? 'preparation_then_live'
