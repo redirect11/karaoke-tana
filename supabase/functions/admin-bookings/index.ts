@@ -123,8 +123,10 @@ function normalizeOptionalDate(value: unknown, fieldName: string): string | null
   return trimmed;
 }
 
+const DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS = 5;
+
 function parseCountdownSeconds(value: unknown): number {
-  if (value === null || value === undefined || value === "") return 30;
+  if (value === null || value === undefined || value === "") return DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS;
   const parsed = toPositiveInt(value, "countdownSeconds");
   if (parsed < 5 || parsed > 300) {
     throw new ApiError(400, "invalid_payload", "countdownSeconds deve essere compreso tra 5 e 300 secondi.");
@@ -421,7 +423,7 @@ async function setPreparingBooking(
 async function getPublicSettings(admin: ReturnType<typeof createClient>) {
   const { data, error } = await admin
     .from("impostazioni_pubbliche")
-    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data")
+    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds")
     .eq("id", 1)
     .maybeSingle();
 
@@ -440,8 +442,9 @@ async function getPublicSettings(admin: ReturnType<typeof createClient>) {
       archivio_pubblico_abilitato: false,
       modalita_post_approvazione: POST_APPROVAL_MODE_DIRECT_LIVE,
       prossima_serata_data: null,
+      winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
     })
-    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data")
+    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds")
     .maybeSingle();
 
   if (insertError || !inserted) {
@@ -457,6 +460,7 @@ async function updatePublicSettings(
     archivio_pubblico_abilitato?: boolean;
     modalita_post_approvazione?: PostApprovalMode;
     prossima_serata_data?: string | null;
+    winner_reveal_countdown_default_seconds?: number;
   },
 ) {
   await getPublicSettings(admin);
@@ -471,12 +475,15 @@ async function updatePublicSettings(
   if (Object.prototype.hasOwnProperty.call(updates, "prossima_serata_data")) {
     payload.prossima_serata_data = updates.prossima_serata_data ?? null;
   }
+  if (Number.isInteger(updates.winner_reveal_countdown_default_seconds)) {
+    payload.winner_reveal_countdown_default_seconds = updates.winner_reveal_countdown_default_seconds;
+  }
 
   const { data, error } = await admin
     .from("impostazioni_pubbliche")
     .update(payload)
     .eq("id", 1)
-    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data")
+    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds")
     .maybeSingle();
 
   if (error || !data) {
@@ -582,6 +589,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         archivio_pubblico_abilitato?: boolean;
         modalita_post_approvazione?: PostApprovalMode;
         prossima_serata_data?: string | null;
+        winner_reveal_countdown_default_seconds?: number;
       } = {};
       if (typeof body.archivioPubblicoAbilitato === "boolean") {
         updates.archivio_pubblico_abilitato = body.archivioPubblicoAbilitato;
@@ -592,15 +600,19 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       if (Object.prototype.hasOwnProperty.call(body, "prossimaSerataData")) {
         updates.prossima_serata_data = normalizeOptionalDate(body.prossimaSerataData, "prossimaSerataData");
       }
+      if (Object.prototype.hasOwnProperty.call(body, "winnerRevealCountdownDefaultSeconds")) {
+        updates.winner_reveal_countdown_default_seconds = parseCountdownSeconds(body.winnerRevealCountdownDefaultSeconds);
+      }
       if (
         typeof updates.archivio_pubblico_abilitato !== "boolean"
         && typeof updates.modalita_post_approvazione !== "string"
         && !Object.prototype.hasOwnProperty.call(updates, "prossima_serata_data")
+        && !Number.isInteger(updates.winner_reveal_countdown_default_seconds)
       ) {
         throw new ApiError(
           400,
           "invalid_payload",
-          "Specifica almeno archivioPubblicoAbilitato, modalitaPostApprovazione o prossimaSerataData.",
+          "Specifica almeno archivioPubblicoAbilitato, modalitaPostApprovazione, prossimaSerataData o winnerRevealCountdownDefaultSeconds.",
         );
       }
       const updatedSettings = await updatePublicSettings(admin, updates);
@@ -918,6 +930,8 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       if (openSerata) {
         throw new ApiError(409, "already_open", "Esiste già una serata aperta.");
       }
+
+      await updatePublicSettings(admin, { prossima_serata_data: null });
 
       const date = normalizeDateOrToday(body.date);
       const { data, error } = await admin
@@ -1305,9 +1319,9 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         !currentSerata.winner_reveal_countdown_ends_at &&
         !skipCountdown
       ) {
-        const countdownSeconds = parseCountdownSeconds(body.countdownSeconds ?? 5);
+        const countdownSeconds = parseCountdownSeconds(body.countdownSeconds ?? DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS);
         const startedAt = new Date();
-        const endsAt = new Date(startedAt.getTime() + (countdownSeconds + 1) * 1000);
+        const endsAt = new Date(startedAt.getTime() + countdownSeconds * 1000);
         const { data: countdownSerata, error: countdownError } = await admin
           .from("serate")
           .update({
