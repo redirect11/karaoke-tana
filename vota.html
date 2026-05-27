@@ -1084,6 +1084,7 @@
     const DEFAULT_SELFIE_URL = 'logo.png';
     const DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS = 5;
     const MAX_WINNER_REVEAL_COUNTDOWN_SECONDS = 300;
+    const DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS = 3;
 
     const content       = document.getElementById('content');
     const statusBanner  = document.getElementById('status-banner');
@@ -1147,6 +1148,14 @@
     let direttaAdminActionInFlight = false;
     let direttaAdminSettings = {
       winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
+      winner_reveal_animation_enabled: true,
+      winner_reveal_animation_mode: 'automatic',
+      winner_reveal_auto_step_seconds: DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
+    };
+    let publicRevealSettings = {
+      winner_reveal_animation_enabled: true,
+      winner_reveal_animation_mode: 'automatic',
+      winner_reveal_auto_step_seconds: DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
     };
     const HOME_PAGE_PATH = 'index.html';
     // localVotes: { [prenotazione_id]: { voto, db_id } }
@@ -1195,6 +1204,7 @@
       serata     = data;
       votingOpen = data.voto_aperto;
       showTotalsPublic = Boolean(data.mostra_voti_totali);
+      await loadPublicRevealSettings();
       forceWinnerReveal = false;
       updateBanner();
       renderDiretta();
@@ -1246,6 +1256,7 @@
         serata           = data;
         votingOpen       = Boolean(data.voto_aperto);
         showTotalsPublic = Boolean(data.mostra_voti_totali);
+        await loadPublicRevealSettings();
         if (!serata.winner_reveal_countdown_active && !serata.vincitore_decretato) {
           forceWinnerReveal = false;
         }
@@ -1319,11 +1330,74 @@
         : DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS;
     }
 
+    function getWinnerRevealSettings(settings = publicRevealSettings) {
+      if (typeof window.getWinnerRevealSettings === 'function') {
+        return window.getWinnerRevealSettings(settings);
+      }
+      const enabled = settings?.winner_reveal_animation_enabled !== false;
+      const mode = settings?.winner_reveal_animation_mode === 'manual' ? 'manual' : 'automatic';
+      const autoStepSeconds = Number(settings?.winner_reveal_auto_step_seconds);
+      return {
+        enabled,
+        mode,
+        autoStepSeconds: Number.isInteger(autoStepSeconds) && autoStepSeconds >= 1 && autoStepSeconds <= 30
+          ? autoStepSeconds
+          : DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
+      };
+    }
+
+    function getRevealStartRank(rankingLength) {
+      if (typeof window.getWinnerRevealStartRank === 'function') {
+        return window.getWinnerRevealStartRank(rankingLength, 5);
+      }
+      const len = Number(rankingLength);
+      if (!Number.isInteger(len) || len <= 0) return null;
+      return Math.min(5, len);
+    }
+
+    function normalizeRevealRank(rank, rankingLength) {
+      if (typeof window.normalizeWinnerRevealRank === 'function') {
+        return window.normalizeWinnerRevealRank(rank, rankingLength, 5);
+      }
+      const parsed = Number(rank);
+      const startRank = getRevealStartRank(rankingLength);
+      if (!startRank || !Number.isInteger(parsed) || parsed < 1 || parsed > startRank) return null;
+      return parsed;
+    }
+
+    function hasRevealCountdownEnded() {
+      const endsAtMs = getWinnerRevealEndsAtMs(serata);
+      return Number.isFinite(endsAtMs) && endsAtMs <= Date.now();
+    }
+
+    function shouldShowProgressiveReveal() {
+      if (!serata || serata.vincitore_decretato) return false;
+      if (!Boolean(serata.winner_reveal_countdown_active)) return false;
+      if (!hasRevealCountdownEnded()) return false;
+      return getWinnerRevealSettings().enabled;
+    }
+
+    async function loadPublicRevealSettings() {
+      if (!db) return publicRevealSettings;
+      try {
+        const { data } = await db
+          .from('impostazioni_pubbliche')
+          .select('winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds')
+          .eq('id', 1)
+          .maybeSingle();
+        if (data) publicRevealSettings = { ...publicRevealSettings, ...data };
+      } catch (_) {}
+      return publicRevealSettings;
+    }
+
     async function loadDirettaAdminSettings() {
       if (!direttaAdminToken) return direttaAdminSettings;
       try {
         const settings = await callAdmin('get_public_settings');
-        if (settings) direttaAdminSettings = settings;
+        if (settings) {
+          direttaAdminSettings = settings;
+          publicRevealSettings = { ...publicRevealSettings, ...settings };
+        }
       } catch (_) {}
       return direttaAdminSettings;
     }
@@ -1481,20 +1555,10 @@
         if (remaining === 0) {
           stopDirettaCountdown();
           forceWinnerReveal = true;
-          if (document.fullscreenElement) {
-            startTop5Reveal(() => {
-              top5RevealActive = false;
-              direttaWrap.style.display = 'none';
-              content.style.display = '';
-              renderContent();
-              void refreshSerata();
-            });
-          } else {
-            renderContent();
-            direttaWrap.style.display = 'none';
-            content.style.display = '';
-            void refreshSerata();
-          }
+          renderContent();
+          direttaWrap.style.display = 'none';
+          content.style.display = '';
+          void refreshSerata();
           return;
         }
         const nextChangeInMs = msLeft - ((remaining - 1) * 1000);
@@ -1617,8 +1681,13 @@
         return;
       }
 
-      if (serata?.vincitore_decretato || forceWinnerReveal) {
+      if (serata?.vincitore_decretato || (forceWinnerReveal && !shouldShowProgressiveReveal())) {
         renderFinalLeaderboard();
+        return;
+      }
+
+      if (shouldShowProgressiveReveal()) {
+        renderProgressiveReveal();
         return;
       }
 
@@ -1726,6 +1795,48 @@
           if (b.scoreCount !== a.scoreCount) return b.scoreCount - a.scoreCount;
           return String(a.created_at || '').localeCompare(String(b.created_at || ''));
         });
+    }
+
+    function renderProgressiveReveal() {
+      const ranking = buildRanking();
+      const startRank = getRevealStartRank(ranking.length);
+      if (!startRank) {
+        showEmpty('Classifica non disponibile.');
+        return;
+      }
+      const topRanking = ranking.slice(0, startRank);
+      const revealRank = normalizeRevealRank(serata?.winner_reveal_current_rank, topRanking.length) || startRank;
+      const revealIndex = topRanking.length - revealRank;
+      const item = topRanking[revealIndex];
+      if (!item) {
+        renderFinalLeaderboard();
+        return;
+      }
+      const isWinnerRank = revealRank === 1;
+      const songLabel = item.artista ? `${item.canzone} — ${item.artista}` : (item.canzone || '');
+      const subtitle = isWinnerRank
+        ? '🏆 Il vincitore sta per essere proclamato'
+        : `Posizione ${revealRank} della Top ${topRanking.length}`;
+      content.innerHTML = `
+        <section class="leaderboard-card">
+          <div class="leaderboard-header">
+            <h2>${isWinnerRank ? '🏆 Svelando il vincitore…' : `🎬 Svelando la posizione ${revealRank}`}</h2>
+            <p>${subtitle}</p>
+          </div>
+          <div class="leaderboard-list">
+            <article class="leaderboard-hero">
+              <div class="leaderboard-hero-bg placeholder"></div>
+              <div class="leaderboard-hero-gradient"></div>
+              <div class="leaderboard-hero-content">
+                <span class="leaderboard-winner-badge">${isWinnerRank ? '🏆 Vincitore' : `#${revealRank}`}</span>
+                <div class="leaderboard-winner-name">${esc(item.nome || '')}</div>
+                <div class="leaderboard-winner-song">${esc(songLabel)}</div>
+                <div class="leaderboard-winner-points">${item.scoreTotal} pt · ${item.scoreCount} vot${item.scoreCount === 1 ? 'o' : 'i'}</div>
+              </div>
+            </article>
+          </div>
+        </section>
+      `;
     }
 
     function renderFinalLeaderboard() {

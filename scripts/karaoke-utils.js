@@ -161,6 +161,9 @@
    * @type {number}
    */
   var PENDING_EXPIRY_MIN_DEFAULT = 30;
+  var DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS = 3;
+  var MIN_WINNER_REVEAL_AUTO_STEP_SECONDS = 1;
+  var MAX_WINNER_REVEAL_AUTO_STEP_SECONDS = 30;
 
   /**
    * Compute the UTC timestamp (ms) at which a pending booking should be
@@ -226,6 +229,76 @@
     return Number.isFinite(ts) ? ts : null;
   }
 
+  /**
+   * Normalize winner-reveal settings coming from `impostazioni_pubbliche`.
+   *
+   * @param {object|null} settings
+   * @returns {{
+   *   enabled: boolean,
+   *   mode: 'manual'|'automatic',
+   *   autoStepSeconds: number,
+   * }}
+   */
+  function getWinnerRevealSettings(settings) {
+    var enabled = settings == null || settings.winner_reveal_animation_enabled !== false;
+    var mode = settings && settings.winner_reveal_animation_mode === 'manual'
+      ? 'manual'
+      : 'automatic';
+    var rawSeconds = Number(settings == null ? NaN : settings.winner_reveal_auto_step_seconds);
+    var autoStepSeconds =
+      Number.isInteger(rawSeconds) &&
+      rawSeconds >= MIN_WINNER_REVEAL_AUTO_STEP_SECONDS &&
+      rawSeconds <= MAX_WINNER_REVEAL_AUTO_STEP_SECONDS
+        ? rawSeconds
+        : DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS;
+    return { enabled: enabled, mode: mode, autoStepSeconds: autoStepSeconds };
+  }
+
+  /**
+   * Compute the first rank to reveal for top-N reveal mode.
+   *
+   * @param {number} rankingLength
+   * @param {number} [maxTop=5]
+   * @returns {number|null}
+   */
+  function getWinnerRevealStartRank(rankingLength, maxTop) {
+    if (maxTop === undefined) maxTop = 5;
+    var len = Number(rankingLength);
+    var topLimit = Number(maxTop);
+    if (!Number.isInteger(len) || len <= 0) return null;
+    if (!Number.isInteger(topLimit) || topLimit <= 0) topLimit = 5;
+    return Math.min(topLimit, len);
+  }
+
+  /**
+   * Normalize a reveal rank against a given ranking size.
+   *
+   * @param {number|null|undefined} rank
+   * @param {number} rankingLength
+   * @param {number} [maxTop=5]
+   * @returns {number|null}
+   */
+  function normalizeWinnerRevealRank(rank, rankingLength, maxTop) {
+    var startRank = getWinnerRevealStartRank(rankingLength, maxTop);
+    if (!startRank) return null;
+    var parsed = Number(rank);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > startRank) return null;
+    return parsed;
+  }
+
+  /**
+   * Derive the next admin action label for manual reveal mode.
+   *
+   * @param {number|null|undefined} currentRank
+   * @returns {{ label: string, winnerAction: boolean }|null}
+   */
+  function getWinnerRevealAdminAction(currentRank) {
+    var rank = Number(currentRank);
+    if (!Number.isInteger(rank) || rank <= 1) return null;
+    if (rank === 2) return { label: '🏆 Svela vincitore', winnerAction: true };
+    return { label: 'Svela la posizione ' + String(rank - 1), winnerAction: false };
+  }
+
   // ── Song list helpers ────────────────────────────────────────────────────
 
   /**
@@ -289,8 +362,15 @@
     getCurrentStoredSerataId: getCurrentStoredSerataId,
     getStatusSerataId: getStatusSerataId,
     getWinnerRevealEndsAtMs: getWinnerRevealEndsAtMs,
+    getWinnerRevealSettings: getWinnerRevealSettings,
+    getWinnerRevealStartRank: getWinnerRevealStartRank,
+    normalizeWinnerRevealRank: normalizeWinnerRevealRank,
+    getWinnerRevealAdminAction: getWinnerRevealAdminAction,
     setDisplayIndexes: setDisplayIndexes,
     buildRanking: buildRanking,
     PENDING_EXPIRY_MIN_DEFAULT: PENDING_EXPIRY_MIN_DEFAULT,
+    DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS: DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
+    MIN_WINNER_REVEAL_AUTO_STEP_SECONDS: MIN_WINNER_REVEAL_AUTO_STEP_SECONDS,
+    MAX_WINNER_REVEAL_AUTO_STEP_SECONDS: MAX_WINNER_REVEAL_AUTO_STEP_SECONDS,
   };
 });
