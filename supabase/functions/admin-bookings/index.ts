@@ -1018,6 +1018,10 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         throw new ApiError(400, "invalid_state", "La prenotazione non appartiene a una serata valida.");
       }
       await ensureSerataAllowsMutations(admin, serataId);
+      const preparationModeEnabled = isPreparationModeEnabled((await getPublicSettings(admin)).modalita_post_approvazione);
+      if (!preparationModeEnabled) {
+        throw new ApiError(409, "invalid_state", "La fase di preparazione è disabilitata nelle impostazioni.");
+      }
 
       const currentBooking = await getCurrentActiveBooking(admin, serataId);
       if (Number(currentBooking?.id) !== bookingId) {
