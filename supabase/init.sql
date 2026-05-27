@@ -59,19 +59,19 @@ ALTER TABLE serate ENABLE ROW LEVEL SECURITY;
 ALTER TABLE impostazioni_pubbliche ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
-  CREATE POLICY "serate_select" ON serate FOR SELECT TO anon USING (true);
+  CREATE POLICY "serate_select" ON serate FOR SELECT TO anon, authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "serate_insert" ON serate FOR INSERT TO anon WITH CHECK (true);
+  CREATE POLICY "serate_insert" ON serate FOR INSERT TO anon, authenticated WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "serate_update" ON serate FOR UPDATE TO anon USING (true);
+  CREATE POLICY "serate_update" ON serate FOR UPDATE TO anon, authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "impostazioni_pubbliche_select" ON impostazioni_pubbliche FOR SELECT TO anon USING (true);
+  CREATE POLICY "impostazioni_pubbliche_select" ON impostazioni_pubbliche FOR SELECT TO anon, authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 
@@ -209,23 +209,23 @@ ALTER TABLE prenotazioni ALTER COLUMN tavolo SET DEFAULT 0;
 ALTER TABLE prenotazioni ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
-  CREATE POLICY "prenotazioni_select" ON prenotazioni FOR SELECT TO anon USING (true);
+  CREATE POLICY "prenotazioni_select" ON prenotazioni FOR SELECT TO anon, authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "prenotazioni_insert" ON prenotazioni FOR INSERT TO anon WITH CHECK (true);
+  CREATE POLICY "prenotazioni_insert" ON prenotazioni FOR INSERT TO anon, authenticated WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "prenotazioni_update" ON prenotazioni FOR UPDATE TO anon USING (true);
+  CREATE POLICY "prenotazioni_update" ON prenotazioni FOR UPDATE TO anon, authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "prenotazioni_delete" ON prenotazioni FOR DELETE TO anon USING (true);
+  CREATE POLICY "prenotazioni_delete" ON prenotazioni FOR DELETE TO anon, authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "serate_delete" ON serate FOR DELETE TO anon USING (true);
+  CREATE POLICY "serate_delete" ON serate FOR DELETE TO anon, authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 
@@ -244,15 +244,15 @@ CREATE TABLE IF NOT EXISTS voti (
 ALTER TABLE voti ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
-  CREATE POLICY "voti_select" ON voti FOR SELECT TO anon USING (true);
+  CREATE POLICY "voti_select" ON voti FOR SELECT TO anon, authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "voti_insert" ON voti FOR INSERT TO anon WITH CHECK (true);
+  CREATE POLICY "voti_insert" ON voti FOR INSERT TO anon, authenticated WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "voti_update" ON voti FOR UPDATE TO anon USING (true);
+  CREATE POLICY "voti_update" ON voti FOR UPDATE TO anon, authenticated USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 
