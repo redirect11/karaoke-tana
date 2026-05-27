@@ -49,6 +49,7 @@ BOOKING_PENDING_EXPIRY_MIN="${BOOKING_PENDING_EXPIRY_MIN:-30}" \
 BOOKING_COOLDOWN_MIN="${BOOKING_PENDING_EXPIRY_MIN:-30}" \
 ADS_ENABLED="false" \
 ADS_MODE="off" \
+APP_ENV="test" \
   node /workspace/scripts/generate-pages-config.mjs /workspace
 ok "config.js generato."
 
@@ -138,6 +139,7 @@ BOOKING_PENDING_EXPIRY_MIN="${BOOKING_PENDING_EXPIRY_MIN:-30}" \
 BOOKING_COOLDOWN_MIN="${BOOKING_PENDING_EXPIRY_MIN:-30}" \
 ADS_ENABLED="false" \
 ADS_MODE="off" \
+APP_ENV="test" \
   node /workspace/scripts/generate-pages-config.mjs /workspace
 ok "config.js generato."
 
