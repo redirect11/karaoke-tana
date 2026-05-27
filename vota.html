@@ -829,7 +829,9 @@
       z-index: 1;
     }
     body.is-fullscreen header,
-    body.is-fullscreen #status-banner {
+    body.is-fullscreen #status-banner,
+    /* In fullscreen (vista proiettata al pubblico) i controlli admin sono nascosti. */
+    body.is-fullscreen #diretta-admin-controls {
       display: none !important;
     }
     body.is-fullscreen #diretta-wrap {
@@ -1405,6 +1407,29 @@
         }
       } catch (_) {}
       return direttaAdminSettings;
+    }
+
+    // Rileva l'admin dalla sessione (login da admin.html, persistita in
+    // localStorage e condivisa same-origin) così i controlli countdown
+    // compaiono aprendo vota.html direttamente, non solo via postMessage.
+    async function detectDirettaAdmin() {
+      if (!db || direttaAdminToken) return;
+      let token = '';
+      try {
+        const { data } = await db.auth.getSession();
+        token = data?.session?.access_token || '';
+      } catch (_) { token = ''; }
+      if (!token) return;
+      direttaAdminToken = token;
+      try {
+        await callAdmin('ping');
+      } catch (_) {
+        direttaAdminToken = '';
+        renderDirettaAdminControls();
+        return;
+      }
+      void loadDirettaAdminSettings();
+      renderDirettaAdminControls();
     }
 
     function renderDirettaAdminControls() {
@@ -2170,6 +2195,7 @@
         }
       }
       await loadSerata();
+      await detectDirettaAdmin();
     })();
   </script>
   <script defer src="scripts/vendor/cookieconsent.umd.js"></script>
