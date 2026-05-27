@@ -688,7 +688,7 @@
       if (!rawUrl) throw new Error('Selfie non disponibile.');
       const sourceUrl = resolveLanUrl(rawUrl);
       const response = await fetch(sourceUrl);
-      if (!response.ok) throw new Error('Download selfie fallito.');
+      if (!response.ok) throw new Error(`Download selfie fallito (${response.status} ${response.statusText || 'errore'}).`);
       const blob = await response.blob();
       const extension = getSelfieExtension(sourceUrl);
       const editionPrefix = getEditionFilePrefix(serata);
@@ -1176,7 +1176,7 @@
         btn.textContent = previous;
       }
       if (downloaded > 0) {
-        alert(`Download avviato per ${downloaded} ${downloaded === 1 ? 'selfie' : 'selfie'} di questa edizione.`);
+        alert(`Download avviato per ${downloaded} ${downloaded === 1 ? 'selfie' : 'selfies'} di questa edizione.`);
       }
     }
 
