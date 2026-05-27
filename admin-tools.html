@@ -133,6 +133,31 @@
       padding: 14px;
     }
     .status-box strong { display: block; color: var(--text); margin-bottom: 4px; }
+    .public-settings-summary {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .public-settings-row {
+      background: rgba(30, 15, 53, 0.62);
+      border: 1px solid #3d2366;
+      border-radius: 8px;
+      padding: 9px 10px;
+      display: grid;
+      gap: 3px;
+    }
+    .public-settings-row-label {
+      color: var(--gold-s);
+      font-size: 0.74rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .public-settings-row-value {
+      color: var(--text);
+      line-height: 1.4;
+      font-size: 0.9rem;
+    }
 
     .actions { display: flex; flex-wrap: wrap; gap: 10px; }
     .next-date-controls { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -522,10 +547,21 @@
       const winnerRevealCountdownSeconds = getWinnerRevealCountdownSeconds();
       archivePublicStatusBox.innerHTML = `
         <strong>Archivio pubblico: ${enabled ? '🟢 attivo' : '⭕ nascosto'}</strong>
-        <span>Data prossimo karaoke: ${publicSettings?.prossima_serata_data || 'non impostata'}</span>
-        <span>Dopo approvazione: ${postApprovalLabel}</span>
-        <span>${postApprovalDescription}</span>
-        <span>Countdown reveal vincitore: ${winnerRevealCountdownSeconds} secondi</span>
+        <div class="public-settings-summary">
+          <div class="public-settings-row">
+            <span class="public-settings-row-label">Data prossimo karaoke</span>
+            <span class="public-settings-row-value">${publicSettings?.prossima_serata_data || 'non impostata'}</span>
+          </div>
+          <div class="public-settings-row">
+            <span class="public-settings-row-label">Dopo approvazione</span>
+            <span class="public-settings-row-value">${postApprovalLabel}</span>
+            <span class="public-settings-row-value">${postApprovalDescription}</span>
+          </div>
+          <div class="public-settings-row">
+            <span class="public-settings-row-label">Countdown reveal vincitore</span>
+            <span class="public-settings-row-value">${winnerRevealCountdownSeconds} secondi</span>
+          </div>
+        </div>
       `;
       btnToggleArchivePublic.textContent = enabled ? 'Disattiva archivio in home' : 'Attiva archivio in home';
       postApprovalModeSelect.value = postApprovalMode;
