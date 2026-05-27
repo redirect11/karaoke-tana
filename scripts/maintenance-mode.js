@@ -63,7 +63,8 @@
         headers: getAdminHeaders(token, config),
         body: JSON.stringify({ action: 'ping' }),
       });
-      state.isAdmin = response.ok;
+      const result = await response.json().catch(() => null);
+      state.isAdmin = response.ok && result?.success === true && result?.data?.ok === true;
     } catch {
       return state;
     }
