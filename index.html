@@ -2059,6 +2059,7 @@
               <div class="song-item-artist">${escapeHtml(item.artista)}</div>
               <div class="song-item-name">Prenotata da ${escapeHtml(item.nome)}</div>
               ${currentSong && !item.in_preparazione ? `<div class="song-item-badge">🎤 Canzone corrente</div>` : ''}
+              ${currentSong && item.in_preparazione ? '<div class="song-item-badge">In preparazione</div>' : ''}
               ${Number(item.id) === currentBookingIdNum ? '<div class="song-item-badge">La tua prenotazione</div>' : ''}
             </div>
           </div>
@@ -2077,7 +2078,7 @@
       const queueItems = items.slice(1);
       const currentSongHtml = currentSong
         ? `${currentSong.in_preparazione
-            ? '<div class="song-list-section current-song-preparing">⏳ SI STA PREPARANDO</div>'
+            ? '<div class="song-list-section current-song-preparing">⏳ PROSSIMO A CANTARE</div>'
             : '<div class="song-list-section current-song-live"><span class="live-dot" aria-hidden="true"></span>ON AIR</div>'}${renderSongItem(currentSong, currentSong.in_preparazione ? 'Ready' : 'LIVE', { currentSong: true })}`
         : '';
       const queueHtml = queueItems.length
