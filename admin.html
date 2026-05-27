@@ -1071,6 +1071,7 @@
     let currentSerata = null;
     let publicSettings = {
       manutenzione_abilitata: false,
+      modalita_post_approvazione: 'direct_live',
       winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
       winner_reveal_animation_enabled: true,
       winner_reveal_animation_mode: 'automatic',
@@ -2038,6 +2039,10 @@
       });
     }
 
+    function isPreparationModeManagedAndEnabled() {
+      return publicSettings?.modalita_post_approvazione === 'preparation_then_live';
+    }
+
     function makeCard(booking, index, kind, lockedAfterWinner = false, progressiveIndexMap = new Map()) {
       const card = document.createElement('div');
       const isApproved = kind === 'approved';
@@ -2095,7 +2100,7 @@
             isCurrent
               ? (isPreparing
                   ? '<button class="btn-action btn-start" data-action="start">▶ Inizia</button>'
-                  : '<button class="btn-action btn-back-preparing" data-action="back-preparing">↶ In preparazione</button><button class="btn-action btn-done" data-action="done">✓ Fatto</button>')
+                  : `${isPreparationModeManagedAndEnabled() ? '<button class="btn-action btn-back-preparing" data-action="back-preparing">↶ In preparazione</button>' : ''}<button class="btn-action btn-done" data-action="done">✓ Fatto</button>`)
               : (isCompleted
                 ? ''
                 : (isApproved
