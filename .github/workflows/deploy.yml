@@ -96,6 +96,7 @@ jobs:
           ADSENSE_CLIENT_ID: ${{ secrets.ADSENSE_CLIENT_ID }}
           ADSENSE_BANNER_SLOT: ${{ secrets.ADSENSE_BANNER_SLOT }}
           ADS_REQUIRE_BEFORE_BOOKING: ${{ secrets.ADS_REQUIRE_BEFORE_BOOKING }}
+          APP_ENV: ${{ secrets.APP_ENV }}
         run: |
           node ./scripts/generate-pages-config.mjs .
 

@@ -42,6 +42,7 @@ const config = {
   ADSENSE_CLIENT_ID: process.env.ADSENSE_CLIENT_ID || '',
   ADSENSE_BANNER_SLOT: process.env.ADSENSE_BANNER_SLOT || '',
   ADS_REQUIRE_BEFORE_BOOKING: parseBoolean(process.env.ADS_REQUIRE_BEFORE_BOOKING, false),
+  APP_ENV: normalizeFromSet(process.env.APP_ENV, ['test', 'production'], 'production'),
 };
 
 const runtimeShim = `if (typeof window !== 'undefined') {

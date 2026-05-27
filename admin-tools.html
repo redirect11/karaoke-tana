@@ -421,10 +421,9 @@
     const ADMIN_EMAIL = 'admin@tana.it';
     const DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS = 5;
     const MAX_WINNER_REVEAL_COUNTDOWN_SECONDS = 300;
-    const PRODUCTION_HOSTNAME = 'www.ilkaraokedellatana.it';
 
-    function isTestEnvironment() {
-      return String(window.location.hostname || '').trim().toLowerCase() !== PRODUCTION_HOSTNAME;
+    function isDevelopmentEnvironment() {
+      return config.APP_ENV === 'test';
     }
 
     let currentSerata = null;
@@ -543,7 +542,7 @@
     function unlockPanel() {
       overlay.classList.add('hidden');
       panel.style.display = 'block';
-      if (isTestEnvironment()) {
+      if (isDevelopmentEnvironment()) {
         document.getElementById('dev-section').style.display = '';
       }
       initTools();

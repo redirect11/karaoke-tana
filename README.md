@@ -191,6 +191,9 @@ La pipeline (`.github/workflows/deploy.yml`) genera `config.js` dai secrets e pu
 - `ADSENSE_CLIENT_ID` (es. `ca-pub-xxxxxxxxxxxxxxxx`)
 - `ADSENSE_BANNER_SLOT` (slot id banner)
 - `ADS_REQUIRE_BEFORE_BOOKING` (`true|false`)
+- `APP_ENV` (`test|production`) — **nuovo**: imposta `test` in questo repo per abilitare il pannello "Impostazioni database (sviluppo)" in `admin-tools.html` e le azioni distruttive di pulizia dati nel backend. Omettere o impostare `production` nell'ambiente live. Dopo il merge di questa PR aggiungere il secret al repository.
+
+> **Nota:** `APP_ENV=test` deve essere configurato anche come secret della Edge Function Supabase (`supabase secrets set APP_ENV=test`) per consentire le azioni di pulizia dati server-side.
 
 URL test: `https://test.ilkaraokedellatana.it/`
 

@@ -52,6 +52,10 @@ function toAction(value: unknown): string {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+function isTestEnvironment(): boolean {
+  return (Deno.env.get("APP_ENV") ?? "production") === "test";
+}
+
 function toPositiveInt(value: unknown, fieldName: string): number {
   const parsed = typeof value === "number" ? value : Number(String(value ?? "").trim());
   if (!Number.isInteger(parsed) || parsed <= 0) {
@@ -1586,6 +1590,9 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
 
     case "cleanup_current_serata":
     case "cleanup_serata": {
+      if (!isTestEnvironment()) {
+        throw new ApiError(403, "forbidden", "Azione disponibile solo in ambiente di sviluppo/test.");
+      }
       const serataId = body.serataId != null
         ? toPositiveInt(body.serataId, "serataId")
         : (await getOpenSerata(admin))?.id;
@@ -1616,6 +1623,9 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
 
     case "cleanup_all_test_data":
     case "cleanup_all": {
+      if (!isTestEnvironment()) {
+        throw new ApiError(403, "forbidden", "Azione disponibile solo in ambiente di sviluppo/test.");
+      }
       const bookingsResult = await admin
         .from("prenotazioni")
         .delete()

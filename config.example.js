@@ -44,6 +44,12 @@ const CONFIG = {
   // Se true, prima della conferma prenotazione appare uno step sponsor
   ADS_REQUIRE_BEFORE_BOOKING: false,
 
+  // ── Ambiente ───────────────────────────────────────────────
+  // 'test' abilita il pannello "Impostazioni database (sviluppo)" in admin-tools
+  // e consente le azioni distruttive di pulizia dati nel backend.
+  // Impostare a 'production' (o omettere) nell'ambiente live.
+  APP_ENV: 'production',
+
 };
 
 if (typeof window !== 'undefined') {
