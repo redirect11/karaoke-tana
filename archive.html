@@ -948,13 +948,13 @@
       const adminActionsHtml = isAdmin
         ? `<div class="tile-admin-actions" data-stop>
              <button type="button" class="tile-admin-btn" data-admin-action="toggle-visibility" data-serata-id="${Number(serata.id)}" title="${hidden ? 'Rendi pubblica' : 'Nascondi dal pubblico'}">
-               ${hidden ? '👁️ mostra' : '🙈 nascondi'}
+               ${hidden ? '👁️ Mostra' : '🙈 Nascondi'}
              </button>
              <button type="button" class="tile-admin-btn" data-admin-action="pick-cover" data-serata-id="${Number(serata.id)}" title="Cambia foto di copertina">
-               📷 cover
+               📷 Cover
              </button>
             <button type="button" class="tile-admin-btn" data-admin-action="download-selfies" data-serata-id="${Number(serata.id)}" title="Scarica tutti i selfie di questa edizione">
-              ⬇️ download
+              ⬇️ Download
              </button>
             <button type="button" class="tile-admin-btn" data-admin-action="delete-serata" data-serata-id="${Number(serata.id)}" title="Elimina edizione" style="color:#ff8888;">
               🗑️ Cancella
@@ -1108,7 +1108,7 @@
                 <div class="podium-score-votes">${item.score_count} ${item.score_count === 1 ? 'voto' : 'voti'}</div>
               </div>
               ${isAdmin && item.selfie_url
-                ? `<button type="button" class="podium-download-btn" data-modal-admin-action="download-selfie" data-prenotazione-id="${Number(item.id)}">⬇️ download</button>`
+                ? `<button type="button" class="podium-download-btn" data-modal-admin-action="download-selfie" data-prenotazione-id="${Number(item.id)}">⬇️ Download</button>`
                 : ''}
             </div>
           `).join('')}</div>`
