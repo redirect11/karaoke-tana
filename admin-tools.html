@@ -208,6 +208,45 @@
       background: rgba(155,28,46,0.16);
       border: 1px solid rgba(155,28,46,0.45);
     }
+
+    .setting-sub-box {
+      background: var(--bg2);
+      border: 1px solid #3d2366;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .setting-sub-box .setting-label { margin-bottom: 0; }
+    .setting-sub-box > p { margin: 0; }
+
+    .dev-section { display: none; }
+
+    details > summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--gold-s);
+      font-size: 1rem;
+      font-weight: 700;
+      user-select: none;
+    }
+    details > summary::-webkit-details-marker { display: none; }
+    details > summary::before {
+      content: '▶';
+      font-size: 0.7rem;
+      transition: transform 0.2s;
+    }
+    details[open] > summary::before { transform: rotate(90deg); }
+    details > .details-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding-top: 14px;
+    }
   </style>
   <link rel="stylesheet" href="scripts/vendor/cookieconsent.css" />
 </head>
@@ -235,18 +274,59 @@
     </div>
 
     <div class="stack">
+
+      <!-- ── IMPOSTAZIONI PUBBLICHE ─────────────────────────── -->
       <section class="card">
-        <h2>Serata corrente</h2>
-        <div class="status-box" id="current-serata-box">
-          <strong>Caricamento…</strong>
-          <span>Sto controllando se c'è una serata aperta.</span>
+        <h2>Impostazioni pubbliche</h2>
+
+        <div class="setting-sub-box">
+          <div class="setting-label">Archivio pubblico</div>
+          <p>Mostra o nasconde la sezione archivio delle serate passate nella home page.</p>
+          <div class="status-box" id="archive-public-status-box">
+            <strong>Caricamento…</strong>
+          </div>
+          <div class="actions">
+            <button class="action-btn btn-public-settings" id="btn-toggle-archive-public" type="button">—</button>
+          </div>
         </div>
-        <div class="actions">
-          <button class="action-btn btn-clean-serata" id="btn-clean-serata">Pulisci prenotazioni serata corrente</button>
+
+        <div class="setting-sub-box">
+          <label class="setting-label" for="post-approval-mode">Cosa fare dopo approvazione</label>
+          <p>
+            Decide cosa succede alla canzone corrente subito dopo l'approvazione:
+            mandala direttamente live oppure falla comparire prima nello stato "si sta preparando",
+            così l'admin deve premere <strong>Inizia</strong> prima di portarla on air.
+          </p>
+          <div class="next-date-controls">
+            <select class="next-date-input" id="post-approval-mode">
+              <option value="direct_live">La canzone va direttamente live</option>
+              <option value="preparation_then_live">In preparazione e poi live</option>
+            </select>
+            <button class="action-btn btn-public-settings" id="btn-save-post-approval-mode" type="button">Salva impostazione</button>
+          </div>
         </div>
-        <p>Questa azione elimina le prenotazioni della serata aperta e i relativi voti collegati.</p>
+
+        <div class="setting-sub-box">
+          <label class="setting-label" for="next-karaoke-date">Data prossimo karaoke</label>
+          <p>La data del prossimo karaoke mostrata nella home page. Lascia vuoto per non mostrare nulla.</p>
+          <div class="next-date-controls">
+            <input class="next-date-input" id="next-karaoke-date" type="date" />
+            <button class="action-btn btn-public-settings" id="btn-save-next-date" type="button">Salva data</button>
+            <button class="action-btn btn-clear-next-date" id="btn-clear-next-date" type="button">Rimuovi data</button>
+          </div>
+        </div>
+
+        <div class="setting-sub-box">
+          <label class="setting-label" for="winner-reveal-countdown-seconds">Countdown reveal vincitore</label>
+          <p>Numero di secondi del conto alla rovescia che precede la proclamazione del vincitore (default 5, max 300).</p>
+          <div class="next-date-controls">
+            <input class="next-date-input" id="winner-reveal-countdown-seconds" type="number" min="5" max="300" step="1" inputmode="numeric" />
+            <button class="action-btn btn-public-settings" id="btn-save-winner-reveal-countdown" type="button">Salva countdown</button>
+          </div>
+        </div>
       </section>
 
+      <!-- ── NOTIFICHE ──────────────────────────────────────── -->
       <section class="card">
         <h2>Notifiche</h2>
         <div class="status-box" id="notification-settings-box">
@@ -260,50 +340,36 @@
         <p>Qui puoi abilitare o disabilitare notifiche Telegram e browser per la serata aperta.</p>
       </section>
 
-      <section class="card">
-        <h2>Impostazioni pubbliche</h2>
-        <div class="status-box" id="archive-public-status-box">
-          <strong>Caricamento…</strong>
-          <span>Sto leggendo le impostazioni pubbliche.</span>
-        </div>
-        <div class="actions">
-          <button class="action-btn btn-public-settings" id="btn-toggle-archive-public" type="button">—</button>
-        </div>
-        <div class="setting-block">
-          <label class="setting-label" for="post-approval-mode">Cosa fare dopo approvazione</label>
-          <div class="next-date-controls">
-            <select class="next-date-input" id="post-approval-mode">
-              <option value="direct_live">La canzone va direttamente live</option>
-              <option value="preparation_then_live">In preparazione e poi live</option>
-            </select>
-            <button class="action-btn btn-public-settings" id="btn-save-post-approval-mode" type="button">Salva impostazione</button>
-          </div>
-          <p>
-            Questa impostazione decide cosa succede alla canzone corrente subito dopo l’approvazione:
-            puoi mandarla direttamente live oppure farla comparire prima nello stato “si sta preparando”,
-            così l’admin deve premere <strong>Inizia</strong> prima di portarla on air.
-          </p>
-        </div>
-        <div class="next-date-controls">
-          <input class="next-date-input" id="next-karaoke-date" type="date" />
-          <button class="action-btn btn-public-settings" id="btn-save-next-date" type="button">Salva data</button>
-          <button class="action-btn btn-clear-next-date" id="btn-clear-next-date" type="button">Rimuovi data</button>
-        </div>
-        <div class="next-date-controls">
-          <input class="next-date-input" id="winner-reveal-countdown-seconds" type="number" min="5" max="300" step="1" inputmode="numeric" />
-          <button class="action-btn btn-public-settings" id="btn-save-winner-reveal-countdown" type="button">Salva countdown</button>
-        </div>
-        <p>Il countdown reveal del vincitore parte dal valore configurato qui (default 5 secondi).</p>
-      </section>
+      <!-- ── IMPOSTAZIONI DI SVILUPPO (solo ambiente test) ───── -->
+      <section class="card dev-section" id="dev-section">
+        <details>
+          <summary>Impostazioni di sviluppo</summary>
+          <div class="details-body">
 
-      <section class="card">
-        <h2>Database di test</h2>
-        <div class="danger-note">
-          <p>Usa questa opzione solo per sviluppo: svuota prenotazioni e serate. I voti vengono rimossi automaticamente tramite cascade.</p>
-        </div>
-        <div class="actions">
-          <button class="action-btn btn-clean-all" id="btn-clean-all">Pulisci tutto il database di test</button>
-        </div>
+            <div class="setting-sub-box">
+              <div class="setting-label">Serata corrente</div>
+              <p>Elimina le prenotazioni della serata aperta e i relativi voti collegati. Utile per ripulire i dati di test senza toccare le altre serate.</p>
+              <div class="status-box" id="current-serata-box">
+                <strong>Caricamento…</strong>
+                <span>Sto controllando se c'è una serata aperta.</span>
+              </div>
+              <div class="actions">
+                <button class="action-btn btn-clean-serata" id="btn-clean-serata">Pulisci prenotazioni serata corrente</button>
+              </div>
+            </div>
+
+            <div class="setting-sub-box">
+              <div class="setting-label">Database di test</div>
+              <div class="danger-note">
+                <p>Usa questa opzione solo per sviluppo: svuota <strong>tutte</strong> le prenotazioni e le serate. I voti vengono rimossi automaticamente tramite cascade.</p>
+              </div>
+              <div class="actions">
+                <button class="action-btn btn-clean-all" id="btn-clean-all">Pulisci tutto il database di test</button>
+              </div>
+            </div>
+
+          </div>
+        </details>
       </section>
 
       <div id="status-message"></div>
@@ -355,6 +421,11 @@
     const ADMIN_EMAIL = 'admin@tana.it';
     const DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS = 5;
     const MAX_WINNER_REVEAL_COUNTDOWN_SECONDS = 300;
+    const PRODUCTION_HOSTNAME = 'www.ilkaraokedellatana.it';
+
+    function isTestEnvironment() {
+      return String(window.location.hostname || '').trim().toLowerCase() !== PRODUCTION_HOSTNAME;
+    }
 
     let currentSerata = null;
     let adminToken = '';
@@ -472,6 +543,9 @@
     function unlockPanel() {
       overlay.classList.add('hidden');
       panel.style.display = 'block';
+      if (isTestEnvironment()) {
+        document.getElementById('dev-section').style.display = '';
+      }
       initTools();
     }
 
@@ -545,43 +619,18 @@
 
     function renderPublicSettings() {
       const enabled = publicSettings?.archivio_pubblico_abilitato === true;
+      const archiveStatus = enabled ? '🟢 attivo' : '⭕ nascosto';
+      archivePublicStatusBox.innerHTML = `<strong>Archivio pubblico: ${escapeHtml(archiveStatus)}</strong>`;
+      btnToggleArchivePublic.textContent = enabled ? 'Disattiva archivio in home' : 'Attiva archivio in home';
+
       const postApprovalMode = publicSettings?.modalita_post_approvazione === 'preparation_then_live'
         ? 'preparation_then_live'
         : 'direct_live';
-      const postApprovalLabel = postApprovalMode === 'preparation_then_live'
-        ? '⏳ In preparazione e poi live'
-        : '🎤 Direttamente live';
-      const postApprovalDescription = postApprovalMode === 'preparation_then_live'
-        ? 'Dopo l’approvazione la canzone corrente entra in “si sta preparando” e l’admin deve premere “Inizia” per mandarla live.'
-        : 'Dopo l’approvazione la canzone corrente va subito live, senza passare dallo stato di preparazione.';
-      const winnerRevealCountdownSeconds = getWinnerRevealCountdownSeconds();
-      const archiveStatus = enabled ? '🟢 attivo' : '⭕ nascosto';
-      const safeArchiveStatus = escapeHtml(archiveStatus);
-      const safeWinnerRevealCountdownSeconds = escapeHtml(winnerRevealCountdownSeconds);
-      const nextKaraokeDateLabel = escapeHtml(publicSettings?.prossima_serata_data || 'non impostata');
-      const safePostApprovalLabel = escapeHtml(postApprovalLabel);
-      const safePostApprovalDescription = escapeHtml(postApprovalDescription);
-      archivePublicStatusBox.innerHTML = `
-        <strong>Archivio pubblico: ${safeArchiveStatus}</strong>
-        <div class="public-settings-summary">
-          <div class="public-settings-row">
-            <span class="public-settings-row-label">Data prossimo karaoke</span>
-            <span class="public-settings-row-value">${nextKaraokeDateLabel}</span>
-          </div>
-          <div class="public-settings-row">
-            <span class="public-settings-row-label">Dopo approvazione</span>
-            <span class="public-settings-row-value">${safePostApprovalLabel}</span>
-            <span class="public-settings-row-value">${safePostApprovalDescription}</span>
-          </div>
-          <div class="public-settings-row">
-            <span class="public-settings-row-label">Countdown reveal vincitore</span>
-            <span class="public-settings-row-value">${safeWinnerRevealCountdownSeconds} secondi</span>
-          </div>
-        </div>
-      `;
-      btnToggleArchivePublic.textContent = enabled ? 'Disattiva archivio in home' : 'Attiva archivio in home';
       postApprovalModeSelect.value = postApprovalMode;
+
       nextKaraokeDateInput.value = publicSettings?.prossima_serata_data || '';
+
+      const winnerRevealCountdownSeconds = getWinnerRevealCountdownSeconds();
       winnerRevealCountdownInput.value = String(winnerRevealCountdownSeconds);
     }
 
