@@ -1071,6 +1071,7 @@
 
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="scripts/maintenance-mode.js"></script>
   <script src="scripts/serata-sync.js"></script>
   <script defer src="scripts/test-banner.js"></script>
   <script src="./scripts/karaoke-utils.js"></script>
@@ -2156,7 +2157,20 @@
     document.addEventListener('fullscreenchange', updateFullscreenBtn);
     btnFullscreen?.addEventListener('click', toggleFullscreen);
 
-    loadSerata();
+    (async () => {
+      if (window.KaraokeMaintenanceMode) {
+        const maintenanceAccess = await window.KaraokeMaintenanceMode.getAccessState(config);
+        if (maintenanceAccess.settings?.manutenzione_abilitata === true) {
+          if (maintenanceAccess.isAdmin) {
+            window.KaraokeMaintenanceMode.injectAdminBanner('⚠️ Modalità manutenzione attiva');
+          } else if (!maintenanceAccess.isAuthenticated) {
+            window.KaraokeMaintenanceMode.redirectToHome();
+            return;
+          }
+        }
+      }
+      await loadSerata();
+    })();
   </script>
   <script defer src="scripts/vendor/cookieconsent.umd.js"></script>
   <script defer src="cookie-consent.js"></script>

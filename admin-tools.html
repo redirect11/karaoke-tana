@@ -291,6 +291,17 @@
         </div>
 
         <div class="setting-sub-box">
+          <div class="setting-label">Modalità manutenzione</div>
+          <p>Blocca la home per gli utenti normali e reindirizza le altre pagine pubbliche verso la home.</p>
+          <div class="status-box" id="maintenance-mode-status-box">
+            <strong>Caricamento…</strong>
+          </div>
+          <div class="actions">
+            <button class="action-btn btn-public-settings" id="btn-toggle-maintenance-mode" type="button">—</button>
+          </div>
+        </div>
+
+        <div class="setting-sub-box">
           <label class="setting-label" for="post-approval-mode">Cosa fare dopo approvazione</label>
           <p>
             Decide cosa succede alla canzone corrente subito dopo l'approvazione:
@@ -424,12 +435,14 @@
     const currentSerataBox = document.getElementById('current-serata-box');
     const notificationSettingsBox = document.getElementById('notification-settings-box');
     const archivePublicStatusBox = document.getElementById('archive-public-status-box');
+    const maintenanceModeStatusBox = document.getElementById('maintenance-mode-status-box');
     const statusMessage = document.getElementById('status-message');
     const cleanSerataBtn = document.getElementById('btn-clean-serata');
     const cleanAllBtn = document.getElementById('btn-clean-all');
     const toggleTelegramNotificationsBtn = document.getElementById('btn-toggle-telegram-notifications');
     const toggleBrowserNotificationsBtn = document.getElementById('btn-toggle-browser-notifications');
     const btnToggleArchivePublic = document.getElementById('btn-toggle-archive-public');
+    const btnToggleMaintenanceMode = document.getElementById('btn-toggle-maintenance-mode');
     const postApprovalModeSelect = document.getElementById('post-approval-mode');
     const btnSavePostApprovalMode = document.getElementById('btn-save-post-approval-mode');
     const nextKaraokeDateInput = document.getElementById('next-karaoke-date');
@@ -458,6 +471,7 @@
     let adminToken = '';
     let publicSettings = {
       archivio_pubblico_abilitato: false,
+      manutenzione_abilitata: false,
       modalita_post_approvazione: 'direct_live',
       prossima_serata_data: null,
       winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
@@ -473,6 +487,7 @@
     toggleTelegramNotificationsBtn.addEventListener('click', toggleTelegramNotifications);
     toggleBrowserNotificationsBtn.addEventListener('click', toggleBrowserNotifications);
     btnToggleArchivePublic.addEventListener('click', toggleArchivePublic);
+    btnToggleMaintenanceMode.addEventListener('click', toggleMaintenanceMode);
     btnSavePostApprovalMode.addEventListener('click', savePostApprovalMode);
     btnSaveNextDate.addEventListener('click', saveNextKaraokeDate);
     btnClearNextDate.addEventListener('click', clearNextKaraokeDate);
@@ -656,6 +671,11 @@
       archivePublicStatusBox.innerHTML = `<strong>Archivio pubblico: ${escapeHtml(archiveStatus)}</strong>`;
       btnToggleArchivePublic.textContent = enabled ? 'Disattiva archivio in home' : 'Attiva archivio in home';
 
+      const maintenanceEnabled = publicSettings?.manutenzione_abilitata === true;
+      const maintenanceStatus = maintenanceEnabled ? '🟡 attiva' : '⭕ disattivata';
+      maintenanceModeStatusBox.innerHTML = `<strong>Modalità manutenzione: ${escapeHtml(maintenanceStatus)}</strong>`;
+      btnToggleMaintenanceMode.textContent = maintenanceEnabled ? 'Disattiva manutenzione' : 'Attiva manutenzione';
+
       const postApprovalMode = publicSettings?.modalita_post_approvazione === 'preparation_then_live'
         ? 'preparation_then_live'
         : 'direct_live';
@@ -713,6 +733,19 @@
         setStatus(error?.message || 'Non sono riuscito ad aggiornare la visibilità archivio.', true);
       } finally {
         btnToggleArchivePublic.disabled = false;
+        renderPublicSettings();
+      }
+    }
+
+    async function toggleMaintenanceMode() {
+      const nextValue = !(publicSettings?.manutenzione_abilitata === true);
+      setBusy(btnToggleMaintenanceMode, true, 'Aggiornamento…');
+      try {
+        publicSettings = await callAdmin('set_public_settings', { manutenzioneAbilitata: nextValue });
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito ad aggiornare la modalità manutenzione.', true);
+      } finally {
+        btnToggleMaintenanceMode.disabled = false;
         renderPublicSettings();
       }
     }

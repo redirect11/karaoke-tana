@@ -589,6 +589,7 @@
 
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="scripts/maintenance-mode.js"></script>
   <script>
     const config = (typeof window.CONFIG === 'object' && window.CONFIG) || (typeof CONFIG === 'object' && CONFIG) || {};
     const supabaseReady = config.SUPABASE_URL && !config.SUPABASE_URL.includes('TUO-PROGETTO');
@@ -1401,6 +1402,17 @@
         return;
       }
       try {
+        if (window.KaraokeMaintenanceMode) {
+          const maintenanceAccess = await window.KaraokeMaintenanceMode.getAccessState(config);
+          if (maintenanceAccess.settings?.manutenzione_abilitata === true) {
+            if (maintenanceAccess.isAdmin) {
+              window.KaraokeMaintenanceMode.injectAdminBanner('⚠️ Modalità manutenzione attiva');
+            } else if (!maintenanceAccess.isAuthenticated) {
+              window.KaraokeMaintenanceMode.redirectToHome();
+              return;
+            }
+          }
+        }
         // Rilevazione admin: se c'è una sessione valida con permessi admin
         // mostriamo tutto (anche serate nascoste) e i controlli inline.
         isAdmin = await detectAdmin();
