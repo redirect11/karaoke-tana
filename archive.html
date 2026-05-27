@@ -683,18 +683,136 @@
       URL.revokeObjectURL(objectUrl);
     }
 
-    async function downloadSelfie(serata, booking) {
+    let crc32Table = null;
+    function getCrc32Table() {
+      if (crc32Table) return crc32Table;
+      crc32Table = new Uint32Array(256);
+      for (let tableIndex = 0; tableIndex < 256; tableIndex += 1) {
+        let c = tableIndex;
+        for (let bit = 0; bit < 8; bit += 1) {
+          c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        }
+        crc32Table[tableIndex] = c >>> 0;
+      }
+      return crc32Table;
+    }
+
+    function computeCrc32(bytes) {
+      const table = getCrc32Table();
+      let crc = 0xFFFFFFFF;
+      for (let byteIndex = 0; byteIndex < bytes.length; byteIndex += 1) {
+        crc = table[(crc ^ bytes[byteIndex]) & 0xFF] ^ (crc >>> 8);
+      }
+      return (crc ^ 0xFFFFFFFF) >>> 0;
+    }
+
+    function getDosDateTime(date = new Date()) {
+      const year = Math.min(Math.max(date.getFullYear(), 1980), 2107);
+      const dosTime = ((date.getHours() & 0x1F) << 11)
+        | ((date.getMinutes() & 0x3F) << 5)
+        | ((Math.floor(date.getSeconds() / 2)) & 0x1F);
+      const dosDate = (((year - 1980) & 0x7F) << 9)
+        | (((date.getMonth() + 1) & 0x0F) << 5)
+        | (date.getDate() & 0x1F);
+      return { dosTime, dosDate };
+    }
+
+    function createZipBlob(entries) {
+      const encoder = new TextEncoder();
+      const chunks = [];
+      const centralDirectoryChunks = [];
+      let offset = 0;
+      let centralDirectorySize = 0;
+
+      entries.forEach((entry) => {
+        const nameBytes = encoder.encode(entry.filename);
+        const fileBytes = entry.bytes;
+        const crc32 = computeCrc32(fileBytes);
+        const { dosTime, dosDate } = getDosDateTime(new Date());
+
+        const localHeader = new ArrayBuffer(30);
+        const localView = new DataView(localHeader);
+        localView.setUint32(0, 0x04034B50, true);
+        localView.setUint16(4, 20, true);
+        localView.setUint16(6, 0x0800, true);
+        localView.setUint16(8, 0, true);
+        localView.setUint16(10, dosTime, true);
+        localView.setUint16(12, dosDate, true);
+        localView.setUint32(14, crc32, true);
+        localView.setUint32(18, fileBytes.length, true);
+        localView.setUint32(22, fileBytes.length, true);
+        localView.setUint16(26, nameBytes.length, true);
+        localView.setUint16(28, 0, true);
+
+        chunks.push(new Uint8Array(localHeader), nameBytes, fileBytes);
+
+        const centralHeader = new ArrayBuffer(46);
+        const centralView = new DataView(centralHeader);
+        centralView.setUint32(0, 0x02014B50, true);
+        centralView.setUint16(4, 20, true);
+        centralView.setUint16(6, 20, true);
+        centralView.setUint16(8, 0x0800, true);
+        centralView.setUint16(10, 0, true);
+        centralView.setUint16(12, dosTime, true);
+        centralView.setUint16(14, dosDate, true);
+        centralView.setUint32(16, crc32, true);
+        centralView.setUint32(20, fileBytes.length, true);
+        centralView.setUint32(24, fileBytes.length, true);
+        centralView.setUint16(28, nameBytes.length, true);
+        centralView.setUint16(30, 0, true);
+        centralView.setUint16(32, 0, true);
+        centralView.setUint16(34, 0, true);
+        centralView.setUint16(36, 0, true);
+        centralView.setUint32(38, 0, true);
+        centralView.setUint32(42, offset, true);
+
+        centralDirectoryChunks.push(new Uint8Array(centralHeader), nameBytes);
+
+        const localSize = 30 + nameBytes.length + fileBytes.length;
+        const centralSize = 46 + nameBytes.length;
+        offset += localSize;
+        centralDirectorySize += centralSize;
+      });
+
+      const centralDirectoryOffset = offset;
+      chunks.push(...centralDirectoryChunks);
+
+      const endRecord = new ArrayBuffer(22);
+      const endView = new DataView(endRecord);
+      endView.setUint32(0, 0x06054B50, true);
+      endView.setUint16(4, 0, true);
+      endView.setUint16(6, 0, true);
+      endView.setUint16(8, entries.length, true);
+      endView.setUint16(10, entries.length, true);
+      endView.setUint32(12, centralDirectorySize, true);
+      endView.setUint32(16, centralDirectoryOffset, true);
+      endView.setUint16(20, 0, true);
+      chunks.push(new Uint8Array(endRecord));
+
+      return new Blob(chunks, { type: 'application/zip' });
+    }
+
+    function buildSelfieFilename(serata, booking, sourceUrl) {
+      const extension = getSelfieExtension(sourceUrl);
+      const editionPrefix = getEditionFilePrefix(serata);
+      const namePart = sanitizeFilePart(booking?.nome || 'partecipante', `prenotazione-${Number(booking?.id) || 'x'}`);
+      const bookingId = Number(booking?.id) || 'x';
+      return `${editionPrefix}-selfie-${namePart}-${bookingId}.${extension}`;
+    }
+
+    async function downloadSelfieBlob(booking) {
       const rawUrl = typeof booking?.selfie_url === 'string' ? booking.selfie_url : '';
       if (!rawUrl) throw new Error('Selfie non disponibile.');
       const sourceUrl = resolveLanUrl(rawUrl);
       const response = await fetch(sourceUrl);
       if (!response.ok) throw new Error(`Download selfie fallito (${response.status} ${response.statusText || 'errore'}).`);
       const blob = await response.blob();
-      const extension = getSelfieExtension(sourceUrl);
-      const editionPrefix = getEditionFilePrefix(serata);
-      const namePart = sanitizeFilePart(booking?.nome || 'partecipante', `prenotazione-${Number(booking?.id) || 'x'}`);
-      const bookingId = Number(booking?.id) || 'x';
-      const filename = `${editionPrefix}-selfie-${namePart}-${bookingId}.${extension}`;
+      return { blob, sourceUrl };
+    }
+
+    async function downloadSelfie(serata, booking) {
+      const { blob, sourceUrl } = await downloadSelfieBlob(booking);
+      const filename = buildSelfieFilename(serata, booking, sourceUrl);
       triggerBlobDownload(blob, filename);
     }
 
@@ -1163,25 +1281,25 @@
       }
       btn.disabled = true;
       const previous = btn.textContent;
-      let downloaded = 0;
-      let failed = false;
       try {
+        const zipEntries = [];
         for (const [index, booking] of selfies.entries()) {
-          btn.textContent = `Scarico ${index + 1}/${selfies.length}…`;
-          await downloadSelfie(serata, booking);
-          downloaded += 1;
+          btn.textContent = `Preparo ${index + 1}/${selfies.length}…`;
+          const { blob, sourceUrl } = await downloadSelfieBlob(booking);
+          const filename = buildSelfieFilename(serata, booking, sourceUrl);
+          const bytes = new Uint8Array(await blob.arrayBuffer());
+          zipEntries.push({ filename, bytes });
         }
+        btn.textContent = 'Creo ZIP…';
+        const zipBlob = createZipBlob(zipEntries);
+        const zipFilename = `${getEditionFilePrefix(serata)}-selfies.zip`;
+        triggerBlobDownload(zipBlob, zipFilename);
+        alert(`Download ZIP avviato per ${selfies.length} selfie di questa edizione.`);
       } catch (error) {
-        failed = true;
         alert(error?.message || 'Download selfie fallito.');
       } finally {
         btn.disabled = false;
         btn.textContent = previous;
-      }
-      if (!failed && downloaded > 0) {
-        alert(`Download avviato per ${downloaded} selfie di questa edizione.`);
-      } else if (failed && downloaded > 0) {
-        alert(`Download parziale avviato: ${downloaded} selfie scaricati prima dell'errore.`);
       }
     }
 
