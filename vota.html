@@ -992,6 +992,8 @@
       ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY)
       : null;
     const DEFAULT_SELFIE_URL = 'logo.png';
+    const DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS = 5;
+    const MAX_WINNER_REVEAL_COUNTDOWN_SECONDS = 300;
 
     const content       = document.getElementById('content');
     const statusBanner  = document.getElementById('status-banner');
@@ -1045,6 +1047,9 @@
     let refreshingSerata = false;
     let direttaAdminToken = '';
     let direttaAdminActionInFlight = false;
+    let direttaAdminSettings = {
+      winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
+    };
     const HOME_PAGE_PATH = 'index.html';
     // localVotes: { [prenotazione_id]: { voto, db_id } }
     const localVotes = JSON.parse(localStorage.getItem('local_votes') || '{}');
@@ -1207,6 +1212,24 @@
       return result.data;
     }
 
+    function getWinnerRevealCountdownSeconds(settings = direttaAdminSettings) {
+      const value = Number(settings?.winner_reveal_countdown_default_seconds);
+      return Number.isInteger(value)
+        && value >= DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS
+        && value <= MAX_WINNER_REVEAL_COUNTDOWN_SECONDS
+        ? value
+        : DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS;
+    }
+
+    async function loadDirettaAdminSettings() {
+      if (!direttaAdminToken) return direttaAdminSettings;
+      try {
+        const settings = await callAdmin('get_public_settings');
+        if (settings) direttaAdminSettings = settings;
+      } catch (_) {}
+      return direttaAdminSettings;
+    }
+
     function renderDirettaAdminControls() {
       if (!direttaAdminControls || !direttaAdminNote || !startDirettaCountdownBtn || !decreeDirettaNowBtn) return;
       const direttaActive = Boolean(serata?.winner_reveal_countdown_active);
@@ -1230,11 +1253,12 @@
     async function startDirettaCountdownFromVota() {
       if (!serata?.id || !direttaAdminToken || direttaAdminActionInFlight) return;
       if (Number.isFinite(Date.parse(serata?.winner_reveal_countdown_ends_at || ''))) return;
-      if (!confirm('Avviare il countdown diretta (5 secondi) da questa pagina?')) return;
+      const countdownSeconds = getWinnerRevealCountdownSeconds(await loadDirettaAdminSettings());
+      if (!confirm(`Avviare il countdown diretta (${countdownSeconds} secondi) da questa pagina?`)) return;
       direttaAdminActionInFlight = true;
       renderDirettaAdminControls();
       try {
-        const result = await callAdmin('decree_winner', { serataId: serata.id, countdownSeconds: 5 });
+        const result = await callAdmin('decree_winner', { serataId: serata.id, countdownSeconds });
         if (result?.serata) {
           serata = result.serata;
           votingOpen = Boolean(serata.voto_aperto);
@@ -1324,6 +1348,7 @@
       void preloadDirettaFinalView();
 
       const configuredSeconds = Number(serata?.winner_reveal_countdown_seconds);
+      const startedAtMs = Date.parse(serata?.winner_reveal_countdown_started_at || '');
       if (Number.isInteger(configuredSeconds) && configuredSeconds > 0) {
         direttaCountdownEl.textContent = String(configuredSeconds).padStart(2, '0');
       }
@@ -1334,12 +1359,19 @@
       }
 
       const tick = () => {
-        const msLeft = endsAtMs - Date.now();
-        const remainingRaw = Math.max(0, Math.ceil(msLeft / 1000));
-        let remaining = remainingRaw;
-        if (Number.isInteger(configuredSeconds) && configuredSeconds > 0) {
-          const elapsedSinceSeen = Date.now() - direttaCountdownSeenAtMs;
-          if (elapsedSinceSeen < 1000) remaining = Math.max(remaining, configuredSeconds);
+        const now = Date.now();
+        const msLeft = endsAtMs - now;
+        let remaining = Math.max(0, Math.ceil(msLeft / 1000));
+        if (
+          Number.isInteger(configuredSeconds)
+          && configuredSeconds > 0
+          && Number.isFinite(startedAtMs)
+        ) {
+          const elapsedMs = Math.max(0, now - startedAtMs);
+          remaining = Math.max(0, configuredSeconds - Math.floor(elapsedMs / 1000));
+        } else if (Number.isInteger(configuredSeconds) && configuredSeconds > 0) {
+          const elapsedSinceSeen = now - direttaCountdownSeenAtMs;
+          remaining = Math.max(0, configuredSeconds - Math.floor(elapsedSinceSeen / 1000));
         }
         if (remaining !== direttaCountdownLastValue) {
           direttaCountdownLastValue = remaining;
@@ -1776,6 +1808,7 @@
       const payload = event.data || {};
       if (payload.type !== 'karaoke-admin-auth' || typeof payload.token !== 'string' || !payload.token) return;
       direttaAdminToken = payload.token;
+      void loadDirettaAdminSettings();
       renderDirettaAdminControls();
     });
     startDirettaCountdownBtn?.addEventListener('click', startDirettaCountdownFromVota);

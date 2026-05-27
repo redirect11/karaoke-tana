@@ -1026,9 +1026,14 @@
 
     const ADMIN_EMAIL = 'admin@tana.it';
     const DEFAULT_SELFIE_URL = 'logo.png';
+    const DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS = 5;
+    const MAX_WINNER_REVEAL_COUNTDOWN_SECONDS = 300;
 
     let bookings = [];
     let currentSerata = null;
+    let publicSettings = {
+      winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
+    };
     let syncConnected = false;
     let activeQueueTab = 'pending';
     let adminToken = '';
@@ -1253,6 +1258,7 @@
         const state = await callAdmin('get_state');
         currentSerata = state?.serata || null;
         bookings = Array.isArray(state?.bookings) ? state.bookings : [];
+        publicSettings = state?.settings || publicSettings;
         await maybeAutoDecreeWinner();
         syncConnected = true;
         renderSerata();
@@ -1589,11 +1595,12 @@
       if (!currentSerata) return;
       if (!currentSerata.winner_reveal_countdown_active) return;
       if (Number.isFinite(Date.parse(currentSerata.winner_reveal_countdown_ends_at || ''))) return;
-      if (!confirm('Avviare il countdown diretta (5 secondi) per il reveal del vincitore?')) return;
+      const countdownSeconds = getWinnerRevealCountdownSeconds();
+      if (!confirm(`Avviare il countdown diretta (${countdownSeconds} secondi) per il reveal del vincitore?`)) return;
       const btn = document.getElementById('btn-start-winner-countdown');
       if (btn) btn.disabled = true;
       try {
-        const result = await callAdmin('decree_winner', { serataId: currentSerata.id, countdownSeconds: 5 });
+        const result = await callAdmin('decree_winner', { serataId: currentSerata.id, countdownSeconds });
         currentSerata = result?.serata || currentSerata;
         syncConnected = true;
         renderSerata();
@@ -1602,6 +1609,15 @@
         alert(error?.message || 'Non sono riuscito ad avviare il countdown.');
         if (btn) btn.disabled = false;
       }
+    }
+
+    function getWinnerRevealCountdownSeconds() {
+      const configuredSeconds = Number(publicSettings?.winner_reveal_countdown_default_seconds);
+      return Number.isInteger(configuredSeconds)
+        && configuredSeconds >= DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS
+        && configuredSeconds <= MAX_WINNER_REVEAL_COUNTDOWN_SECONDS
+        ? configuredSeconds
+        : DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS;
     }
 
     async function decreeWinnerDirect() {

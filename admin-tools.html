@@ -241,6 +241,11 @@
           <button class="action-btn btn-public-settings" id="btn-save-next-date" type="button">Salva data</button>
           <button class="action-btn btn-clear-next-date" id="btn-clear-next-date" type="button">Rimuovi data</button>
         </div>
+        <div class="next-date-controls">
+          <input class="next-date-input" id="winner-reveal-countdown-seconds" type="number" min="5" max="300" step="1" inputmode="numeric" />
+          <button class="action-btn btn-public-settings" id="btn-save-winner-reveal-countdown" type="button">Salva countdown</button>
+        </div>
+        <p>Il countdown reveal del vincitore parte dal valore configurato qui (default 5 secondi).</p>
       </section>
 
       <section class="card">
@@ -293,15 +298,20 @@
     const nextKaraokeDateInput = document.getElementById('next-karaoke-date');
     const btnSaveNextDate = document.getElementById('btn-save-next-date');
     const btnClearNextDate = document.getElementById('btn-clear-next-date');
+    const winnerRevealCountdownInput = document.getElementById('winner-reveal-countdown-seconds');
+    const btnSaveWinnerRevealCountdown = document.getElementById('btn-save-winner-reveal-countdown');
     const pwdBtn = document.getElementById('pwd-btn');
 
     const ADMIN_EMAIL = 'admin@tana.it';
+    const DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS = 5;
+    const MAX_WINNER_REVEAL_COUNTDOWN_SECONDS = 300;
 
     let currentSerata = null;
     let adminToken = '';
     let publicSettings = {
       archivio_pubblico_abilitato: false,
       prossima_serata_data: null,
+      winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
     };
 
     document.getElementById('pwd-btn').addEventListener('click', loginAdmin);
@@ -313,6 +323,7 @@
     btnToggleArchivePublic.addEventListener('click', toggleArchivePublic);
     btnSaveNextDate.addEventListener('click', saveNextKaraokeDate);
     btnClearNextDate.addEventListener('click', clearNextKaraokeDate);
+    btnSaveWinnerRevealCountdown.addEventListener('click', saveWinnerRevealCountdown);
 
     if (supabaseClient) {
       supabaseClient.auth.getSession().then(({ data }) => {
@@ -472,12 +483,24 @@
 
     function renderPublicSettings() {
       const enabled = publicSettings?.archivio_pubblico_abilitato === true;
+      const winnerRevealCountdownSeconds = getWinnerRevealCountdownSeconds();
       archivePublicStatusBox.innerHTML = `
         <strong>Archivio pubblico: ${enabled ? '🟢 attivo' : '⭕ nascosto'}</strong>
         <span>Data prossimo karaoke: ${publicSettings?.prossima_serata_data || 'non impostata'}</span>
+        <span>Countdown reveal vincitore: ${winnerRevealCountdownSeconds} secondi</span>
       `;
       btnToggleArchivePublic.textContent = enabled ? 'Disattiva archivio in home' : 'Attiva archivio in home';
       nextKaraokeDateInput.value = publicSettings?.prossima_serata_data || '';
+      winnerRevealCountdownInput.value = String(winnerRevealCountdownSeconds);
+    }
+
+    function getWinnerRevealCountdownSeconds() {
+      const value = Number(publicSettings?.winner_reveal_countdown_default_seconds);
+      return Number.isInteger(value)
+        && value >= DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS
+        && value <= MAX_WINNER_REVEAL_COUNTDOWN_SECONDS
+        ? value
+        : DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS;
     }
 
     async function toggleArchivePublic() {
@@ -517,6 +540,25 @@
       } finally {
         btnClearNextDate.disabled = false;
         btnClearNextDate.textContent = 'Rimuovi data';
+      }
+    }
+
+    async function saveWinnerRevealCountdown() {
+      const value = Number.parseInt((winnerRevealCountdownInput.value || '').trim(), 10);
+      if (!Number.isInteger(value) || value < DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS || value > MAX_WINNER_REVEAL_COUNTDOWN_SECONDS) {
+        setStatus('Il countdown reveal deve essere compreso tra 5 e 300 secondi.', true);
+        renderPublicSettings();
+        return;
+      }
+      setBusy(btnSaveWinnerRevealCountdown, true, 'Salvataggio…');
+      try {
+        publicSettings = await callAdmin('set_public_settings', { winnerRevealCountdownDefaultSeconds: value });
+        renderPublicSettings();
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito ad aggiornare il countdown reveal.', true);
+      } finally {
+        btnSaveWinnerRevealCountdown.disabled = false;
+        btnSaveWinnerRevealCountdown.textContent = 'Salva countdown';
       }
     }
 
