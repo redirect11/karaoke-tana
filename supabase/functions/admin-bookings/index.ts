@@ -924,8 +924,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       return { status: 200, data };
     }
 
-    case "set_current_preparing":
-    case "back_to_preparing": {
+    case "set_current_preparing": {
       const bookingId = toPositiveInt(body.bookingId ?? body.id, "bookingId");
       const { data: bookingToPrepare, error: bookingLoadError } = await admin
         .from("prenotazioni")

@@ -2020,18 +2020,18 @@
         } catch (error) {
           restoreCardAfterError(card, error?.message || 'Non sono riuscito a segnare la prenotazione come completata.');
         }
-
-        async function backToPreparing(id, card) {
-          if (!confirm('Confermi il ritorno alla fase "In preparazione"?')) return;
-          setCardBusy(card, true);
-          try {
-            await callAdmin('set_current_preparing', { bookingId: id });
-            await refreshState(true);
-          } catch (error) {
-            restoreCardAfterError(card, error?.message || 'Non sono riuscito a riportare la canzone in preparazione.');
-          }
-        }
       }, 280);
+    }
+
+    async function backToPreparing(id, card) {
+      if (!confirm('Confermi il ritorno alla fase "In preparazione"?')) return;
+      setCardBusy(card, true);
+      try {
+        await callAdmin('set_current_preparing', { bookingId: id });
+        await refreshState(true);
+      } catch (error) {
+        restoreCardAfterError(card, error?.message || 'Non sono riuscito a riportare la canzone in preparazione.');
+      }
     }
 
     async function editBooking(booking, card) {
