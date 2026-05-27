@@ -583,6 +583,7 @@
 
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script>
     const config = (typeof window.CONFIG === 'object' && window.CONFIG) || (typeof CONFIG === 'object' && CONFIG) || {};
     const supabaseReady = config.SUPABASE_URL && !config.SUPABASE_URL.includes('TUO-PROGETTO');
@@ -683,18 +684,27 @@
       URL.revokeObjectURL(objectUrl);
     }
 
-    async function downloadSelfie(serata, booking) {
+    function buildSelfieFilename(serata, booking, sourceUrl) {
+      const extension = getSelfieExtension(sourceUrl);
+      const editionPrefix = getEditionFilePrefix(serata);
+      const namePart = sanitizeFilePart(booking?.nome || 'partecipante', `prenotazione-${Number(booking?.id) || 'x'}`);
+      const bookingId = Number(booking?.id) || 'x';
+      return `${editionPrefix}-selfie-${namePart}-${bookingId}.${extension}`;
+    }
+
+    async function downloadSelfieBlob(booking) {
       const rawUrl = typeof booking?.selfie_url === 'string' ? booking.selfie_url : '';
       if (!rawUrl) throw new Error('Selfie non disponibile.');
       const sourceUrl = resolveLanUrl(rawUrl);
       const response = await fetch(sourceUrl);
       if (!response.ok) throw new Error(`Download selfie fallito (${response.status} ${response.statusText || 'errore'}).`);
       const blob = await response.blob();
-      const extension = getSelfieExtension(sourceUrl);
-      const editionPrefix = getEditionFilePrefix(serata);
-      const namePart = sanitizeFilePart(booking?.nome || 'partecipante', `prenotazione-${Number(booking?.id) || 'x'}`);
-      const bookingId = Number(booking?.id) || 'x';
-      const filename = `${editionPrefix}-selfie-${namePart}-${bookingId}.${extension}`;
+      return { blob, sourceUrl };
+    }
+
+    async function downloadSelfie(serata, booking) {
+      const { blob, sourceUrl } = await downloadSelfieBlob(booking);
+      const filename = buildSelfieFilename(serata, booking, sourceUrl);
       triggerBlobDownload(blob, filename);
     }
 
@@ -1161,27 +1171,30 @@
         alert('Nessun selfie disponibile in questa edizione.');
         return;
       }
+      if (!window.JSZip) {
+        alert('Libreria ZIP non disponibile. Riprova più tardi.');
+        return;
+      }
       btn.disabled = true;
       const previous = btn.textContent;
-      let downloaded = 0;
-      let failed = false;
       try {
+        const zip = new window.JSZip();
         for (const [index, booking] of selfies.entries()) {
-          btn.textContent = `Scarico ${index + 1}/${selfies.length}…`;
-          await downloadSelfie(serata, booking);
-          downloaded += 1;
+          btn.textContent = `Preparo ${index + 1}/${selfies.length}…`;
+          const { blob, sourceUrl } = await downloadSelfieBlob(booking);
+          const filename = buildSelfieFilename(serata, booking, sourceUrl);
+          zip.file(filename, blob);
         }
+        btn.textContent = 'Creo ZIP…';
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const zipFilename = `${getEditionFilePrefix(serata)}-selfies.zip`;
+        triggerBlobDownload(zipBlob, zipFilename);
+        alert(`Download ZIP avviato per ${selfies.length} selfie di questa edizione.`);
       } catch (error) {
-        failed = true;
         alert(error?.message || 'Download selfie fallito.');
       } finally {
         btn.disabled = false;
         btn.textContent = previous;
-      }
-      if (!failed && downloaded > 0) {
-        alert(`Download avviato per ${downloaded} selfie di questa edizione.`);
-      } else if (failed && downloaded > 0) {
-        alert(`Download parziale avviato: ${downloaded} selfie scaricati prima dell'errore.`);
       }
     }
 
