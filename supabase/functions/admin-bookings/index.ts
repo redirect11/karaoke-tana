@@ -1591,7 +1591,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
     case "cleanup_current_serata":
     case "cleanup_serata": {
       if (!isTestEnvironment()) {
-        throw new ApiError(403, "forbidden", "Azione disponibile solo in ambiente di sviluppo/test.");
+        throw new ApiError(403, "forbidden", "Azione disponibile solo in ambiente di test.");
       }
       const serataId = body.serataId != null
         ? toPositiveInt(body.serataId, "serataId")
@@ -1624,7 +1624,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
     case "cleanup_all_test_data":
     case "cleanup_all": {
       if (!isTestEnvironment()) {
-        throw new ApiError(403, "forbidden", "Azione disponibile solo in ambiente di sviluppo/test.");
+        throw new ApiError(403, "forbidden", "Azione disponibile solo in ambiente di test.");
       }
       const bookingsResult = await admin
         .from("prenotazioni")
