@@ -718,6 +718,8 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         throw new ApiError(409, "already_open", "Esiste già una serata aperta.");
       }
 
+      await updatePublicSettings(admin, { prossima_serata_data: null });
+
       const date = normalizeDateOrToday(body.date);
       const { data, error } = await admin
         .from("serate")
@@ -779,6 +781,8 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       if (!data) {
         throw new ApiError(404, "not_found", "Serata non trovata.");
       }
+
+      await updatePublicSettings(admin, { prossima_serata_data: null });
 
       return { status: 200, data };
     }
