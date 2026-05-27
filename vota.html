@@ -367,21 +367,53 @@
     #diretta-wrap h2 { color: var(--gold-s); font-size: 1.15rem; }
     #diretta-wrap p { color: var(--muted); font-size: 0.88rem; }
     #diretta-countdown {
+      --countdown-shell-bg: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 52%, transparent 100%);
+      --countdown-shell-border: rgba(240,201,74,0.25);
+      --countdown-shell-shadow: 0 14px 42px rgba(0,0,0,0.42), inset 0 0 18px rgba(240,201,74,0.1);
+      --countdown-text-shadow: 0 0 28px rgba(240,201,74,0.48);
+      --countdown-halo-opacity: 0.22;
       font-size: clamp(3rem, 16vw, 6rem);
       font-weight: 900;
       color: #fff;
-      text-shadow: 0 0 28px rgba(240,201,74,0.45);
+      text-shadow: var(--countdown-text-shadow);
       line-height: 1;
       letter-spacing: 0.03em;
       transform: scale(1);
-      transition: transform 180ms ease-out, text-shadow 180ms ease-out;
+      transition: transform 200ms ease-out, text-shadow 220ms ease-out, box-shadow 220ms ease-out;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: clamp(4.4rem, 20vw, 9rem);
+      padding: 0.08em 0.26em;
+      border-radius: 999px;
+      background: var(--countdown-shell-bg);
+      border: 1px solid var(--countdown-shell-border);
+      box-shadow: var(--countdown-shell-shadow);
+      isolation: isolate;
+    }
+    #diretta-countdown::before {
+      content: "";
+      position: absolute;
+      inset: -22%;
+      border-radius: 999px;
+      border: 1px solid rgba(240,201,74,0.4);
+      opacity: var(--countdown-halo-opacity);
+      pointer-events: none;
+      z-index: -1;
+      transform: scale(1);
     }
     #diretta-countdown.tick {
-      transform: scale(1.08);
-      text-shadow: 0 0 34px rgba(240,201,74,0.75);
+      animation: countdownTickBlast 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    #diretta-countdown.tick::before {
+      animation: countdownRingPulse 460ms ease-out both;
     }
     #diretta-countdown.end {
       animation: countdownEndPulse 1s ease-in-out infinite;
+    }
+    #diretta-countdown.end::before {
+      animation: countdownRingPulse 1s ease-in-out infinite;
     }
     .diretta-admin-controls {
       width: min(460px, 100%);
@@ -430,6 +462,30 @@
     @keyframes countdownEndPulse {
       0%, 100% { transform: scale(1); text-shadow: 0 0 28px rgba(240,201,74,0.45); }
       50% { transform: scale(1.1); text-shadow: 0 0 40px rgba(240,201,74,0.85); }
+    }
+    @keyframes countdownTickBlast {
+      0% {
+        transform: scale(0.88);
+        text-shadow: 0 0 20px rgba(240,201,74,0.35);
+      }
+      58% {
+        transform: scale(1.12);
+        text-shadow: 0 0 52px rgba(240,201,74,0.98), 0 0 18px rgba(255,255,255,0.46);
+      }
+      100% {
+        transform: scale(1);
+        text-shadow: var(--countdown-text-shadow);
+      }
+    }
+    @keyframes countdownRingPulse {
+      0% {
+        transform: scale(0.88);
+        opacity: 0.72;
+      }
+      100% {
+        transform: scale(1.22);
+        opacity: 0;
+      }
     }
 
 
@@ -755,18 +811,17 @@
     }
     body.is-fullscreen::before {
       background-image: url('concert_ai.webp');
-      background-size: cover;
-      background-position: center;
+      background-size: min(94vw, 1460px) auto;
+      background-position: center calc(50% + 8vh);
       background-repeat: no-repeat;
-      filter: blur(2.4px) saturate(0.88) brightness(0.66);
-      transform: scale(1.06);
-      opacity: 0.45;
+      filter: blur(1.25px) saturate(0.96) brightness(0.76);
+      opacity: 0.6;
       z-index: 0;
     }
     body.is-fullscreen::after {
       background:
-        radial-gradient(circle at top, rgba(240,201,74,0.12), transparent 42%),
-        linear-gradient(180deg, rgba(8,6,15,0.28) 0%, rgba(8,6,15,0.78) 45%, rgba(18,7,31,0.96) 100%);
+        radial-gradient(circle at 50% 50%, rgba(240,201,74,0.24) 0%, rgba(112,55,158,0.2) 32%, rgba(8,6,15,0.86) 72%),
+        linear-gradient(180deg, rgba(8,6,15,0.2) 0%, rgba(8,6,15,0.66) 48%, rgba(18,7,31,0.93) 100%);
       z-index: 0;
     }
     body.is-fullscreen > * {
@@ -779,24 +834,31 @@
     }
     body.is-fullscreen #diretta-wrap {
       min-height: 100vh;
-      padding-top: 0;
-      justify-content: center;
+      padding: clamp(22px, 4vh, 54px) 3vw 0;
+      justify-content: flex-start;
+      gap: clamp(18px, 2.2vh, 30px);
     }
     body.is-fullscreen #diretta-countdown {
-      text-shadow: 0 0 50px rgba(240,201,74,0.95), 0 2px 24px rgba(0,0,0,0.9);
+      --countdown-shell-bg: radial-gradient(circle at 50% 46%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.03) 56%, transparent 100%);
+      --countdown-shell-border: rgba(240,201,74,0.62);
+      --countdown-shell-shadow: 0 24px 70px rgba(0,0,0,0.52), inset 0 0 28px rgba(240,201,74,0.18);
+      --countdown-text-shadow: 0 0 62px rgba(240,201,74,0.96), 0 2px 26px rgba(0,0,0,0.9);
+      --countdown-halo-opacity: 0.42;
+      font-size: clamp(6.4rem, 28vh, 16rem);
+      margin-top: clamp(2px, 0.8vh, 14px);
     }
     body.is-fullscreen #diretta-wrap h2,
     body.is-fullscreen #diretta-wrap p {
       text-shadow: 0 2px 12px rgba(0,0,0,0.85);
     }
     body.is-fullscreen #diretta-wrap .diretta-icon {
-      font-size: 5rem;
+      font-size: clamp(3.4rem, 7.2vh, 5rem);
     }
     body.is-fullscreen #diretta-wrap h2 {
-      font-size: 1.7rem;
+      font-size: clamp(1.5rem, 3.3vw, 2rem);
     }
     body.is-fullscreen #diretta-wrap p {
-      font-size: 1.05rem;
+      font-size: clamp(0.96rem, 1.7vw, 1.2rem);
     }
     body.is-fullscreen .leaderboard-header h2 {
       font-size: 1.35rem;
