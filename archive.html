@@ -67,6 +67,7 @@
     }
     .tile {
       position: relative;
+      --top-left-stack-offset: 0px;
       border-radius: var(--radius);
       overflow: hidden;
       cursor: pointer;
@@ -121,6 +122,7 @@
 
     .tile-date-pill {
       align-self: flex-start;
+      margin-top: var(--top-left-stack-offset);
       background: rgba(0,0,0,0.4);
       backdrop-filter: blur(8px) saturate(140%);
       -webkit-backdrop-filter: blur(8px) saturate(140%);
@@ -196,7 +198,8 @@
       gap: 24px;
     }
     .tile.hero .tile-date-pill {
-      position: absolute; top: 24px; left: 24px;
+      position: absolute; top: calc(24px + var(--top-left-stack-offset)); left: 24px;
+      margin-top: 0;
     }
     .tile.hero .tile-main { flex: 1; min-width: 0; }
     .tile.hero .tile-winner-name { font-size: clamp(1.6rem, 3.5vw, 2.4rem); margin-bottom: 6px; }
@@ -411,7 +414,10 @@
       content: '⚙️';
       font-size: 1.1rem;
     }
-    .tile.is-hidden { opacity: 0.65; }
+    .tile.is-hidden {
+      --top-left-stack-offset: 34px;
+      opacity: 0.65;
+    }
     .tile.is-hidden::after {
       content: '🙈 nascosta dal pubblico';
       position: absolute;
