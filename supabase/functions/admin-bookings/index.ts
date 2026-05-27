@@ -687,9 +687,11 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       }
       const approveSerataId = Number(bookingToApprove.serata_id);
       let activeBeforeApproval = null;
+      let preparationModeEnabled = false;
       if (Number.isInteger(approveSerataId) && approveSerataId > 0) {
         await ensureSerataAllowsMutations(admin, approveSerataId);
         activeBeforeApproval = await getCurrentActiveBooking(admin, approveSerataId);
+        preparationModeEnabled = isPreparationModeEnabled((await getPublicSettings(admin)).modalita_post_approvazione);
       }
 
       const { data, error } = await admin
@@ -710,7 +712,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         Number.isInteger(approveSerataId) &&
         approveSerataId > 0 &&
         !activeBeforeApproval &&
-        isPreparationModeEnabled((await getPublicSettings(admin)).modalita_post_approvazione)
+        preparationModeEnabled
       ) {
         await setPreparingBooking(admin, approveSerataId, bookingId);
         data.in_preparazione = true;

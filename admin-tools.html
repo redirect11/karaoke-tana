@@ -544,21 +544,21 @@
         btnSaveNextDate.disabled = false;
         btnSaveNextDate.textContent = 'Salva data';
       }
+    }
 
-      async function savePostApprovalMode() {
-        const value = postApprovalModeSelect.value === 'preparation_then_live'
-          ? 'preparation_then_live'
-          : 'direct_live';
-        setBusy(btnSavePostApprovalMode, true, 'Salvataggio…');
-        try {
-          publicSettings = await callAdmin('set_public_settings', { modalitaPostApprovazione: value });
-          renderPublicSettings();
-        } catch (error) {
-          setStatus(error?.message || 'Non sono riuscito ad aggiornare il comportamento post-approvazione.', true);
-        } finally {
-          btnSavePostApprovalMode.disabled = false;
-          btnSavePostApprovalMode.textContent = 'Salva impostazione';
-        }
+    async function savePostApprovalMode() {
+      const value = postApprovalModeSelect.value === 'preparation_then_live'
+        ? 'preparation_then_live'
+        : 'direct_live';
+      setBusy(btnSavePostApprovalMode, true, 'Salvataggio…');
+      try {
+        publicSettings = await callAdmin('set_public_settings', { modalitaPostApprovazione: value });
+        renderPublicSettings();
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito ad aggiornare il comportamento post-approvazione.', true);
+      } finally {
+        btnSavePostApprovalMode.disabled = false;
+        btnSavePostApprovalMode.textContent = 'Salva impostazione';
       }
     }
 
