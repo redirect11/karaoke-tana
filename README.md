@@ -103,7 +103,7 @@ La vecchia migrazione `supabase/migrations/20260520150000_admin_credentials_pbkd
 
 1. Il browser chiama `supabase.auth.signInWithPassword({ email, password })` via SDK.
 2. Supabase Auth restituisce un `access_token` (JWT).
-3. Il `access_token` viene salvato in `sessionStorage` e inviato come `Authorization: Bearer` a ogni chiamata a `admin-bookings`.
+3. Il `access_token` viene salvato in `localStorage` e inviato come `Authorization: Bearer` a ogni chiamata a `admin-bookings`.
 4. `admin-bookings` verifica il JWT via `supabase.auth.getUser(token)` e controlla che l'`user_id` sia presente in `admin_users`.
 5. Solo allora esegue l'azione richiesta.
 

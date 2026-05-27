@@ -1726,7 +1726,8 @@
       clearWaitingIntervals();
       clearSongListPolling();
       clearRevealCountdownWatcher();
-      [stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach((s) => { s.style.display = 'none'; });
+      // In manutenzione mostriamo solo il box dedicato: il box "Segui" non deve comparire.
+      [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach((s) => { s.style.display = 'none'; });
       document.querySelector('.steps').style.display = 'none';
       setClosedState(
         '🚧 In manutenzione',
@@ -1739,7 +1740,6 @@
       showLeaderboard(false);
       setVotaBanner('hidden');
       if (adsBannerContainerEl) adsBannerContainerEl.style.display = 'none';
-      stepFollow.style.display = 'block';
     }
 
     function getWinnerRevealEndsAtMs(serata) {
