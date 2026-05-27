@@ -37,7 +37,7 @@
         .eq('id', 1)
         .maybeSingle();
       return { ...DEFAULT_SETTINGS, ...(data || {}) };
-    } catch (_) {
+    } catch {
       return { ...DEFAULT_SETTINGS };
     }
   }
@@ -64,7 +64,7 @@
         body: JSON.stringify({ action: 'ping' }),
       });
       state.isAdmin = response.ok;
-    } catch (_) {
+    } catch {
       return state;
     }
     return state;
@@ -81,6 +81,8 @@
     const banner = document.createElement('div');
     banner.id = 'karaoke-maintenance-banner';
     banner.textContent = text;
+    banner.setAttribute('role', 'alert');
+    banner.setAttribute('aria-live', 'polite');
     banner.style.cssText = [
       'position:sticky',
       'top:0',
