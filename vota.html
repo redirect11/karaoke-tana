@@ -1334,8 +1334,8 @@
     }
 
     function getWinnerRevealSettings(settings = publicRevealSettings) {
-      if (typeof window.getWinnerRevealSettings === 'function') {
-        return window.getWinnerRevealSettings(settings);
+      if (typeof window.KaraokeUtils?.getWinnerRevealSettings === 'function') {
+        return window.KaraokeUtils.getWinnerRevealSettings(settings);
       }
       const enabled = settings?.winner_reveal_animation_enabled !== false;
       const mode = settings?.winner_reveal_animation_mode === 'manual' ? 'manual' : 'automatic';

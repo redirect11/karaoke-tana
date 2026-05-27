@@ -1259,8 +1259,8 @@
     }
 
     function getWinnerRevealEndsAtMs(serata) {
-      if (typeof window.getWinnerRevealEndsAtMs === 'function') {
-        return window.getWinnerRevealEndsAtMs(serata);
+      if (typeof window.KaraokeUtils?.getWinnerRevealEndsAtMs === 'function') {
+        return window.KaraokeUtils.getWinnerRevealEndsAtMs(serata);
       }
       const iso = typeof serata?.winner_reveal_countdown_ends_at === 'string'
         ? serata.winner_reveal_countdown_ends_at
@@ -1270,8 +1270,8 @@
     }
 
     function getWinnerRevealSettings() {
-      if (typeof window.getWinnerRevealSettings === 'function') {
-        return window.getWinnerRevealSettings(publicSettings);
+      if (typeof window.KaraokeUtils?.getWinnerRevealSettings === 'function') {
+        return window.KaraokeUtils.getWinnerRevealSettings(publicSettings);
       }
       const enabled = publicSettings?.winner_reveal_animation_enabled !== false;
       const mode = publicSettings?.winner_reveal_animation_mode === 'manual' ? 'manual' : 'automatic';
