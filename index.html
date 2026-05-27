@@ -2221,7 +2221,7 @@
         return;
       }
       if (normalizedState === 'preparing') {
-        titleEl.textContent = 'Ti stai preparando';
+        titleEl.textContent = 'Sei Pronto?';
         return;
       }
       if (normalizedState === 'turn') {
@@ -2297,7 +2297,7 @@
         return;
       }
       if (queueState.status === 'preparing') {
-        setWaitingMainMessage('Preparati, lo staff sta preparando la base e ti chiamerà quando sarà il tuo turno.', { prominent: true });
+        setWaitingMainMessage('Preparati, lo staff sta preparando la base e ti chiamerà quando sarà il tuo turno.');
         setWaitingRemainingSongs(null);
         setWaitingBookingNumber(null);
         setWaitingTitle('preparing');
