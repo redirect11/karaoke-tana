@@ -787,7 +787,7 @@
     .booking-card.has-selfie .card-body { padding-right: 0; }
     .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
     .card-name { font-weight: 700; font-size: 1.1rem; }
-    .card-song { font-size: 1.02rem; color: var(--gold-s); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-song { font-size: 1.02rem; color: var(--gold-s); font-weight: 600; word-break: break-word; }
     .card-meta { font-size: 0.88rem; color: var(--muted); margin-top: 2px; }
     .card-votes { font-size: 0.82rem; color: var(--gold-s); margin-top: 4px; font-weight: 700; }
 
@@ -1982,7 +1982,7 @@
         alert('Nome, canzone e artista sono obbligatori.');
         return null;
       }
-      if (nome.length > 80 || canzone.length > 140 || artista.length > 140) {
+      if (nome.length > 80 || canzone.length > 80 || artista.length > 80) {
         alert('Uno o più campi superano la lunghezza massima consentita.');
         return null;
       }
