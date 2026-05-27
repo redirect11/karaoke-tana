@@ -1164,19 +1164,24 @@
       btn.disabled = true;
       const previous = btn.textContent;
       let downloaded = 0;
+      let failed = false;
       try {
-        for (const booking of selfies) {
+        for (const [index, booking] of selfies.entries()) {
+          btn.textContent = `Scarico ${index + 1}/${selfies.length}…`;
           await downloadSelfie(serata, booking);
           downloaded += 1;
         }
       } catch (error) {
+        failed = true;
         alert(error?.message || 'Download selfie fallito.');
       } finally {
         btn.disabled = false;
         btn.textContent = previous;
       }
-      if (downloaded > 0) {
-        alert(`Download avviato per ${downloaded} ${downloaded === 1 ? 'selfie' : 'selfies'} di questa edizione.`);
+      if (!failed && downloaded > 0) {
+        alert(`Download avviato per ${downloaded} selfie di questa edizione.`);
+      } else if (failed && downloaded > 0) {
+        alert(`Download parziale avviato: ${downloaded} selfie scaricati prima dell'errore.`);
       }
     }
 
