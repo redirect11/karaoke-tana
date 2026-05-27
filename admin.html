@@ -1769,7 +1769,7 @@
       const approved = approvedAll.slice(1);
 
       const countParts = [];
-      if (currentSong) countParts.push(currentSong.in_preparazione ? '1 si sta preparando' : '1 sta cantando');
+      if (currentSong) countParts.push(currentSong.in_preparazione ? '1 in preparazione' : '1 sta cantando');
       if (approved.length) countParts.push(`${approved.length} in coda`);
       if (toApprove.length) countParts.push(`${toApprove.length} da approvare`);
       if (completed.length) countParts.push(`${completed.length} concluse`);

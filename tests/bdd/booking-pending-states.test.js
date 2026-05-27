@@ -299,7 +299,7 @@ describe('Feature: Queue position logic', () => {
     const labelMap = {
       'no-booking':  '(no action)',
       'not-found':   'Sei in lista. Lo staff ti chiamerà quando arriva il tuo turno.',
-      'preparing':   'Sei la canzone corrente: lo staff ti sta preparando prima del live.',
+      'preparing':   'La tua canzone è corrente: lo staff sta preparando la base prima del live.',
       'turn':        'È il tuo turno.',
       'next':        'Preparati, canti al prossimo turno.',
       'waiting':     'Mancano N canzoni',
