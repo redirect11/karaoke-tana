@@ -2342,7 +2342,7 @@
       }
 
       if (queueState.status === 'preparing' && previousStatus !== 'preparing' && !state.preparing) {
-        if (notifyBrowser('🎤 Sei pronto a Cantare?', 'La tua canzone è la prossima, lo staff sta preparando la base')) {
+        if (notifyBrowser('Sei pronto a cantare? Tocca a te! Lo staff sta preparando la base.', '')) {
           state.preparing = true;
         }
       }
