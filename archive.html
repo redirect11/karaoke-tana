@@ -327,6 +327,19 @@
     }
     .podium-score-pts { font-size: 1.05rem; color: var(--gold-soft); }
     .podium-score-votes { font-size: 0.7rem; color: var(--muted); font-weight: 500; }
+    .podium-download-btn {
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(0,0,0,0.28);
+      color: #fff;
+      padding: 7px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .podium-download-btn:hover { background: rgba(255,255,255,0.12); }
+    .podium-download-btn:disabled { opacity: 0.55; cursor: wait; }
 
     .full-ranking-list { display: flex; flex-direction: column; gap: 8px; }
     .full-ranking-row {
@@ -630,6 +643,61 @@
       });
     }
 
+    function sanitizeFilePart(value, fallback = 'file') {
+      const cleaned = String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9-_]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .toLowerCase();
+      return cleaned || fallback;
+    }
+
+    function getSelfieExtension(rawUrl) {
+      try {
+        const parsed = new URL(resolveLanUrl(rawUrl || ''), window.location.href);
+        const pathname = parsed.pathname || '';
+        const match = pathname.match(/\.([a-zA-Z0-9]{2,5})$/);
+        return match ? match[1].toLowerCase() : 'jpg';
+      } catch (_) {
+        return 'jpg';
+      }
+    }
+
+    function getEditionFilePrefix(serata) {
+      const dateKey = String(serata?.archive_date || serata?.data || '')
+        .replace(/[^0-9]/g, '')
+        .slice(0, 8);
+      return dateKey || `edizione-${Number(serata?.id) || 'x'}`;
+    }
+
+    function triggerBlobDownload(blob, filename) {
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    }
+
+    async function downloadSelfie(serata, booking) {
+      const rawUrl = typeof booking?.selfie_url === 'string' ? booking.selfie_url : '';
+      if (!rawUrl) throw new Error('Selfie non disponibile.');
+      const sourceUrl = resolveLanUrl(rawUrl);
+      const response = await fetch(sourceUrl);
+      if (!response.ok) throw new Error('Download selfie fallito.');
+      const blob = await response.blob();
+      const extension = getSelfieExtension(sourceUrl);
+      const editionPrefix = getEditionFilePrefix(serata);
+      const namePart = sanitizeFilePart(booking?.nome || 'partecipante', `prenotazione-${Number(booking?.id) || 'x'}`);
+      const bookingId = Number(booking?.id) || 'x';
+      const filename = `${editionPrefix}-selfie-${namePart}-${bookingId}.${extension}`;
+      triggerBlobDownload(blob, filename);
+    }
+
     function buildRanking(bookings, scoreMap) {
       return bookings
         .map((b) => {
@@ -767,9 +835,12 @@
              <button type="button" class="tile-admin-btn" data-admin-action="pick-cover" data-serata-id="${Number(serata.id)}" title="Cambia foto di copertina">
                📷 cover
              </button>
-             <button type="button" class="tile-admin-btn" data-admin-action="delete-serata" data-serata-id="${Number(serata.id)}" title="Elimina edizione" style="color:#ff8888;">
-               🗑️
+            <button type="button" class="tile-admin-btn" data-admin-action="download-selfies" data-serata-id="${Number(serata.id)}" title="Scarica tutti i selfie di questa edizione">
+              ⬇️ download
              </button>
+            <button type="button" class="tile-admin-btn" data-admin-action="delete-serata" data-serata-id="${Number(serata.id)}" title="Elimina edizione" style="color:#ff8888;">
+              🗑️
+            </button>
            </div>`
         : '';
       const showWinnerBadge = winner && (serata.vincitore_decretato || view.top5.length > 0);
@@ -869,6 +940,8 @@
             await adminToggleVisibility(found.serata, btn);
           } else if (action === 'pick-cover') {
             openCoverPicker(found.serata, found.view);
+          } else if (action === 'download-selfies') {
+            await adminDownloadEditionSelfies(found.serata, found.view, btn);
           } else if (action === 'delete-serata') {
             await adminDeleteSerata(found.serata, btn);
           }
@@ -888,7 +961,7 @@
 
     function renderAdminBanner() {
       return `<div class="admin-banner" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <span>Modalità admin attiva: puoi nascondere edizioni, scegliere la foto di copertina ed eliminare edizioni.</span>
+        <span>Modalità admin attiva: puoi nascondere edizioni, scegliere la foto di copertina, scaricare selfie ed eliminare edizioni.</span>
         <button type="button" id="btn-simulate-user-view" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:5px 14px;border-radius:999px;cursor:pointer;font-size:0.8rem;font-weight:700;white-space:nowrap;">
           ${simulateUserView ? '👤 Vista utente (attiva) — clicca per disattivare' : '👁️ Simula vista utente'}
         </button>
@@ -916,6 +989,9 @@
                 <div class="podium-score-pts">${Number(item.score_total) || 0}<span style="font-size:0.7rem;color:var(--muted);font-weight:500;"> pt</span></div>
                 <div class="podium-score-votes">${item.score_count} ${item.score_count === 1 ? 'voto' : 'voti'}</div>
               </div>
+              ${isAdmin && item.selfie_url
+                ? `<button type="button" class="podium-download-btn" data-modal-admin-action="download-selfie" data-prenotazione-id="${Number(item.id)}">⬇️ download</button>`
+                : ''}
             </div>
           `).join('')}</div>`
         : '<div class="empty-section">Nessuna votazione registrata in questa edizione.</div>';
@@ -974,6 +1050,25 @@
       `;
       const closeBtn = document.getElementById('modal-close-btn');
       if (closeBtn) closeBtn.addEventListener('click', closeModal);
+      modalContent.querySelectorAll('[data-modal-admin-action="download-selfie"]').forEach((btn) => {
+        btn.addEventListener('click', async (event) => {
+          event.preventDefault();
+          const bookingId = Number(btn.getAttribute('data-prenotazione-id'));
+          const booking = (view.top5 || []).find((item) => Number(item.id) === bookingId);
+          if (!booking) return;
+          btn.disabled = true;
+          const previous = btn.textContent;
+          btn.textContent = 'Scarico…';
+          try {
+            await downloadSelfie(serata, booking);
+          } catch (error) {
+            alert(error?.message || 'Download selfie fallito.');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = previous;
+          }
+        });
+      });
     }
 
     function openModal(serata, view) {
@@ -1057,6 +1152,31 @@
       } catch (error) {
         alert(error?.message || 'Eliminazione edizione fallita.');
         btn.disabled = false;
+      }
+    }
+
+    async function adminDownloadEditionSelfies(serata, view, btn) {
+      const selfies = (view?.allBookings || []).filter((booking) => typeof booking?.selfie_url === 'string' && booking.selfie_url.length > 0);
+      if (!selfies.length) {
+        alert('Nessun selfie disponibile in questa edizione.');
+        return;
+      }
+      btn.disabled = true;
+      const previous = btn.textContent;
+      let downloaded = 0;
+      try {
+        for (const booking of selfies) {
+          await downloadSelfie(serata, booking);
+          downloaded += 1;
+        }
+      } catch (error) {
+        alert(error?.message || 'Download selfie fallito.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = previous;
+      }
+      if (downloaded > 0) {
+        alert(`Download avviato per ${downloaded} ${downloaded === 1 ? 'selfie' : 'selfie'} di questa edizione.`);
       }
     }
 
