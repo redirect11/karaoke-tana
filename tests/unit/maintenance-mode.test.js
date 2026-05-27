@@ -1,42 +1,47 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-function buildSupabaseMock({ localToken = null, sessionToken = null, fallbackToken = null, manutenzioneAbilitata = true } = {}) {
-  const createClient = vi.fn((_url, _key, options) => {
-    const storage = options?.auth?.storage;
-    let token = fallbackToken;
-    if (storage === window.localStorage) token = localToken;
-    if (storage === window.sessionStorage) token = sessionToken;
-    return {
-      from() {
-        return {
-          select() {
-            return {
-              eq() {
-                return {
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: { manutenzione_abilitata: manutenzioneAbilitata },
-                  }),
-                };
-              },
-            };
-          },
-        };
-      },
-      auth: {
-        getSession: vi.fn().mockResolvedValue({
-          data: token ? { session: { access_token: token } } : { session: null },
-        }),
-      },
-    };
-  });
+const STORAGE_KEY = 'sb-example-auth-token';
+
+function buildSupabaseMock({ manutenzioneAbilitata = true } = {}) {
+  // Dopo il fix il riconoscimento NON usa più getSession: legge il token
+  // direttamente dallo storage. Al client serve solo la query impostazioni.
+  const createClient = vi.fn(() => ({
+    from() {
+      return {
+        select() {
+          return {
+            eq() {
+              return {
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { manutenzione_abilitata: manutenzioneAbilitata },
+                }),
+              };
+            },
+          };
+        },
+      };
+    },
+  }));
   return { createClient };
+}
+
+function storeSession(storage, token, key = STORAGE_KEY) {
+  storage.setItem(key, JSON.stringify({
+    access_token: token,
+    refresh_token: `refresh-${token}`,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    token_type: 'bearer',
+    user: { id: `user-${token}` },
+  }));
 }
 
 beforeEach(() => {
   vi.resetModules();
   vi.restoreAllMocks();
   delete window.KaraokeMaintenanceMode;
+  window.localStorage.clear();
+  window.sessionStorage.clear();
   window.CONFIG = {
     SUPABASE_URL: 'https://example.supabase.co',
     SUPABASE_ANON_KEY: 'anon',
@@ -45,7 +50,8 @@ beforeEach(() => {
 
 describe('KaraokeMaintenanceMode.getAccessState', () => {
   it('riconosce admin da token in localStorage', async () => {
-    window.supabase = buildSupabaseMock({ localToken: 'local-token' });
+    window.supabase = buildSupabaseMock();
+    storeSession(window.localStorage, 'local-token');
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ success: true, data: { ok: true } }),
@@ -62,8 +68,9 @@ describe('KaraokeMaintenanceMode.getAccessState', () => {
     expect(fetchOptions.headers.get('Authorization')).toContain('local-token');
   });
 
-  it('fa fallback su sessionStorage quando localStorage non ha sessione', async () => {
-    window.supabase = buildSupabaseMock({ localToken: null, sessionToken: 'session-token' });
+  it('riconosce admin da token in sessionStorage quando localStorage è vuoto', async () => {
+    window.supabase = buildSupabaseMock();
+    storeSession(window.sessionStorage, 'session-token');
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ success: true, data: { ok: true } }),
@@ -74,47 +81,33 @@ describe('KaraokeMaintenanceMode.getAccessState', () => {
 
     expect(state.isAuthenticated).toBe(true);
     expect(state.isAdmin).toBe(true);
-    expect(state.settings?.manutenzione_abilitata).toBe(true);
     const [, fetchOptions] = global.fetch.mock.calls[0];
     expect(fetchOptions.headers.get('Authorization')).toContain('session-token');
   });
 
-  it('usa il client di fallback quando localStorage e sessionStorage non hanno token', async () => {
-    window.supabase = buildSupabaseMock({ localToken: null, sessionToken: null, fallbackToken: 'fallback-token' });
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ success: true, data: { ok: true } }),
-    });
+  it('utente non loggato: nessun token in storage => non autenticato, niente ping', async () => {
+    window.supabase = buildSupabaseMock();
+    global.fetch = vi.fn();
     await import('../../scripts/maintenance-mode.js');
 
     const state = await window.KaraokeMaintenanceMode.getAccessState(window.CONFIG);
 
-    expect(state.isAuthenticated).toBe(true);
-    expect(state.isAdmin).toBe(true);
-    const [, fetchOptions] = global.fetch.mock.calls[0];
-    expect(fetchOptions.headers.get('Authorization')).toContain('fallback-token');
+    expect(state.isAuthenticated).toBe(false);
+    expect(state.isAdmin).toBe(false);
+    expect(state.settings?.manutenzione_abilitata).toBe(true);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('prova i token successivi se il primo non è admin', async () => {
-    window.supabase = buildSupabaseMock({ localToken: 'stale-token', sessionToken: 'admin-token' });
+    window.supabase = buildSupabaseMock();
+    storeSession(window.localStorage, 'stale-token');
+    storeSession(window.sessionStorage, 'admin-token');
     global.fetch = vi.fn().mockImplementation(async (_url, options) => {
       const authHeader = options?.headers?.get?.('Authorization') || '';
-      if (authHeader.includes('stale-token')) {
-        return {
-          ok: false,
-          json: async () => ({ success: false }),
-        };
-      }
       if (authHeader.includes('admin-token')) {
-        return {
-          ok: true,
-          json: async () => ({ success: true, data: { ok: true } }),
-        };
+        return { ok: true, json: async () => ({ success: true, data: { ok: true } }) };
       }
-      return {
-        ok: false,
-        json: async () => ({ success: false }),
-      };
+      return { ok: false, json: async () => ({ success: false }) };
     });
     await import('../../scripts/maintenance-mode.js');
 
@@ -123,5 +116,29 @@ describe('KaraokeMaintenanceMode.getAccessState', () => {
     expect(state.isAuthenticated).toBe(true);
     expect(state.isAdmin).toBe(true);
     expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('legge la sessione anche se suddivisa in chunk con prefisso base64', async () => {
+    window.supabase = buildSupabaseMock();
+    const sessionJson = JSON.stringify({
+      access_token: 'chunky-token',
+      refresh_token: 'r',
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+    });
+    const encoded = `base64-${btoa(sessionJson)}`;
+    const mid = Math.ceil(encoded.length / 2);
+    window.localStorage.setItem(`${STORAGE_KEY}.0`, encoded.slice(0, mid));
+    window.localStorage.setItem(`${STORAGE_KEY}.1`, encoded.slice(mid));
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, data: { ok: true } }),
+    });
+    await import('../../scripts/maintenance-mode.js');
+
+    const state = await window.KaraokeMaintenanceMode.getAccessState(window.CONFIG);
+
+    expect(state.isAdmin).toBe(true);
+    const [, fetchOptions] = global.fetch.mock.calls[0];
+    expect(fetchOptions.headers.get('Authorization')).toContain('chunky-token');
   });
 });

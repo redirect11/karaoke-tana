@@ -36,34 +36,83 @@
     return storages;
   }
 
-  async function getAccessTokens(config) {
-    const tokens = [];
-    const seen = new Set();
-    function pushToken(token) {
-      if (!token || seen.has(token)) return;
-      seen.add(token);
-      tokens.push(token);
-    }
-    const storages = getAuthStorages();
-    for (const storage of storages) {
-      const authClient = createClient(config, {
-        auth: { persistSession: true, storage },
-      });
-      if (!authClient) continue;
+  function decodeMaybeBase64(value) {
+    if (typeof value !== 'string') return value;
+    if (value.startsWith('base64-')) {
       try {
-        const { data } = await authClient.auth.getSession();
-        pushToken(data?.session?.access_token);
+        return typeof atob === 'function' ? atob(value.slice('base64-'.length)) : value;
       } catch {
-        // Ignora storage non accessibile e prova quello successivo.
+        return value;
       }
     }
-    const fallbackClient = createClient(config);
-    if (!fallbackClient) return tokens;
+    return value;
+  }
+
+  function extractAccessToken(rawValue) {
+    const decoded = decodeMaybeBase64(rawValue);
+    if (!decoded) return null;
     try {
-      const { data } = await fallbackClient.auth.getSession();
-      pushToken(data?.session?.access_token);
+      const parsed = JSON.parse(decoded);
+      return parsed?.access_token
+        || parsed?.currentSession?.access_token
+        || parsed?.session?.access_token
+        || null;
     } catch {
-      // Ignora eventuali errori fallback.
+      return null;
+    }
+  }
+
+  // Legge i token di sessione direttamente dallo storage, SENZA creare client
+  // GoTrue aggiuntivi: più istanze GoTrue sulla stessa storageKey producono
+  // "undefined behavior" e il token dell'admin non veniva riconosciuto sulle
+  // pagine pubbliche. Gestisce la chiave singola `sb-<ref>-auth-token`, la
+  // variante suddivisa in chunk (`...auth-token.0`, `.1`, …) e il prefisso
+  // `base64-`.
+  function readAuthTokensFromStorage(storage) {
+    const tokens = [];
+    if (!storage) return tokens;
+    let length;
+    try { length = storage.length; } catch { return tokens; }
+    const chunked = {};
+    function safeGet(key) {
+      try { return storage.getItem(key); } catch { return null; }
+    }
+    for (let i = 0; i < length; i += 1) {
+      let key;
+      try { key = storage.key(i); } catch { continue; }
+      if (!key) continue;
+      const chunkMatch = /^(sb-.+-auth-token)\.(\d+)$/.exec(key);
+      if (/^sb-.+-auth-token$/.test(key)) {
+        const token = extractAccessToken(safeGet(key));
+        if (token) tokens.push(token);
+      } else if (chunkMatch) {
+        const base = chunkMatch[1];
+        (chunked[base] = chunked[base] || {})[Number(chunkMatch[2])] = safeGet(key) || '';
+      }
+    }
+    Object.keys(chunked).forEach((base) => {
+      const parts = chunked[base];
+      const assembled = Object.keys(parts)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .map((n) => parts[n])
+        .join('');
+      const token = extractAccessToken(assembled);
+      if (token) tokens.push(token);
+    });
+    return tokens;
+  }
+
+  function getAccessTokens() {
+    const tokens = [];
+    const seen = new Set();
+    for (const storage of getAuthStorages()) {
+      for (const token of readAuthTokensFromStorage(storage)) {
+        if (token && !seen.has(token)) {
+          seen.add(token);
+          tokens.push(token);
+        }
+      }
     }
     return tokens;
   }
@@ -78,7 +127,10 @@
   }
 
   async function loadMaintenanceSettings(config) {
-    const db = createClient(config);
+    // persistSession:false -> non registra una GoTrue sulla storageKey condivisa.
+    const db = createClient(config, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    });
     if (!db) return { ...DEFAULT_SETTINGS };
     try {
       const { data } = await db
@@ -99,7 +151,7 @@
       isAdmin: false,
     };
     try {
-      const tokens = await getAccessTokens(config);
+      const tokens = getAccessTokens();
       if (tokens.length === 0) return state;
       state.isAuthenticated = true;
       const endpoint = `${String(config.SUPABASE_URL).replace(/\/+$/, '')}/functions/v1/admin-bookings`;
