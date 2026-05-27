@@ -829,7 +829,9 @@
       z-index: 1;
     }
     body.is-fullscreen header,
-    body.is-fullscreen #status-banner {
+    body.is-fullscreen #status-banner,
+    /* In fullscreen (vista proiettata al pubblico) i controlli admin sono nascosti. */
+    body.is-fullscreen #diretta-admin-controls {
       display: none !important;
     }
     body.is-fullscreen #diretta-wrap {
