@@ -738,10 +738,21 @@
       font-size: 0.78rem;
       letter-spacing: 0.06em;
     }
+    .card-pos.is-preparing {
+      background: rgba(241,196,15,0.28);
+      color: #ffe08a;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+    }
     .booking-card.has-selfie .card-pos.is-live {
       background: rgba(255,107,107,0.42);
       color: #fff;
       border-color: rgba(255,107,107,0.6);
+    }
+    .booking-card.has-selfie .card-pos.is-preparing {
+      background: rgba(241,196,15,0.5);
+      color: #fff5cf;
+      border-color: rgba(241,196,15,0.55);
     }
     /* Sopra il selfie il pos ha un backdrop scuro per leggibilità */
     .booking-card.has-selfie .card-pos {
@@ -776,6 +787,7 @@
     }
     .badge-pending { background: var(--gold-s); color: #12071f; }
     .badge-approved { background: rgba(47, 198, 108, 0.2); color: #89f2b7; }
+    .badge-preparing { background: rgba(241,196,15,0.2); color: #ffe08a; }
 
     /* Pill compatto in basso-destra: ingombro minimo per non coprire la foto */
     .card-actions {
@@ -805,6 +817,7 @@
       line-height: 1;
     }
     .btn-approve { background: var(--gold); color: #12071f; }
+    .btn-start { background: #f1c40f; color: #12071f; }
     .btn-done { background: var(--green); color: #12071f; }
     .btn-selfie-toggle { background: #2f86ff; color: #fff; }
     .btn-edit { background: #4b356f; color: #fff; }
@@ -1772,7 +1785,7 @@
       const approved = approvedAll.slice(1);
 
       const countParts = [];
-      if (currentSong) countParts.push('1 sta cantando');
+      if (currentSong) countParts.push(currentSong.in_preparazione ? '1 in preparazione' : '1 sta cantando');
       if (approved.length) countParts.push(`${approved.length} in coda`);
       if (toApprove.length) countParts.push(`${toApprove.length} da approvare`);
       if (completed.length) countParts.push(`${completed.length} concluse`);
@@ -1824,6 +1837,7 @@
       const isCompleted = kind === 'completed';
       const isCurrent = kind === 'current';
       const isPending = kind === 'pending';
+      const isPreparing = isCurrent && Boolean(booking.in_preparazione);
       const canMarkDone = isApproved && index === 0;
       // Pill in alto-destra: stessa semantica della home.
       //   • current  → "LIVE"
@@ -1834,7 +1848,7 @@
       let pillLabel = '';
       let showPill = true;
       if (isCurrent) {
-        pillLabel = 'LIVE';
+        pillLabel = isPreparing ? 'PREP' : 'LIVE';
       } else if (isApproved) {
         pillLabel = String(index);
       } else if (isPending) {
@@ -1861,7 +1875,9 @@
       const scoreText = count > 0 ? `${total} pt · media ${avg.toFixed(2)} · ${count} vot${count === 1 ? 'o' : 'i'}` : 'Nessun voto';
 
       const badgeHtml = isCurrent
-        ? '<span class="badge-approved" style="background:rgba(255,107,107,0.22);color:#ffb3b3;">🎤 Adesso canta</span>'
+        ? (isPreparing
+            ? '<span class="badge-preparing">⏳ Si sta preparando</span>'
+            : '<span class="badge-approved" style="background:rgba(255,107,107,0.22);color:#ffb3b3;">🎤 Adesso canta</span>')
         : (isCompleted
           ? '<span class="badge-approved">🎤 Conclusa</span>'
           : (isApproved ? '<span class="badge-approved">✅ Approvata</span>' : '<span class="badge-pending">Da approvare</span>'));
@@ -1870,7 +1886,9 @@
         ? ''
         : [
             isCurrent
-              ? '<button class="btn-action btn-done" data-action="done">✓ Fatto</button>'
+              ? (isPreparing
+                  ? '<button class="btn-action btn-start" data-action="start">▶ Inizia</button>'
+                  : '<button class="btn-action btn-done" data-action="done">✓ Fatto</button>')
               : (isCompleted
                 ? ''
                 : (isApproved
@@ -1888,7 +1906,7 @@
 
       card.innerHTML = `
         ${selfieBgHtml}
-        ${showPill ? `<div class="card-pos${isCurrent ? ' is-live' : ''}">${esc(pillLabel)}</div>` : ''}
+        ${showPill ? `<div class="card-pos${isCurrent ? (isPreparing ? ' is-preparing' : ' is-live') : ''}">${esc(pillLabel)}</div>` : ''}
         <div class="card-body">
           <div class="card-header">
             <span class="card-name">${esc(booking.nome)}</span>
@@ -1902,12 +1920,14 @@
       `;
 
       const approveBtn = card.querySelector('[data-action="approve"]');
+      const startBtn = card.querySelector('[data-action="start"]');
       const doneBtn = card.querySelector('[data-action="done"]');
       const editBtn = card.querySelector('[data-action="edit"]');
       const deleteBtn = card.querySelector('[data-action="delete"]');
       const selfieToggleBtn = card.querySelector('[data-action="toggle-selfie"]');
 
       if (approveBtn) approveBtn.addEventListener('click', () => approveBooking(booking.id, card));
+      if (startBtn) startBtn.addEventListener('click', () => startBooking(booking.id, card));
       if (doneBtn) doneBtn.addEventListener('click', () => markDone(booking.id, card));
       if (editBtn) editBtn.addEventListener('click', () => editBooking(booking, card));
       if (deleteBtn) deleteBtn.addEventListener('click', () => deleteBooking(booking, card));
@@ -1943,10 +1963,19 @@
       setCardBusy(card, true);
       try {
         await callAdmin('approve_booking', { bookingId: id });
-        bookings = bookings.map((item) => item.id === id ? { ...item, approvata: true } : item);
-        renderQueue(bookings);
+        await refreshState(true);
       } catch (error) {
         restoreCardAfterError(card, error?.message || 'Non sono riuscito ad approvare la prenotazione.');
+      }
+    }
+
+    async function startBooking(id, card) {
+      setCardBusy(card, true);
+      try {
+        await callAdmin('start_current_booking', { bookingId: id });
+        await refreshState(true);
+      } catch (error) {
+        restoreCardAfterError(card, error?.message || 'Non sono riuscito ad avviare la canzone.');
       }
     }
 
@@ -1956,8 +1985,7 @@
       setTimeout(async () => {
         try {
           await callAdmin('mark_done', { bookingId: id });
-          bookings = bookings.map((item) => item.id === id ? { ...item, cantata: true } : item);
-          renderQueue(bookings);
+          await refreshState(true);
         } catch (error) {
           restoreCardAfterError(card, error?.message || 'Non sono riuscito a segnare la prenotazione come completata.');
         }
@@ -1984,8 +2012,7 @@
       setTimeout(async () => {
         try {
           await callAdmin('delete_booking', { bookingId: booking.id });
-          bookings = bookings.filter((item) => item.id !== booking.id);
-          renderQueue(bookings);
+          await refreshState(true);
         } catch (error) {
           restoreCardAfterError(card, error?.message || 'Non sono riuscito a eliminare la prenotazione.');
         }

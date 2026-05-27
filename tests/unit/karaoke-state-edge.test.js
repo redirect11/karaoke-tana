@@ -204,6 +204,12 @@ describe('computeQueuePosition – edge cases', () => {
     expect(computeQueuePosition(1, []).status).toBe('not-found');
   });
 
+  it('returns preparing when the current booking is flagged in_preparazione', () => {
+    const result = computeQueuePosition(1, [{ id: 1, in_preparazione: true }, { id: 2 }]);
+    expect(result.status).toBe('preparing');
+    expect(result.index).toBe(0);
+  });
+
   it('returns not-found with correct index -1', () => {
     const result = computeQueuePosition(99, [{ id: 1 }, { id: 2 }]);
     expect(result.status).toBe('not-found');

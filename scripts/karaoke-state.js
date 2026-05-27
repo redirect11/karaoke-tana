@@ -141,6 +141,7 @@
   // Possible status values:
   //   'no-booking' – no valid booking id available
   //   'not-found'  – booking is not in the "to-sing" queue
+  //   'preparing'  – booking is current and flagged as "in preparazione"
   //   'turn'       – booking is first in the queue (index 0)
   //   'next'       – booking is second in the queue (index 1)
   //   'waiting'    – booking is further down the queue (index >= 2)
@@ -152,7 +153,7 @@
    * @param {Array<{id: number}>} queueItems - The current to-sing queue.
    * @returns {{
    *   index: number,
-   *   status: 'no-booking'|'not-found'|'turn'|'next'|'waiting',
+   *   status: 'no-booking'|'not-found'|'preparing'|'turn'|'next'|'waiting',
    * }}
    */
   function computeQueuePosition(bookingId, queueItems) {
@@ -167,6 +168,9 @@
     });
 
     if (index === -1) return { index: -1, status: 'not-found' };
+    if (index === 0 && Boolean(queueItems[0] && queueItems[0].in_preparazione)) {
+      return { index: 0, status: 'preparing' };
+    }
     if (index === 0)  return { index: 0,  status: 'turn' };
     if (index === 1)  return { index: 1,  status: 'next' };
     return { index: index, status: 'waiting' };

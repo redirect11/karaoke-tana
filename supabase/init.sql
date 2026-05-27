@@ -29,12 +29,13 @@ CREATE TABLE IF NOT EXISTS serate (
 CREATE TABLE IF NOT EXISTS impostazioni_pubbliche (
   id BIGINT PRIMARY KEY CHECK (id = 1),
   archivio_pubblico_abilitato BOOLEAN NOT NULL DEFAULT FALSE,
+  modalita_post_approvazione TEXT NOT NULL DEFAULT 'direct_live',
   prossima_serata_data DATE,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-INSERT INTO impostazioni_pubbliche (id, archivio_pubblico_abilitato, prossima_serata_data)
-VALUES (1, FALSE, NULL)
+INSERT INTO impostazioni_pubbliche (id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data)
+VALUES (1, FALSE, 'direct_live', NULL)
 ON CONFLICT (id) DO NOTHING;
 
 -- Impedisce più di una serata aperta contemporaneamente
@@ -72,6 +73,7 @@ CREATE TABLE IF NOT EXISTS prenotazioni (
   tavolo     INTEGER      NOT NULL,
   cantata    BOOLEAN      NOT NULL DEFAULT FALSE,
   approvata  BOOLEAN      NOT NULL DEFAULT FALSE,
+  in_preparazione BOOLEAN NOT NULL DEFAULT FALSE,
   serata_id  BIGINT       REFERENCES serate(id),
   created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
@@ -82,6 +84,18 @@ ALTER TABLE prenotazioni
 
 ALTER TABLE prenotazioni
   ADD COLUMN IF NOT EXISTS approvata BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE prenotazioni
+  ADD COLUMN IF NOT EXISTS in_preparazione BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS modalita_post_approvazione TEXT NOT NULL DEFAULT 'direct_live';
+
+DO $$ BEGIN
+  ALTER TABLE impostazioni_pubbliche
+    ADD CONSTRAINT impostazioni_pubbliche_modalita_post_approvazione_check
+    CHECK (modalita_post_approvazione IN ('direct_live', 'preparation_then_live'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 ALTER TABLE serate
   ADD COLUMN IF NOT EXISTS mostra_voti_totali BOOLEAN NOT NULL DEFAULT FALSE;

@@ -20,6 +20,7 @@
  *  | Booking position in queue | status      |
  *  |---------------------------|-------------|
  *  | Not in queue (index -1)   | not-found   |
+ *  | First + preparing         | preparing   |
  *  | First (index 0)           | turn        |
  *  | Second (index 1)          | next        |
  *  | Third or later (index 2+) | waiting     |
@@ -252,6 +253,15 @@ describe('Feature: Queue position logic', () => {
     });
   });
 
+  describe('Scenario: Booking is current but still in preparation', () => {
+    it('returns status "preparing" and index 0', () => {
+      const queue = [{ id: 1, in_preparazione: true }, { id: 2 }];
+      const result = computeQueuePosition(1, queue);
+      expect(result.status).toBe('preparing');
+      expect(result.index).toBe(0);
+    });
+  });
+
   describe('Scenario: Booking is second in the queue (Preparati!)', () => {
     it('returns status "next" and index 1', () => {
       const queue = [{ id: 2 }, { id: 1 }, { id: 3 }];
@@ -289,6 +299,7 @@ describe('Feature: Queue position logic', () => {
     const labelMap = {
       'no-booking':  '(no action)',
       'not-found':   'Sei in lista. Lo staff ti chiamerà quando arriva il tuo turno.',
+      'preparing':   'La tua canzone è corrente: lo staff sta preparando la base prima del live.',
       'turn':        'È il tuo turno.',
       'next':        'Preparati, canti al prossimo turno.',
       'waiting':     'Mancano N canzoni',
@@ -304,18 +315,20 @@ describe('Feature: Queue position logic', () => {
   // ── Queue position matrix ─────────────────────────────────────────────────
   describe('Position matrix', () => {
     const queue = [{ id: 10 }, { id: 20 }, { id: 30 }, { id: 40 }];
+    const queueWithPreparingCurrent = [{ id: 10, in_preparazione: true }, { id: 20 }, { id: 30 }, { id: 40 }];
 
     const cases = [
-      [null,  'no-booking', -1],
-      [99,    'not-found',  -1],
-      [10,    'turn',        0],
-      [20,    'next',        1],
-      [30,    'waiting',     2],
-      [40,    'waiting',     3],
+      { bookingId: null, queueItems: queue, expectedStatus: 'no-booking', expectedIndex: -1 },
+      { bookingId: 99, queueItems: queue, expectedStatus: 'not-found', expectedIndex: -1 },
+      { bookingId: 10, queueItems: queueWithPreparingCurrent, expectedStatus: 'preparing', expectedIndex: 0 },
+      { bookingId: 10, queueItems: queue, expectedStatus: 'turn', expectedIndex: 0 },
+      { bookingId: 20, queueItems: queue, expectedStatus: 'next', expectedIndex: 1 },
+      { bookingId: 30, queueItems: queue, expectedStatus: 'waiting', expectedIndex: 2 },
+      { bookingId: 40, queueItems: queue, expectedStatus: 'waiting', expectedIndex: 3 },
     ];
 
-    it.each(cases)('bookingId=%s → status=%s, index=%s', (bookingId, expectedStatus, expectedIndex) => {
-      const result = computeQueuePosition(bookingId, queue);
+    it.each(cases)('bookingId=$bookingId → status=$expectedStatus, index=$expectedIndex', ({ bookingId, queueItems, expectedStatus, expectedIndex }) => {
+      const result = computeQueuePosition(bookingId, queueItems);
       expect(result.status).toBe(expectedStatus);
       expect(result.index).toBe(expectedIndex);
     });
