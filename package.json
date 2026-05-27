@@ -6,10 +6,15 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint . --ext .js,.mjs",
+    "lint:fix": "npm run lint -- --fix"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@vitest/coverage-v8": "^4.1.0",
+    "eslint": "^10.4.0",
+    "globals": "^17.6.0",
     "jsdom": "^29.1.1",
     "vitest": "^4.1.0"
   }
