@@ -6,7 +6,12 @@ export default defineConfig({
     globals: true,
     coverage: {
       provider: 'v8',
-      include: ['scripts/karaoke-utils.js', 'scripts/karaoke-state.js', 'scripts/booking-gate.js'],
+      include: [
+        'scripts/karaoke-utils.js',
+        'scripts/karaoke-state.js',
+        'scripts/booking-gate.js',
+        'scripts/follow-flow.js',
+      ],
       reporter: ['text', 'html', 'lcov'],
       reportsDirectory: './coverage',
     },

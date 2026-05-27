@@ -2908,14 +2908,15 @@
       });
     }
 
-    // Quando l'utente torna alla pagina dopo aver aperto Instagram
+    // Quando l'utente torna alla pagina dopo aver aperto Instagram in questa sessione.
+    // Dipende solo da igOpened (flag in-memory): non usa ig_clicked per evitare di
+    // bypassare il box Segui su ricaricamento quando l'utente non ha ancora seguito.
     async function handleReturn() {
-      if (igOpened || getCookie('ig_clicked')) {
-        // Già seguito (al caricamento o in questa sessione): non riavviare il flusso.
-        if (followedAtPageLoad || followedInSession) return;
-        const open = await checkSerataAperta();
-        if (open) goToForm();
-      }
+      if (!igOpened) return;
+      // Già seguito (al caricamento o in questa sessione): non riavviare il flusso.
+      if (followedAtPageLoad || followedInSession) return;
+      const open = await checkSerataAperta();
+      if (open) goToForm();
     }
 
     document.addEventListener('visibilitychange', () => {
@@ -3170,13 +3171,12 @@
       if (!open) return;
       const pending = await checkPendingBooking();
       if (pending) return;
-      const alreadyFollowed = followedAtPageLoad;
-      if (alreadyFollowed) {
+      // La visibilità del box Segui e del widget step dipende UNICAMENTE dal
+      // cookie ig_followed al caricamento. Non si usano altri cookie (es. ig_clicked)
+      // per bypassare il box Segui, in modo che sia sempre visibile se l'utente
+      // non ha ancora completato il follow.
+      if (followedAtPageLoad) {
         showForm({ hideSteps: true });
-      } else if (getCookie('ig_clicked')) {
-        // Tab scartato da Android dopo aver aperto Instagram: il flag in
-        // memoria è perso ma il cookie sopravvive — riprendi dal form.
-        goToForm();
       } else {
         document.querySelector('.steps').style.display = '';
         stepClosed.style.display = 'none';
