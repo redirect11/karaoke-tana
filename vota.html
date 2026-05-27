@@ -893,6 +893,87 @@
       font-size: 0.9rem;
     }
 
+    /* ── top-5 reveal animation ── */
+    #top5-reveal-overlay {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      flex: 1;
+      gap: clamp(14px, 2.4vh, 30px);
+      padding: clamp(10px, 2vh, 28px) 3vw;
+    }
+    #top5-reveal-overlay.active { display: flex; }
+    .reveal-rank-label {
+      font-size: clamp(1rem, 2.4vw, 1.5rem);
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold-s);
+      text-shadow: 0 0 20px rgba(240,201,74,0.7);
+      opacity: 0;
+      transform: translateY(-18px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .reveal-rank-label.in { opacity: 1; transform: translateY(0); }
+    .reveal-card {
+      background: linear-gradient(145deg, rgba(42,22,80,0.94) 0%, rgba(21,10,37,0.96) 100%);
+      border: 1px solid rgba(212,160,23,0.4);
+      border-radius: 18px;
+      padding: clamp(18px, 3.2vh, 36px) clamp(22px, 4vw, 52px);
+      width: min(100%, 520px);
+      text-align: center;
+      box-shadow: 0 12px 54px rgba(0,0,0,0.6), 0 0 60px rgba(212,160,23,0.12);
+      opacity: 0;
+      transform: scale(0.88) translateY(28px);
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+    .reveal-card.in { opacity: 1; transform: scale(1) translateY(0); }
+    .reveal-card.winner-card {
+      border-color: rgba(240,201,74,0.75);
+      box-shadow: 0 16px 72px rgba(0,0,0,0.65), 0 0 90px rgba(240,201,74,0.22);
+    }
+    .reveal-card-rank-num {
+      font-size: clamp(2.8rem, 10vh, 6.5rem);
+      font-weight: 900;
+      line-height: 1;
+      color: var(--gold-s);
+      text-shadow: 0 0 48px rgba(240,201,74,0.9), 0 2px 18px rgba(0,0,0,0.7);
+      margin-bottom: 4px;
+    }
+    .reveal-card.winner-card .reveal-card-rank-num {
+      font-size: clamp(3.2rem, 12vh, 8rem);
+      color: #f5da3a;
+      text-shadow: 0 0 72px rgba(255,215,0,1), 0 0 28px rgba(240,201,74,0.9), 0 2px 22px rgba(0,0,0,0.8);
+    }
+    .reveal-card-name {
+      font-size: clamp(1.2rem, 3.5vw, 2rem);
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .reveal-card-song {
+      font-size: clamp(0.88rem, 1.8vw, 1.1rem);
+      color: rgba(255,255,255,0.82);
+      margin-bottom: 8px;
+    }
+    .reveal-card-points {
+      font-size: clamp(0.76rem, 1.3vw, 0.95rem);
+      font-weight: 700;
+      color: var(--gold-s);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    @keyframes revealPulse {
+      0%   { box-shadow: 0 16px 72px rgba(0,0,0,0.65), 0 0 90px rgba(240,201,74,0.22); }
+      50%  { box-shadow: 0 16px 72px rgba(0,0,0,0.65), 0 0 120px rgba(240,201,74,0.48); }
+      100% { box-shadow: 0 16px 72px rgba(0,0,0,0.65), 0 0 90px rgba(240,201,74,0.22); }
+    }
+    .reveal-card.winner-card.in {
+      animation: revealPulse 1.6s ease-in-out infinite;
+    }
+
     /* ── offline banner ── */
     #offline-banner {
       display: none;
@@ -938,6 +1019,15 @@
     <h2 id="diretta-title">⚡ Preparatevi… il momento è arrivato!</h2>
     <p id="diretta-text">Questa notte si scrive la storia del karaoke. Chi sarà il re o la regina del microfono? 👑</p>
     <div id="diretta-countdown" class="hidden"></div>
+    <div id="top5-reveal-overlay" aria-live="polite" aria-atomic="true">
+      <div class="reveal-rank-label" id="reveal-rank-label"></div>
+      <div class="reveal-card" id="reveal-card">
+        <div class="reveal-card-rank-num" id="reveal-card-rank-num"></div>
+        <div class="reveal-card-name" id="reveal-card-name"></div>
+        <div class="reveal-card-song" id="reveal-card-song"></div>
+        <div class="reveal-card-points" id="reveal-card-points"></div>
+      </div>
+    </div>
     <div id="diretta-admin-controls" class="diretta-admin-controls hidden">
       <button id="btn-start-diretta-countdown" class="btn-start-countdown" type="button">🎬 Avvia countdown (admin)</button>
       <button id="btn-diretta-decree-now" class="btn-decree-now" type="button">🏆 Proclamazione diretta (admin)</button>
@@ -1005,6 +1095,13 @@
     const startDirettaCountdownBtn = document.getElementById('btn-start-diretta-countdown');
     const decreeDirettaNowBtn = document.getElementById('btn-diretta-decree-now');
     const direttaAdminNote = document.getElementById('diretta-admin-note');
+    const top5RevealOverlay = document.getElementById('top5-reveal-overlay');
+    const revealRankLabel = document.getElementById('reveal-rank-label');
+    const revealCard = document.getElementById('reveal-card');
+    const revealCardRankNum = document.getElementById('reveal-card-rank-num');
+    const revealCardName = document.getElementById('reveal-card-name');
+    const revealCardSong = document.getElementById('reveal-card-song');
+    const revealCardPoints = document.getElementById('reveal-card-points');
     const photoModal = document.getElementById('photo-modal');
     const photoModalImg = document.getElementById('photo-modal-image');
     const photoModalTitle = document.getElementById('photo-modal-title');
@@ -1043,6 +1140,7 @@
     let direttaCountdownKey = '';
     let direttaRevealPreloadPromise = null;
     let forceWinnerReveal = false;
+    let top5RevealActive = false;
     let votiRealtimeRefreshTimer = null;
     let refreshingSerata = false;
     let direttaAdminToken = '';
@@ -1319,6 +1417,7 @@
       stopDirettaCountdown();
 
       if (!direttaActive || winnerDecreed) {
+        if (top5RevealActive) return;
         if (!winnerDecreed) forceWinnerReveal = false;
         direttaWrap.style.display = 'none';
         content.style.display = '';
@@ -1382,11 +1481,20 @@
         if (remaining === 0) {
           stopDirettaCountdown();
           forceWinnerReveal = true;
-          if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-          renderContent();
-          direttaWrap.style.display = 'none';
-          content.style.display = '';
-          void refreshSerata();
+          if (document.fullscreenElement) {
+            startTop5Reveal(() => {
+              top5RevealActive = false;
+              direttaWrap.style.display = 'none';
+              content.style.display = '';
+              renderContent();
+              void refreshSerata();
+            });
+          } else {
+            renderContent();
+            direttaWrap.style.display = 'none';
+            content.style.display = '';
+            void refreshSerata();
+          }
           return;
         }
         const nextChangeInMs = msLeft - ((remaining - 1) * 1000);
@@ -1675,6 +1783,87 @@
       `;
     }
 
+    }
+
+    function startTop5Reveal(onComplete) {
+      const ranking = buildRanking();
+      if (!ranking.length) {
+        onComplete();
+        return;
+      }
+
+      top5RevealActive = true;
+
+      const top5 = ranking.slice(0, Math.min(5, ranking.length));
+      // Reveal from 5th place down to 1st
+      const revealOrder = [...top5].reverse();
+
+      const direttaIcon = direttaWrap.querySelector('.diretta-icon');
+      const rankOrdinals = ['', '1°', '2°', '3°', '4°', '5°', '6°', '7°', '8°', '9°', '10°'];
+
+      // Hide countdown and title/text, show reveal overlay
+      direttaCountdownEl.classList.add('hidden');
+      if (direttaIcon) direttaIcon.style.display = 'none';
+      direttaTitle.style.display = 'none';
+      direttaText.style.display = 'none';
+      direttaAdminControls.classList.add('hidden');
+      top5RevealOverlay.classList.add('active');
+
+      let step = 0;
+
+      function showStep() {
+        if (step >= revealOrder.length) {
+          // Restore diretta-wrap elements for consistency before callback
+          top5RevealOverlay.classList.remove('active');
+          if (direttaIcon) direttaIcon.style.display = '';
+          direttaTitle.style.display = '';
+          direttaText.style.display = '';
+          revealCard.classList.remove('in', 'winner-card');
+          revealRankLabel.classList.remove('in');
+          onComplete();
+          return;
+        }
+
+        const item = revealOrder[step];
+        const rank = top5.length - step; // 5, 4, 3, 2, 1
+        const isWinner = rank === 1;
+        step++;
+
+        // Reset animation classes
+        revealCard.classList.remove('in', 'winner-card');
+        revealRankLabel.classList.remove('in');
+
+        // Populate content
+        revealRankLabel.textContent = isWinner ? '🏆 AL PRIMO POSTO' : `AL ${rankOrdinals[rank] || rank + '°'} POSTO`;
+        revealCardRankNum.textContent = isWinner ? '🏆' : String(rank);
+        revealCardName.textContent = item.nome || '';
+        const songLabel = item.artista ? `${item.canzone} — ${item.artista}` : (item.canzone || '');
+        revealCardSong.textContent = songLabel;
+        revealCardPoints.textContent = `${item.scoreTotal} pt · ${item.scoreCount} vot${item.scoreCount === 1 ? 'o' : 'i'}`;
+
+        if (isWinner) revealCard.classList.add('winner-card');
+
+        // Trigger entrance animation on next frame
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            revealRankLabel.classList.add('in');
+            revealCard.classList.add('in');
+          });
+        });
+
+        // Hold duration: winner gets longer time
+        const holdMs = isWinner ? 4200 : 2600;
+        setTimeout(() => {
+          // Fade out before showing next
+          revealCard.classList.remove('in');
+          revealRankLabel.classList.remove('in');
+          setTimeout(showStep, 430);
+        }, holdMs);
+      }
+
+      showStep();
+    }
+
     async function castVote(songId, voto, card) {
       card.querySelectorAll('.btn-vote').forEach(b => b.disabled = true);
       const existing = getLocalVote(songId);
@@ -1834,7 +2023,7 @@
       if (!btnFullscreen) return;
       const supported = Boolean(document.fullscreenEnabled);
       btnFullscreen.classList.toggle('visible', show && supported);
-      if (!show && document.fullscreenElement) {
+      if (!show && document.fullscreenElement && !top5RevealActive) {
         document.exitFullscreen().catch(() => {});
       }
     }
