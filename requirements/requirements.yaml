@@ -149,6 +149,34 @@ requirements:
     labels: [priority-states, ui]
     test_cases: []
 
+  # ── Gestione stato pre-live ───────────────────────────────────────────────────
+
+  - id: REQ-QUEUE-001
+    title: "Setting post-approvazione configurabile"
+    area: "admin-tools.html, supabase/functions/admin-bookings/index.ts, impostazioni_pubbliche"
+    description: >
+      Nelle impostazioni deve essere presente il controllo "Cosa fare dopo approvazione"
+      con due scelte: "La canzone va direttamente live" oppure "In preparazione e poi live".
+      La UI deve mostrare anche una descrizione chiara del comportamento di entrambe.
+    status: implemented
+    generate_issue: false
+    labels: [queue, settings, admin]
+    test_cases: [TC-QUEUE-001]
+
+  - id: REQ-QUEUE-002
+    title: "Stato transitorio 'si sta preparando' prima del live"
+    area: "admin.html, index.html, scripts/karaoke-state.js, prenotazioni"
+    description: >
+      Quando il setting post-approvazione è impostato su "In preparazione e poi live",
+      la canzone corrente deve entrare nello stato "si sta preparando" prima del live.
+      In home e nella lista pubblica questo stato deve essere visibile; in admin la canzone
+      corrente deve mostrare il pulsante "Inizia" e solo dopo il click passare al normale
+      stato live/on air.
+    status: implemented
+    generate_issue: false
+    labels: [queue, ui, admin]
+    test_cases: [TC-QUEUE-002, TC-QUEUE-003]
+
   # ── Esempi di requisiti "da implementare" (generate_issue: true) ─────────────
   # Decommentare e impostare generate_issue: true per creare automaticamente
   # un'issue GitHub. Esempio:

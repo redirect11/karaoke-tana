@@ -20,6 +20,7 @@
  *  | Booking position in queue | status      |
  *  |---------------------------|-------------|
  *  | Not in queue (index -1)   | not-found   |
+ *  | First + preparing         | preparing   |
  *  | First (index 0)           | turn        |
  *  | Second (index 1)          | next        |
  *  | Third or later (index 2+) | waiting     |
@@ -252,6 +253,15 @@ describe('Feature: Queue position logic', () => {
     });
   });
 
+  describe('Scenario: Booking is current but still in preparation', () => {
+    it('returns status "preparing" and index 0', () => {
+      const queue = [{ id: 1, in_preparazione: true }, { id: 2 }];
+      const result = computeQueuePosition(1, queue);
+      expect(result.status).toBe('preparing');
+      expect(result.index).toBe(0);
+    });
+  });
+
   describe('Scenario: Booking is second in the queue (Preparati!)', () => {
     it('returns status "next" and index 1', () => {
       const queue = [{ id: 2 }, { id: 1 }, { id: 3 }];
@@ -289,6 +299,7 @@ describe('Feature: Queue position logic', () => {
     const labelMap = {
       'no-booking':  '(no action)',
       'not-found':   'Sei in lista. Lo staff ti chiamerà quando arriva il tuo turno.',
+      'preparing':   'Sei la canzone corrente: lo staff ti sta preparando prima del live.',
       'turn':        'È il tuo turno.',
       'next':        'Preparati, canti al prossimo turno.',
       'waiting':     'Mancano N canzoni',
@@ -308,14 +319,21 @@ describe('Feature: Queue position logic', () => {
     const cases = [
       [null,  'no-booking', -1],
       [99,    'not-found',  -1],
+      [{ id: 10, in_preparazione: true }, 'preparing', 0],
       [10,    'turn',        0],
       [20,    'next',        1],
       [30,    'waiting',     2],
       [40,    'waiting',     3],
     ];
 
-    it.each(cases)('bookingId=%s → status=%s, index=%s', (bookingId, expectedStatus, expectedIndex) => {
-      const result = computeQueuePosition(bookingId, queue);
+    it.each(cases)('bookingId=%s → status=%s, index=%s', (bookingIdOrOverride, expectedStatus, expectedIndex) => {
+      const localQueue = typeof bookingIdOrOverride === 'object' && bookingIdOrOverride !== null
+        ? [bookingIdOrOverride, ...queue.slice(1)]
+        : queue;
+      const bookingId = typeof bookingIdOrOverride === 'object' && bookingIdOrOverride !== null
+        ? 10
+        : bookingIdOrOverride;
+      const result = computeQueuePosition(bookingId, localQueue);
       expect(result.status).toBe(expectedStatus);
       expect(result.index).toBe(expectedIndex);
     });

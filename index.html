@@ -754,6 +754,15 @@
       color: #89f2b7;
       margin-top: 6px;
     }
+    .song-list-section.current-song-preparing {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      letter-spacing: 0.08em;
+      color: #ffe08a;
+      margin-top: 6px;
+    }
     .song-list-section.current-song-live .live-dot {
       width: 10px;
       height: 10px;
@@ -1462,6 +1471,7 @@
     let revealCountdownWatcherTimer = null;
     let publicSettings = {
       archivio_pubblico_abilitato: false,
+      modalita_post_approvazione: 'direct_live',
       prossima_serata_data: null,
     };
 
@@ -1624,7 +1634,7 @@
       if (!db) return publicSettings;
       const { data, error } = await db
         .from('impostazioni_pubbliche')
-        .select('archivio_pubblico_abilitato, prossima_serata_data')
+        .select('archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data')
         .eq('id', 1)
         .maybeSingle();
       if (!error && data) {
@@ -1756,7 +1766,7 @@
 
       let { data, error } = await db
         .from('prenotazioni')
-        .select('id, nome, canzone, artista, created_at, cantata, approvata, selfie_url, selfie_nascosta')
+        .select('id, nome, canzone, artista, created_at, cantata, approvata, in_preparazione, selfie_url, selfie_nascosta')
         .eq('serata_id', currentSerataId)
         .eq('approvata', true)
         .order('created_at', { ascending: true });
@@ -1764,7 +1774,7 @@
       if (error || !data || data.length === 0) {
         const fallback = await db
           .from('prenotazioni')
-          .select('id, nome, canzone, artista, created_at, cantata, approvata, selfie_url, selfie_nascosta')
+          .select('id, nome, canzone, artista, created_at, cantata, approvata, in_preparazione, selfie_url, selfie_nascosta')
           .is('serata_id', null)
           .eq('approvata', true)
           .order('created_at', { ascending: true });
@@ -2014,7 +2024,7 @@
               <div class="song-item-title">${escapeHtml(item.canzone)}</div>
               <div class="song-item-artist">${escapeHtml(item.artista)}</div>
               <div class="song-item-name">Prenotata da ${escapeHtml(item.nome)}</div>
-              ${currentSong ? '<div class="song-item-badge">🎤 Canzone corrente</div>' : ''}
+              ${currentSong ? `<div class="song-item-badge">${item.in_preparazione ? '⏳ Si sta preparando' : '🎤 Canzone corrente'}</div>` : ''}
               ${Number(item.id) === currentBookingIdNum ? '<div class="song-item-badge">La tua prenotazione</div>' : ''}
             </div>
           </div>
@@ -2032,7 +2042,9 @@
       const currentSong = items[0];
       const queueItems = items.slice(1);
       const currentSongHtml = currentSong
-        ? `<div class="song-list-section current-song-live"><span class="live-dot" aria-hidden="true"></span>ON AIR</div>${renderSongItem(currentSong, 'LIVE', { currentSong: true })}`
+        ? `${currentSong.in_preparazione
+            ? '<div class="song-list-section current-song-preparing">⏳ SI STA PREPARANDO</div>'
+            : '<div class="song-list-section current-song-live"><span class="live-dot" aria-hidden="true"></span>ON AIR</div>'}${renderSongItem(currentSong, currentSong.in_preparazione ? 'PREP' : 'LIVE', { currentSong: true })}`
         : '';
       const queueHtml = queueItems.length
         ? `<div class="song-list-section">In attesa</div>${queueItems.map((item, index) => renderSongItem(item, String(index + 1), {
@@ -2166,11 +2178,15 @@
     function setWaitingTitle(state = 'in-list') {
       const titleEl = document.getElementById('waiting-title');
       if (!titleEl) return;
-      const validStates = new Set(['pending', 'turn', 'in-list', 'almost-turn']);
+      const validStates = new Set(['pending', 'preparing', 'turn', 'in-list', 'almost-turn']);
       const normalizedState = validStates.has(state) ? state : 'in-list';
       titleEl.classList.toggle('is-critical', normalizedState === 'almost-turn');
       if (normalizedState === 'pending') {
         titleEl.textContent = 'Richiesta in attesa di approvazione';
+        return;
+      }
+      if (normalizedState === 'preparing') {
+        titleEl.textContent = 'Ti stai preparando';
         return;
       }
       if (normalizedState === 'turn') {
@@ -2212,13 +2228,22 @@
       return queueItems.findIndex((item) => Number(item.id) === bookingIdNum);
     }
 
+    function computeCurrentBookingQueueState(queueItems = songListCache.toSing) {
+      const computeQueuePosition = window.KaraokeState?.computeQueuePosition;
+      if (typeof computeQueuePosition !== 'function') {
+        const fallbackIndex = getCurrentBookingQueueIndex(queueItems);
+        if (fallbackIndex === -1) return { index: -1, status: 'not-found' };
+        return { index: fallbackIndex, status: fallbackIndex === 0 ? 'turn' : (fallbackIndex === 1 ? 'next' : 'waiting') };
+      }
+      return computeQueuePosition(getCurrentBookingId(), Array.isArray(queueItems) ? queueItems : []);
+    }
+
     function updateWaitingPositionStatus(queueItems) {
       if (stepWaiting.style.display !== 'flex') return;
       const stored = safeParseBookingCookie(getCookie('last_booking'));
       if (!stored) return;
       const isApproved = stored.pendingExpiresAt === null || stored.pendingExpiresAt === undefined;
       const safeQueueItems = Array.isArray(queueItems) ? queueItems : [];
-      const index = getCurrentBookingQueueIndex(safeQueueItems);
       if (!isApproved) {
         setWaitingMainMessage('');
         setWaitingRemainingSongs(null);
@@ -2227,7 +2252,8 @@
         setWaitingStatus('La tua prenotazione è in attesa di approvazione.');
         return;
       }
-      if (index === -1) {
+      const queueState = computeCurrentBookingQueueState(safeQueueItems);
+      if (queueState.status === 'not-found' || queueState.status === 'no-booking') {
         setWaitingMainMessage('Sei in lista. Lo staff ti chiamerà quando arriva il tuo turno.');
         setWaitingRemainingSongs(null);
         setWaitingBookingNumber(getStoredBookingNumber(stored));
@@ -2235,7 +2261,15 @@
         setWaitingStatus('La tua prenotazione è stata approvata. Resta in ascolto: la coda si aggiorna in tempo reale.', { screenReaderOnly: true });
         return;
       }
-      if (index === 0) {
+      if (queueState.status === 'preparing') {
+        setWaitingMainMessage('Sei la canzone corrente: lo staff ti sta preparando prima del live.', { prominent: true });
+        setWaitingRemainingSongs(null);
+        setWaitingBookingNumber(null);
+        setWaitingTitle('preparing');
+        setWaitingStatus('⏳ Sei in preparazione. Appena parte la base andrai live.', { screenReaderOnly: true });
+        return;
+      }
+      if (queueState.status === 'turn') {
         setWaitingMainMessage('È il tuo turno.', { prominent: true });
         setWaitingRemainingSongs(null);
         setWaitingBookingNumber(null);
@@ -2245,14 +2279,14 @@
       }
       setWaitingRemainingSongs(null);
       setWaitingTitle('in-list');
-      if (index === 1) {
+      if (queueState.status === 'next') {
         setWaitingMainMessage('Preparati, canti al prossimo turno.', { prominent: true });
         setWaitingTitle('almost-turn');
         setWaitingBookingNumber(null);
         setWaitingStatus('⏳ Manca una canzone: il tuo turno è il prossimo.', { screenReaderOnly: true });
         return;
       }
-      setWaitingMainMessage(`Mancano ${index} canzoni`, { prominent: true });
+      setWaitingMainMessage(`Mancano ${queueState.index} canzoni`, { prominent: true });
       setWaitingBookingNumber(getStoredBookingNumber(stored));
     }
 
@@ -2260,23 +2294,29 @@
       const bookingId = getCurrentBookingId();
       const bookingIdNum = Number(bookingId);
       if (!Number.isInteger(bookingIdNum) || bookingIdNum <= 0) return;
-      const index = queueItems.findIndex((item) => Number(item.id) === bookingIdNum);
+      const queueState = computeCurrentBookingQueueState(queueItems);
       const state = getNotificationState(bookingIdNum);
-      const previousIndex = Number.isInteger(state.queueIndex) ? state.queueIndex : -1;
+      const previousStatus = typeof state.queueStatus === 'string' ? state.queueStatus : '';
 
-      if (index === 1 && previousIndex !== 1 && !state.almost) {
+      if (queueState.status === 'next' && previousStatus !== 'next' && !state.almost) {
         if (notifyBrowser('⏳ Manca una canzone', 'Preparati, stai per cantare.')) {
           state.almost = true;
         }
       }
 
-      if (index === 0 && previousIndex !== 0 && !state.now) {
+      if (queueState.status === 'preparing' && previousStatus !== 'preparing' && !state.preparing) {
+        if (notifyBrowser('⏳ Ti stai preparando', 'Sei la canzone corrente: aspetta il via per andare live.')) {
+          state.preparing = true;
+        }
+      }
+
+      if (queueState.status === 'turn' && previousStatus !== 'turn' && !state.now) {
         if (notifyBrowser('🎤 È il tuo turno!', 'La tua canzone è arrivata in cima alla lista.')) {
           state.now = true;
         }
       }
 
-      state.queueIndex = index;
+      state.queueStatus = queueState.status;
       setNotificationState(bookingIdNum, state);
     }
 

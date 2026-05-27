@@ -136,6 +136,14 @@
 
     .actions { display: flex; flex-wrap: wrap; gap: 10px; }
     .next-date-controls { display: flex; flex-wrap: wrap; gap: 10px; }
+    .setting-block { display: flex; flex-direction: column; gap: 8px; }
+    .setting-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--gold-s);
+    }
     .next-date-input {
       min-width: 170px;
       background: var(--bg2);
@@ -236,6 +244,21 @@
         <div class="actions">
           <button class="action-btn btn-public-settings" id="btn-toggle-archive-public" type="button">—</button>
         </div>
+        <div class="setting-block">
+          <label class="setting-label" for="post-approval-mode">Cosa fare dopo approvazione</label>
+          <div class="next-date-controls">
+            <select class="next-date-input" id="post-approval-mode">
+              <option value="direct_live">La canzone va direttamente live</option>
+              <option value="preparation_then_live">In preparazione e poi live</option>
+            </select>
+            <button class="action-btn btn-public-settings" id="btn-save-post-approval-mode" type="button">Salva impostazione</button>
+          </div>
+          <p>
+            Questa impostazione decide cosa succede alla canzone corrente subito dopo l’approvazione:
+            puoi mandarla direttamente live oppure farla comparire prima nello stato “si sta preparando”,
+            così l’admin deve premere <strong>Inizia</strong> prima di portarla on air.
+          </p>
+        </div>
         <div class="next-date-controls">
           <input class="next-date-input" id="next-karaoke-date" type="date" />
           <button class="action-btn btn-public-settings" id="btn-save-next-date" type="button">Salva data</button>
@@ -290,6 +313,8 @@
     const toggleTelegramNotificationsBtn = document.getElementById('btn-toggle-telegram-notifications');
     const toggleBrowserNotificationsBtn = document.getElementById('btn-toggle-browser-notifications');
     const btnToggleArchivePublic = document.getElementById('btn-toggle-archive-public');
+    const postApprovalModeSelect = document.getElementById('post-approval-mode');
+    const btnSavePostApprovalMode = document.getElementById('btn-save-post-approval-mode');
     const nextKaraokeDateInput = document.getElementById('next-karaoke-date');
     const btnSaveNextDate = document.getElementById('btn-save-next-date');
     const btnClearNextDate = document.getElementById('btn-clear-next-date');
@@ -301,6 +326,7 @@
     let adminToken = '';
     let publicSettings = {
       archivio_pubblico_abilitato: false,
+      modalita_post_approvazione: 'direct_live',
       prossima_serata_data: null,
     };
 
@@ -311,6 +337,7 @@
     toggleTelegramNotificationsBtn.addEventListener('click', toggleTelegramNotifications);
     toggleBrowserNotificationsBtn.addEventListener('click', toggleBrowserNotifications);
     btnToggleArchivePublic.addEventListener('click', toggleArchivePublic);
+    btnSavePostApprovalMode.addEventListener('click', savePostApprovalMode);
     btnSaveNextDate.addEventListener('click', saveNextKaraokeDate);
     btnClearNextDate.addEventListener('click', clearNextKaraokeDate);
 
@@ -472,11 +499,23 @@
 
     function renderPublicSettings() {
       const enabled = publicSettings?.archivio_pubblico_abilitato === true;
+      const postApprovalMode = publicSettings?.modalita_post_approvazione === 'preparation_then_live'
+        ? 'preparation_then_live'
+        : 'direct_live';
+      const postApprovalLabel = postApprovalMode === 'preparation_then_live'
+        ? '⏳ In preparazione e poi live'
+        : '🎤 Direttamente live';
+      const postApprovalDescription = postApprovalMode === 'preparation_then_live'
+        ? 'Dopo l’approvazione la canzone corrente entra in “si sta preparando” e l’admin deve premere “Inizia” per mandarla live.'
+        : 'Dopo l’approvazione la canzone corrente va subito live, senza passare dallo stato di preparazione.';
       archivePublicStatusBox.innerHTML = `
         <strong>Archivio pubblico: ${enabled ? '🟢 attivo' : '⭕ nascosto'}</strong>
         <span>Data prossimo karaoke: ${publicSettings?.prossima_serata_data || 'non impostata'}</span>
+        <span>Dopo approvazione: ${postApprovalLabel}</span>
+        <span>${postApprovalDescription}</span>
       `;
       btnToggleArchivePublic.textContent = enabled ? 'Disattiva archivio in home' : 'Attiva archivio in home';
+      postApprovalModeSelect.value = postApprovalMode;
       nextKaraokeDateInput.value = publicSettings?.prossima_serata_data || '';
     }
 
@@ -504,6 +543,22 @@
       } finally {
         btnSaveNextDate.disabled = false;
         btnSaveNextDate.textContent = 'Salva data';
+      }
+
+      async function savePostApprovalMode() {
+        const value = postApprovalModeSelect.value === 'preparation_then_live'
+          ? 'preparation_then_live'
+          : 'direct_live';
+        setBusy(btnSavePostApprovalMode, true, 'Salvataggio…');
+        try {
+          publicSettings = await callAdmin('set_public_settings', { modalitaPostApprovazione: value });
+          renderPublicSettings();
+        } catch (error) {
+          setStatus(error?.message || 'Non sono riuscito ad aggiornare il comportamento post-approvazione.', true);
+        } finally {
+          btnSavePostApprovalMode.disabled = false;
+          btnSavePostApprovalMode.textContent = 'Salva impostazione';
+        }
       }
     }
 

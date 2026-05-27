@@ -132,6 +132,31 @@ function parseCountdownSeconds(value: unknown): number {
   return parsed;
 }
 
+const POST_APPROVAL_MODE_DIRECT_LIVE = "direct_live";
+const POST_APPROVAL_MODE_PREPARATION_THEN_LIVE = "preparation_then_live";
+
+type PostApprovalMode =
+  | typeof POST_APPROVAL_MODE_DIRECT_LIVE
+  | typeof POST_APPROVAL_MODE_PREPARATION_THEN_LIVE;
+
+function normalizePostApprovalMode(value: unknown): PostApprovalMode {
+  if (value === POST_APPROVAL_MODE_PREPARATION_THEN_LIVE) {
+    return POST_APPROVAL_MODE_PREPARATION_THEN_LIVE;
+  }
+  if (value === POST_APPROVAL_MODE_DIRECT_LIVE || value == null || value === "") {
+    return POST_APPROVAL_MODE_DIRECT_LIVE;
+  }
+  throw new ApiError(
+    400,
+    "invalid_payload",
+    "modalitaPostApprovazione deve essere 'direct_live' oppure 'preparation_then_live'.",
+  );
+}
+
+function isPreparationModeEnabled(mode: unknown): boolean {
+  return normalizePostApprovalMode(mode) === POST_APPROVAL_MODE_PREPARATION_THEN_LIVE;
+}
+
 function toIsoDateFromTimestamp(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const parsed = Date.parse(value);
@@ -341,10 +366,62 @@ async function getState(admin: ReturnType<typeof createClient>) {
   return { serata, bookings: bookingsWithScores, top5, settings };
 }
 
+async function getCurrentActiveBooking(admin: ReturnType<typeof createClient>, serataId: number) {
+  const { data, error } = await admin
+    .from("prenotazioni")
+    .select("id, in_preparazione")
+    .eq("serata_id", serataId)
+    .eq("approvata", true)
+    .eq("cantata", false)
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new ApiError(500, "query_failed", "Errore durante il caricamento della canzone corrente.");
+  }
+
+  return data;
+}
+
+async function clearPreparationFlags(admin: ReturnType<typeof createClient>, serataId: number) {
+  const { error } = await admin
+    .from("prenotazioni")
+    .update({ in_preparazione: false })
+    .eq("serata_id", serataId)
+    .eq("in_preparazione", true);
+
+  if (error) {
+    throw new ApiError(500, "update_failed", "Non sono riuscito ad aggiornare lo stato di preparazione.");
+  }
+}
+
+async function setPreparingBooking(
+  admin: ReturnType<typeof createClient>,
+  serataId: number,
+  bookingId: number | null,
+) {
+  await clearPreparationFlags(admin, serataId);
+  if (!bookingId) return;
+
+  const { error } = await admin
+    .from("prenotazioni")
+    .update({ in_preparazione: true })
+    .eq("id", bookingId)
+    .eq("serata_id", serataId)
+    .eq("approvata", true)
+    .eq("cantata", false);
+
+  if (error) {
+    throw new ApiError(500, "update_failed", "Non sono riuscito ad attivare lo stato di preparazione.");
+  }
+}
+
 async function getPublicSettings(admin: ReturnType<typeof createClient>) {
   const { data, error } = await admin
     .from("impostazioni_pubbliche")
-    .select("id, archivio_pubblico_abilitato, prossima_serata_data")
+    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data")
     .eq("id", 1)
     .maybeSingle();
 
@@ -358,8 +435,13 @@ async function getPublicSettings(admin: ReturnType<typeof createClient>) {
 
   const { data: inserted, error: insertError } = await admin
     .from("impostazioni_pubbliche")
-    .insert({ id: 1, archivio_pubblico_abilitato: false, prossima_serata_data: null })
-    .select("id, archivio_pubblico_abilitato, prossima_serata_data")
+    .insert({
+      id: 1,
+      archivio_pubblico_abilitato: false,
+      modalita_post_approvazione: POST_APPROVAL_MODE_DIRECT_LIVE,
+      prossima_serata_data: null,
+    })
+    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data")
     .maybeSingle();
 
   if (insertError || !inserted) {
@@ -371,13 +453,20 @@ async function getPublicSettings(admin: ReturnType<typeof createClient>) {
 
 async function updatePublicSettings(
   admin: ReturnType<typeof createClient>,
-  updates: { archivio_pubblico_abilitato?: boolean; prossima_serata_data?: string | null },
+  updates: {
+    archivio_pubblico_abilitato?: boolean;
+    modalita_post_approvazione?: PostApprovalMode;
+    prossima_serata_data?: string | null;
+  },
 ) {
   await getPublicSettings(admin);
 
   const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (typeof updates.archivio_pubblico_abilitato === "boolean") {
     payload.archivio_pubblico_abilitato = updates.archivio_pubblico_abilitato;
+  }
+  if (typeof updates.modalita_post_approvazione === "string") {
+    payload.modalita_post_approvazione = normalizePostApprovalMode(updates.modalita_post_approvazione);
   }
   if (Object.prototype.hasOwnProperty.call(updates, "prossima_serata_data")) {
     payload.prossima_serata_data = updates.prossima_serata_data ?? null;
@@ -387,7 +476,7 @@ async function updatePublicSettings(
     .from("impostazioni_pubbliche")
     .update(payload)
     .eq("id", 1)
-    .select("id, archivio_pubblico_abilitato, prossima_serata_data")
+    .select("id, archivio_pubblico_abilitato, modalita_post_approvazione, prossima_serata_data")
     .maybeSingle();
 
   if (error || !data) {
@@ -489,20 +578,40 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
     }
 
     case "set_public_settings": {
-      const updates: { archivio_pubblico_abilitato?: boolean; prossima_serata_data?: string | null } = {};
+      const updates: {
+        archivio_pubblico_abilitato?: boolean;
+        modalita_post_approvazione?: PostApprovalMode;
+        prossima_serata_data?: string | null;
+      } = {};
       if (typeof body.archivioPubblicoAbilitato === "boolean") {
         updates.archivio_pubblico_abilitato = body.archivioPubblicoAbilitato;
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "modalitaPostApprovazione")) {
+        updates.modalita_post_approvazione = normalizePostApprovalMode(body.modalitaPostApprovazione);
       }
       if (Object.prototype.hasOwnProperty.call(body, "prossimaSerataData")) {
         updates.prossima_serata_data = normalizeOptionalDate(body.prossimaSerataData, "prossimaSerataData");
       }
       if (
         typeof updates.archivio_pubblico_abilitato !== "boolean"
+        && typeof updates.modalita_post_approvazione !== "string"
         && !Object.prototype.hasOwnProperty.call(updates, "prossima_serata_data")
       ) {
-        throw new ApiError(400, "invalid_payload", "Specifica almeno archivioPubblicoAbilitato o prossimaSerataData.");
+        throw new ApiError(
+          400,
+          "invalid_payload",
+          "Specifica almeno archivioPubblicoAbilitato, modalitaPostApprovazione o prossimaSerataData.",
+        );
       }
-      return { status: 200, data: await updatePublicSettings(admin, updates) };
+      const updatedSettings = await updatePublicSettings(admin, updates);
+      if (updates.modalita_post_approvazione === POST_APPROVAL_MODE_DIRECT_LIVE) {
+        const openSerata = await getOpenSerata(admin);
+        const openSerataId = Number(openSerata?.id);
+        if (Number.isInteger(openSerataId) && openSerataId > 0) {
+          await clearPreparationFlags(admin, openSerataId);
+        }
+      }
+      return { status: 200, data: updatedSettings };
     }
 
     case "get_archive": {
@@ -577,15 +686,17 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         throw new ApiError(404, "not_found", "Prenotazione non trovata.");
       }
       const approveSerataId = Number(bookingToApprove.serata_id);
+      let activeBeforeApproval = null;
       if (Number.isInteger(approveSerataId) && approveSerataId > 0) {
         await ensureSerataAllowsMutations(admin, approveSerataId);
+        activeBeforeApproval = await getCurrentActiveBooking(admin, approveSerataId);
       }
 
       const { data, error } = await admin
         .from("prenotazioni")
-        .update({ approvata: true })
+        .update({ approvata: true, in_preparazione: false })
         .eq("id", bookingId)
-        .select("id, approvata, cantata")
+        .select("id, approvata, cantata, in_preparazione")
         .maybeSingle();
 
       if (error) {
@@ -593,6 +704,16 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       }
       if (!data) {
         throw new ApiError(404, "not_found", "Prenotazione non trovata.");
+      }
+
+      if (
+        Number.isInteger(approveSerataId) &&
+        approveSerataId > 0 &&
+        !activeBeforeApproval &&
+        isPreparationModeEnabled((await getPublicSettings(admin)).modalita_post_approvazione)
+      ) {
+        await setPreparingBooking(admin, approveSerataId, bookingId);
+        data.in_preparazione = true;
       }
 
       return { status: 200, data };
@@ -653,8 +774,12 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         throw new ApiError(404, "not_found", "Prenotazione non trovata.");
       }
       const deleteSerataId = Number(bookingToDelete.serata_id);
+      let currentBookingId = null;
+      let preparationModeEnabled = false;
       if (Number.isInteger(deleteSerataId) && deleteSerataId > 0) {
         await ensureSerataAllowsMutations(admin, deleteSerataId);
+        currentBookingId = Number((await getCurrentActiveBooking(admin, deleteSerataId))?.id) || null;
+        preparationModeEnabled = isPreparationModeEnabled((await getPublicSettings(admin)).modalita_post_approvazione);
       }
 
       const { data, error } = await admin
@@ -669,6 +794,16 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       }
       if (!data) {
         throw new ApiError(404, "not_found", "Prenotazione non trovata.");
+      }
+
+      if (
+        preparationModeEnabled &&
+        Number.isInteger(deleteSerataId) &&
+        deleteSerataId > 0 &&
+        Number(currentBookingId) === bookingId
+      ) {
+        const nextCurrentId = Number((await getCurrentActiveBooking(admin, deleteSerataId))?.id) || null;
+        await setPreparingBooking(admin, deleteSerataId, nextCurrentId);
       }
 
       return { status: 200, data };
@@ -690,19 +825,83 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         throw new ApiError(404, "not_found", "Prenotazione non trovata.");
       }
       const completeSerataId = Number(bookingToComplete.serata_id);
+      let currentBookingId = null;
+      let preparationModeEnabled = false;
       if (Number.isInteger(completeSerataId) && completeSerataId > 0) {
         await ensureSerataAllowsMutations(admin, completeSerataId);
+        currentBookingId = Number((await getCurrentActiveBooking(admin, completeSerataId))?.id) || null;
+        preparationModeEnabled = isPreparationModeEnabled((await getPublicSettings(admin)).modalita_post_approvazione);
       }
 
       const { data, error } = await admin
         .from("prenotazioni")
-        .update({ cantata: true })
+        .update({ cantata: true, in_preparazione: false })
         .eq("id", bookingId)
-        .select("id, cantata")
+        .select("id, cantata, in_preparazione")
         .maybeSingle();
 
       if (error) {
         throw new ApiError(500, "update_failed", "Non sono riuscito a segnare la prenotazione come completata.");
+      }
+      if (!data) {
+        throw new ApiError(404, "not_found", "Prenotazione non trovata.");
+      }
+
+      if (
+        preparationModeEnabled &&
+        Number.isInteger(completeSerataId) &&
+        completeSerataId > 0 &&
+        Number(currentBookingId) === bookingId
+      ) {
+        const nextCurrentId = Number((await getCurrentActiveBooking(admin, completeSerataId))?.id) || null;
+        await setPreparingBooking(admin, completeSerataId, nextCurrentId);
+      }
+
+      return { status: 200, data };
+    }
+
+    case "start_current_booking":
+    case "start_booking": {
+      const bookingId = toPositiveInt(body.bookingId ?? body.id, "bookingId");
+      const { data: bookingToStart, error: bookingLoadError } = await admin
+        .from("prenotazioni")
+        .select("id, serata_id, approvata, cantata, in_preparazione")
+        .eq("id", bookingId)
+        .maybeSingle();
+
+      if (bookingLoadError) {
+        throw new ApiError(500, "query_failed", "Errore durante il caricamento della prenotazione.");
+      }
+      if (!bookingToStart) {
+        throw new ApiError(404, "not_found", "Prenotazione non trovata.");
+      }
+
+      const serataId = Number(bookingToStart.serata_id);
+      if (!Number.isInteger(serataId) || serataId <= 0) {
+        throw new ApiError(400, "invalid_state", "La prenotazione non appartiene a una serata valida.");
+      }
+      await ensureSerataAllowsMutations(admin, serataId);
+
+      const currentBooking = await getCurrentActiveBooking(admin, serataId);
+      if (Number(currentBooking?.id) !== bookingId) {
+        throw new ApiError(409, "not_current_booking", "Puoi avviare solo la canzone corrente.");
+      }
+      if (!bookingToStart.approvata || bookingToStart.cantata) {
+        throw new ApiError(409, "invalid_state", "La prenotazione non può essere avviata.");
+      }
+      if (!bookingToStart.in_preparazione) {
+        throw new ApiError(409, "already_live", "La canzone è già live.");
+      }
+
+      const { data, error } = await admin
+        .from("prenotazioni")
+        .update({ in_preparazione: false })
+        .eq("id", bookingId)
+        .select("id, approvata, cantata, in_preparazione")
+        .maybeSingle();
+
+      if (error) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito ad avviare la canzone.");
       }
       if (!data) {
         throw new ApiError(404, "not_found", "Prenotazione non trovata.");
