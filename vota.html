@@ -1600,6 +1600,16 @@
           const elapsedSinceSeen = now - direttaCountdownSeenAtMs;
           remaining = Math.max(0, configuredSeconds - Math.floor(elapsedSinceSeen / 1000));
         }
+        if (
+          Number.isInteger(configuredSeconds)
+          && configuredSeconds > 0
+          && msLeft > ((configuredSeconds - 1) * 1000)
+          && (now - direttaCountdownSeenAtMs) < 1000
+        ) {
+          // Mantieni il primo valore visibile per ~1s anche con leggera latenza
+          // tra start server e primo render client.
+          remaining = configuredSeconds;
+        }
         if (remaining !== direttaCountdownLastValue) {
           direttaCountdownLastValue = remaining;
           direttaCountdownEl.textContent = String(remaining).padStart(2, '0');
@@ -1908,7 +1918,11 @@
         return;
       }
       const top5 = ranking.slice(0, startRank);
-      const rank = normalizeRevealRank(serata?.winner_reveal_current_rank, top5.length) || startRank;
+      const rank = normalizeRevealRank(serata?.winner_reveal_current_rank, top5.length);
+      if (!rank) {
+        endRevealAnimation();
+        return;
+      }
       if (top5RevealActive && rank === lastRevealedRank) return;
       const item = top5[rank - 1];
       if (!item) return;
