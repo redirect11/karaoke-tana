@@ -213,6 +213,11 @@ describe('Feature: handleReturn guard rules (REQ-FOLLOW-005)', () => {
   // The pure function contract: given (igOpened, followedAtPageLoad, followedInSession),
   // should handleReturn proceed to goToForm?
 
+  // NOTE: `shouldHandleReturn` is an intentional specification mirror, not a duplication error.
+  // `handleReturn()` in index.html is inside a large inline <script> tag and cannot be imported
+  // directly. This pure function documents the *expected contract* of the guard and will fail
+  // if the implementation drifts — which is the whole point of the test. If the guard is ever
+  // extracted to a module (e.g., scripts/follow-flow.js), replace this helper with a real import.
   function shouldHandleReturn({ igOpened, followedAtPageLoad, followedInSession }) {
     // Mirrors the guard in index.html:
     //   if (!igOpened) return; // no longer checks ig_clicked

@@ -89,12 +89,15 @@ function parseRequirementsYaml(text) {
 
     // Finish multi-line description if we hit a non-indented field
     if (inDescription) {
-      if (line.match(/^    \S/) && !line.match(/^    [a-z_]+: /)) {
+      if (line.match(/^    \S/) && !line.match(/^    [a-zA-Z_-]+: /)) {
         // Continuation of description (> block scalar lines start with >=6 spaces)
         descriptionLines.push(line.trim());
         continue;
       } else {
-        current.description = descriptionLines.join(' ').trim();
+        // Only use collected lines if at least one content line was found
+        if (descriptionLines.length > 0) {
+          current.description = descriptionLines.join(' ').trim();
+        }
         inDescription = false;
         descriptionLines = [];
       }
@@ -166,6 +169,10 @@ async function githubFetch(path, options = {}) {
 }
 
 async function searchIssues(title) {
+  // Search for existing issues (open or closed) with this exact title to ensure idempotency.
+  // Closed issues are intentionally included: if a requirement issue was previously resolved
+  // and closed, we do NOT want to re-create it automatically. Re-opening or creating a new
+  // one should be a deliberate manual action.
   const q = encodeURIComponent(`repo:${OWNER}/${REPO} is:issue in:title "${title}"`);
   const { ok, body } = await githubFetch(`/search/issues?q=${q}&per_page=5`);
   if (!ok) return [];
