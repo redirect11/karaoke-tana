@@ -1027,6 +1027,7 @@
     const ADMIN_EMAIL = 'admin@tana.it';
     const DEFAULT_SELFIE_URL = 'logo.png';
     const DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS = 5;
+    const MAX_WINNER_REVEAL_COUNTDOWN_SECONDS = 300;
 
     let bookings = [];
     let currentSerata = null;
@@ -1612,7 +1613,9 @@
 
     function getWinnerRevealCountdownSeconds() {
       const configuredSeconds = Number(publicSettings?.winner_reveal_countdown_default_seconds);
-      return Number.isInteger(configuredSeconds) && configuredSeconds >= DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS
+      return Number.isInteger(configuredSeconds)
+        && configuredSeconds >= DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS
+        && configuredSeconds <= MAX_WINNER_REVEAL_COUNTDOWN_SECONDS
         ? configuredSeconds
         : DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS;
     }

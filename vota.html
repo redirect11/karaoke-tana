@@ -993,6 +993,7 @@
       : null;
     const DEFAULT_SELFIE_URL = 'logo.png';
     const DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS = 5;
+    const MAX_WINNER_REVEAL_COUNTDOWN_SECONDS = 300;
 
     const content       = document.getElementById('content');
     const statusBanner  = document.getElementById('status-banner');
@@ -1213,7 +1214,9 @@
 
     function getWinnerRevealCountdownSeconds(settings = direttaAdminSettings) {
       const value = Number(settings?.winner_reveal_countdown_default_seconds);
-      return Number.isInteger(value) && value >= DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS
+      return Number.isInteger(value)
+        && value >= DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS
+        && value <= MAX_WINNER_REVEAL_COUNTDOWN_SECONDS
         ? value
         : DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS;
     }
@@ -1368,7 +1371,7 @@
           remaining = Math.max(0, configuredSeconds - Math.floor(elapsedMs / 1000));
         } else if (Number.isInteger(configuredSeconds) && configuredSeconds > 0) {
           const elapsedSinceSeen = now - direttaCountdownSeenAtMs;
-          if (elapsedSinceSeen < 1000) remaining = Math.max(remaining, configuredSeconds);
+          remaining = Math.max(0, configuredSeconds - Math.floor(elapsedSinceSeen / 1000));
         }
         if (remaining !== direttaCountdownLastValue) {
           direttaCountdownLastValue = remaining;
