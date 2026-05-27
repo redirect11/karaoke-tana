@@ -745,6 +745,8 @@
     .song-item.current-song.preparing .song-item-order {
       background: rgba(245,166,35,0.22);
       color: #ffd080;
+      font-size: 0.75rem;
+      letter-spacing: 0.02em;
     }
     .song-list-section {
       margin-top: 4px;
@@ -2079,7 +2081,7 @@
       const currentSongHtml = currentSong
         ? `${currentSong.in_preparazione
             ? '<div class="song-list-section current-song-preparing">⏳ PROSSIMO A CANTARE</div>'
-            : '<div class="song-list-section current-song-live"><span class="live-dot" aria-hidden="true"></span>ON AIR</div>'}${renderSongItem(currentSong, currentSong.in_preparazione ? 'Ready' : 'LIVE', { currentSong: true })}`
+            : '<div class="song-list-section current-song-live"><span class="live-dot" aria-hidden="true"></span>ON AIR</div>'}${renderSongItem(currentSong, currentSong.in_preparazione ? 'Getting ready' : 'LIVE', { currentSong: true })}`
         : '';
       const queueHtml = queueItems.length
         ? `<div class="song-list-section">In attesa</div>${queueItems.map((item, index) => renderSongItem(item, String(index + 1), {
