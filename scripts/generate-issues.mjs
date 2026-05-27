@@ -215,7 +215,7 @@ async function main() {
   let yamlText;
   try {
     yamlText = readFileSync(yamlPath, 'utf8');
-  } catch (e) {
+  } catch (_e) {
     console.error(`❌ File non trovato: ${yamlPath}`);
     process.exit(1);
   }

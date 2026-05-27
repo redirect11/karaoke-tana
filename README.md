@@ -9,6 +9,14 @@ App web statica per prenotazioni karaoke e votazioni, con database Supabase.
    - `SUPABASE_URL`
    - `SUPABASE_ANON_KEY`
 3. Esegui SQL iniziale da `supabase/init.sql`.
+4. Installa le dipendenze Node.js: `npm ci`.
+
+## Lint
+
+- Esegui il lint: `npm run lint`
+- Correggi automaticamente dove possibile: `npm run lint:fix`
+
+Il lint viene eseguito automaticamente anche in GitHub Actions (`.github/workflows/lint.yml`) su `pull_request` e su `push` verso `main`.
 
 ## Edge Function: submit-booking
 
