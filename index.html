@@ -2866,6 +2866,21 @@
         showBookingsDisabledState();
         return;
       }
+      // Reset the booking form so it is always clean and ready for a new submission
+      const _bookingFormEl = document.getElementById('booking-form');
+      if (_bookingFormEl) {
+        _bookingFormEl.reset();
+        const _submitBtn = _bookingFormEl.querySelector('.btn-submit');
+        if (_submitBtn) { _submitBtn.disabled = false; _submitBtn.textContent = '🎙 Prenota'; }
+      }
+      const _selfieInputEl  = document.getElementById('selfie-input');
+      const _selfiePreviewEl = document.getElementById('selfie-preview');
+      const _selfieRemoveEl  = document.getElementById('selfie-remove');
+      if (_selfieInputEl)  _selfieInputEl.value = '';
+      if (_selfiePreviewEl) { _selfiePreviewEl.classList.remove('visible'); _selfiePreviewEl.src = ''; }
+      if (_selfieRemoveEl)  _selfieRemoveEl.classList.remove('visible');
+      selfieBlob    = null;
+      selfieDataUrl = null;
       [stepFollow, stepSuccess, stepWaiting, stepClosed].forEach(s => s.style.display = 'none');
       stepBookingsDisabled.style.display = 'none';
       const stepsEl = document.querySelector('.steps');
