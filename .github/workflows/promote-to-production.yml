@@ -73,28 +73,27 @@ jobs:
         run: |
           BRANCH="${{ steps.vars.outputs.branch }}"
           TITLE="Promote karaoke-tana-test:main to production (${BRANCH})"
-          BODY=$(cat <<'PREOF'
-## Promozione test → produzione
+          BODY_FILE="/tmp/pr-body.md"
 
-Questo PR porta `redirect11/karaoke-tana-test:main` in produzione.
-
-**Sorgente:** `redirect11/karaoke-tana-test` – branch `main`
-**Branch release:** RELEASE_BRANCH_PLACEHOLDER
-**Avviato da:** ACTOR_PLACEHOLDER
-
----
-
-> Fai review, approva e **mergia manualmente** questo PR per avviare il deploy produzione su `redirect11/karaoke-tana`.
-> Non mergere se ci sono dubbi: il merge triggers il deploy di GitHub Pages su `www.ilkaraokedellatana.it`.
-PREOF
-)
-          # Substitute placeholders with runtime values
-          BODY="${BODY/RELEASE_BRANCH_PLACEHOLDER/${BRANCH}}"
-          BODY="${BODY/ACTOR_PLACEHOLDER/@${{ github.actor }}}"
+          # Build PR body without heredoc to keep YAML indentation valid
+          {
+            echo "## Promozione test → produzione"
+            echo ""
+            echo "Questo PR porta \`redirect11/karaoke-tana-test:main\` in produzione."
+            echo ""
+            echo "**Sorgente:** \`redirect11/karaoke-tana-test\` – branch \`main\`"
+            echo "**Branch release:** ${BRANCH}"
+            echo "**Avviato da:** @${{ github.actor }}"
+            echo ""
+            echo "---"
+            echo ""
+            echo "> Fai review, approva e **mergia manualmente** questo PR per avviare il deploy produzione su \`redirect11/karaoke-tana\`."
+            echo "> Non mergere se ci sono dubbi: il merge triggers il deploy di GitHub Pages su \`www.ilkaraokedellatana.it\`."
+          } > "$BODY_FILE"
 
           gh pr create \
             --repo redirect11/karaoke-tana \
             --base main \
             --head "${BRANCH}" \
             --title "${TITLE}" \
-            --body "${BODY}"
+            --body-file "$BODY_FILE"
