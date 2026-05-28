@@ -37,6 +37,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Generate release branch name
         id: vars
@@ -55,11 +56,12 @@ jobs:
 
       - name: Configure git author
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "redirect11"
+          git config user.email "redirect11@users.noreply.github.com"
 
       - name: Add production remote
         run: |
+          git remote remove production || true
           git remote add production \
             "https://x-access-token:${{ secrets.PROD_REPO_TOKEN }}@github.com/redirect11/karaoke-tana.git"
 
