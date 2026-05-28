@@ -133,6 +133,19 @@ const MIN_WINNER_REVEAL_AUTO_STEP_SECONDS = 1;
 const MAX_WINNER_REVEAL_AUTO_STEP_SECONDS = 30;
 const WINNER_REVEAL_MODE_AUTOMATIC = "automatic";
 const WINNER_REVEAL_MODE_MANUAL = "manual";
+const TEST_AWARDS_SAMPLE_BOOKINGS: Array<{
+  nome: string;
+  canzone: string;
+  artista: string;
+  voti: number[];
+}> = [
+  { nome: "Alice", canzone: "La solitudine", artista: "Laura Pausini", voti: [5, 5, 5, 5, 4, 5] },
+  { nome: "Marco", canzone: "Vita spericolata", artista: "Vasco Rossi", voti: [5, 5, 4, 5, 4, 4] },
+  { nome: "Giulia", canzone: "A far l'amore comincia tu", artista: "Raffaella Carrà", voti: [4, 4, 5, 4, 4, 4] },
+  { nome: "Luca", canzone: "Salirò", artista: "Daniele Silvestri", voti: [4, 4, 4, 4, 3, 4] },
+  { nome: "Sara", canzone: "50 Special", artista: "Lùnapop", voti: [4, 3, 4, 4, 3, 3] },
+  { nome: "Davide", canzone: "Marmellata #25", artista: "Cesare Cremonini", voti: [3, 3, 4, 3, 3, 3] },
+];
 
 function parseCountdownSeconds(value: unknown): number {
   if (value === null || value === undefined || value === "") return DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS;
@@ -166,6 +179,51 @@ function clearRevealProgressState() {
     winner_reveal_total_ranks: null,
     winner_reveal_step_started_at: null,
   };
+}
+
+function buildAwardsTestSerataPayload(date: string) {
+  return {
+    data: date,
+    aperta: true,
+    voto_aperto: false,
+    mostra_voti_totali: false,
+    vincitore_decretato: false,
+    vincitore_prenotazione_id: null,
+    winner_reveal_countdown_active: true,
+    winner_reveal_countdown_started_at: null,
+    winner_reveal_countdown_ends_at: null,
+    winner_reveal_countdown_seconds: null,
+    prenotazioni_abilitate: false,
+    ...clearRevealProgressState(),
+  };
+}
+
+function buildAwardsTestBookings(serataId: number, date: string) {
+  const baseTime = new Date(`${date}T20:30:00.000Z`).getTime();
+  return TEST_AWARDS_SAMPLE_BOOKINGS.map((booking, index) => ({
+    nome: booking.nome,
+    canzone: booking.canzone,
+    artista: booking.artista,
+    serata_id: serataId,
+    approvata: true,
+    cantata: true,
+    in_preparazione: false,
+    created_at: new Date(baseTime + (index * 60_000)).toISOString(),
+  }));
+}
+
+function buildAwardsTestVotes(
+  bookings: Array<{ id: number }>,
+  date: string,
+) {
+  const baseTime = new Date(`${date}T20:45:00.000Z`).getTime();
+  return bookings.flatMap((booking, bookingIndex) =>
+    TEST_AWARDS_SAMPLE_BOOKINGS[bookingIndex].voti.map((vote, voteIndex) => ({
+      prenotazione_id: booking.id,
+      voto: vote,
+      created_at: new Date(baseTime + (bookingIndex * 60_000) + (voteIndex * 1_000)).toISOString(),
+    }))
+  );
 }
 
 const POST_APPROVAL_MODE_DIRECT_LIVE = "direct_live";
@@ -1813,6 +1871,109 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         data: {
           deletedBookings: bookingsResult.data?.length ?? 0,
           deletedSerate: serateResult.data?.length ?? 0,
+        },
+      };
+    }
+
+    case "populate_awards_test_data":
+    case "seed_awards_test_data": {
+      if (!isTestEnvironment()) {
+        throw new ApiError(403, "forbidden", "Azione disponibile solo in ambiente di test.");
+      }
+
+      const date = normalizeDateOrToday(body.date);
+      const currentSerata = await getOpenSerata(admin);
+      let serataId = Number(currentSerata?.id);
+
+      if (Number.isInteger(serataId) && serataId > 0) {
+        const { error: deleteBookingsError } = await admin
+          .from("prenotazioni")
+          .delete()
+          .eq("serata_id", serataId);
+
+        if (deleteBookingsError) {
+          throw new ApiError(500, "delete_failed", "Non sono riuscito a ripulire la serata corrente prima del popolamento.");
+        }
+
+        const { data: updatedSerata, error: updateSerataError } = await admin
+          .from("serate")
+          .update(buildAwardsTestSerataPayload(date))
+          .eq("id", serataId)
+          .select("*")
+          .maybeSingle();
+
+        if (updateSerataError) {
+          throw new ApiError(500, "update_failed", "Non sono riuscito a preparare la serata corrente per i dati di test.");
+        }
+        if (!updatedSerata?.id) {
+          throw new ApiError(404, "not_found", "Serata corrente non trovata.");
+        }
+
+        serataId = Number(updatedSerata.id);
+      } else {
+        const { data: createdSerata, error: createSerataError } = await admin
+          .from("serate")
+          .insert(buildAwardsTestSerataPayload(date))
+          .select("*")
+          .maybeSingle();
+
+        if (createSerataError) {
+          throw new ApiError(500, "insert_failed", "Non sono riuscito a creare la serata di test.");
+        }
+        if (!createdSerata?.id) {
+          throw new ApiError(500, "insert_failed", "La serata di test non è stata creata correttamente.");
+        }
+
+        serataId = Number(createdSerata.id);
+      }
+
+      await updatePublicSettings(admin, { prossima_serata_data: null });
+
+      const { error: insertBookingsError } = await admin
+        .from("prenotazioni")
+        .insert(buildAwardsTestBookings(serataId, date))
+        .select("id");
+
+      if (insertBookingsError) {
+        throw new ApiError(500, "insert_failed", "Non sono riuscito a creare le canzoni di test.");
+      }
+
+      const { data: seededBookings, error: seededBookingsError } = await admin
+        .from("prenotazioni")
+        .select("id")
+        .eq("serata_id", serataId)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true });
+
+      if (seededBookingsError) {
+        throw new ApiError(500, "query_failed", "Non sono riuscito a rileggere le canzoni di test create.");
+      }
+
+      const normalizedBookings = (seededBookings ?? [])
+        .map((booking) => ({ id: Number(booking.id) }))
+        .filter((booking) => Number.isInteger(booking.id) && booking.id > 0);
+
+      if (normalizedBookings.length !== TEST_AWARDS_SAMPLE_BOOKINGS.length) {
+        throw new ApiError(500, "insert_failed", "Le canzoni di test create non corrispondono al dataset atteso.");
+      }
+
+      const { data: insertedVotes, error: insertVotesError } = await admin
+        .from("voti")
+        .insert(buildAwardsTestVotes(normalizedBookings, date))
+        .select("id");
+
+      if (insertVotesError) {
+        throw new ApiError(500, "insert_failed", "Non sono riuscito a creare i voti di test.");
+      }
+
+      const state = await getState(admin);
+      return {
+        status: 200,
+        data: {
+          serata: state.serata,
+          top5: state.top5,
+          bookingsCount: normalizedBookings.length,
+          votesCount: insertedVotes?.length ?? 0,
         },
       };
     }
