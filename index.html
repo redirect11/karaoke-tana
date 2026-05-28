@@ -1550,6 +1550,7 @@
     // Flag in-session: diventa true quando l'utente clicca Segui senza ricaricare.
     // Usato per distinguere "mai seguito" da "appena seguito" nei refresh realtime.
     let followedInSession = false;
+    const hasCompletedFollow = () => followedAtPageLoad || followedInSession;
 
     // ── Selfie lightbox: apertura via delega + chiusura ──────
     const selfieLightboxEl = document.getElementById('selfie-lightbox');
@@ -1641,8 +1642,15 @@
 
     // ── Vota banner ──────────────────────────────────────────
     const votaBanner = document.getElementById('vota-banner');
-    function setVotaBanner(mode = 'hidden') {
+    let currentVotaBannerMode = 'hidden';
+    function setVotaBanner(mode) {
       if (!votaBanner) return;
+      if (mode === undefined) mode = currentVotaBannerMode;
+      currentVotaBannerMode = mode;
+      if (mode !== 'hidden' && !hasCompletedFollow()) {
+        votaBanner.style.display = 'none';
+        return;
+      }
       if (mode === 'voting') {
         votaBanner.style.display = 'flex';
         votaBanner.textContent = '🗳 Vota le esibizioni! →';
@@ -1722,11 +1730,20 @@
     }
 
     function updateBookingsDisabledVoteMessage() {
-      if (bookingsDisabledVoteMsg) bookingsDisabledVoteMsg.style.display = voteOpen ? 'block' : 'none';
+      const shouldShow = window.FollowFlow?.shouldShowVoteLink({
+        voteOpen,
+        followedAtPageLoad,
+        followedInSession,
+      }) ?? false;
+      if (bookingsDisabledVoteMsg) bookingsDisabledVoteMsg.style.display = shouldShow ? 'block' : 'none';
     }
 
     function updateFollowVoteMessage() {
-      const shouldShow = window.FollowFlow?.shouldShowVoteLink({ voteOpen }) ?? false;
+      const shouldShow = window.FollowFlow?.shouldShowVoteLink({
+        voteOpen,
+        followedAtPageLoad,
+        followedInSession,
+      }) ?? false;
       if (followVoteMsg) followVoteMsg.style.display = shouldShow ? 'block' : 'none';
     }
 
@@ -3077,6 +3094,9 @@
     async function goToForm() {
       followedInSession = true;
       setCookie('ig_followed', 'true', 6 * 24 * 3600);
+      updateFollowVoteMessage();
+      updateBookingsDisabledVoteMessage();
+      setVotaBanner();
       stepFollow.style.display = 'none';
       showSongListCard(true);
       showLeaderboard(false);

@@ -197,11 +197,19 @@ describe('shouldRestoreFollowFlow – parameter coercions', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe('shouldShowVoteLink – vote visibility', () => {
 
-  it('shows vote link when voteOpen=true', () => {
-    expect(shouldShowVoteLink({ voteOpen: true })).toBe(true);
+  it('shows vote link when voteOpen=true and user already followed before load', () => {
+    expect(shouldShowVoteLink({ voteOpen: true, followedAtPageLoad: true })).toBe(true);
   });
 
-  it('hides vote link when voteOpen=false', () => {
-    expect(shouldShowVoteLink({ voteOpen: false })).toBe(false);
+  it('shows vote link when voteOpen=true and user follows in current session', () => {
+    expect(shouldShowVoteLink({ voteOpen: true, followedInSession: true })).toBe(true);
+  });
+
+  it('hides vote link when voteOpen=true but user has not followed yet', () => {
+    expect(shouldShowVoteLink({ voteOpen: true, followedAtPageLoad: false, followedInSession: false })).toBe(false);
+  });
+
+  it('hides vote link when voteOpen=false even if user followed', () => {
+    expect(shouldShowVoteLink({ voteOpen: false, followedAtPageLoad: true })).toBe(false);
   });
 });

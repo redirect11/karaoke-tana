@@ -75,11 +75,14 @@
    *
    * @param {object} [params]
    * @param {boolean} [params.voteOpen=false] Votazioni aperte
+   * @param {boolean} [params.followedAtPageLoad=false] Cookie ig_followed era presente al caricamento
+   * @param {boolean} [params.followedInSession=false]  Utente ha cliccato Segui in questa sessione
    * @returns {boolean}
    */
   function shouldShowVoteLink(params) {
     var p = params || {};
-    return Boolean(p.voteOpen);
+    var hasCompletedFollow = Boolean(p.followedAtPageLoad) || Boolean(p.followedInSession);
+    return Boolean(p.voteOpen) && hasCompletedFollow;
   }
 
   var FollowFlow = {
