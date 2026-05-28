@@ -2321,11 +2321,15 @@
         }
 
         if (exitedMode) {
-          // Proclamazione mode ended unexpectedly (e.g. admin reset). Switch back
-          // to normal sync so the vote page keeps updating.
+          // Proclamazione mode ended: either admin reset (no winner) or direct
+          // proclamation (skipCountdown). Switch back to normal sync and reload
+          // songs, then update banner + diretta so the content area is shown
+          // (it was hidden when entering proclamazione mode).
           inProclamazioneMode = false;
           _startNormalSync();
           await loadSongs();
+          updateBanner();
+          renderDiretta();
         } else {
           updateBanner();
           renderDiretta();
