@@ -1603,11 +1603,17 @@
         if (
           Number.isInteger(configuredSeconds)
           && configuredSeconds > 0
-          && msLeft > ((configuredSeconds - 1) * 1000)
           && (now - direttaCountdownSeenAtMs) < 1000
+          && (endsAtMs - direttaCountdownSeenAtMs) > (configuredSeconds * 1000) - 1500
         ) {
-          // Mantieni il primo valore visibile per ~1s anche con leggera latenza
-          // tra start server e primo render client.
+          // Tieni il primo valore visibile per ~1s, indipendentemente dal
+          // clock drift attuale del client. La condizione si basa sul `msLeft`
+          // del momento in cui abbiamo iniziato a osservare il countdown
+          // (sawAt): se in quell'istante il countdown era praticamente al suo
+          // start (entro 1.5s dal full configurato), siamo a inizio sequenza
+          // e va mostrato il valore iniziale, anche se ora il client è
+          // andato avanti per drift. Chi si collega a metà countdown ha
+          // sawAt con msLeft già basso e la condizione resta falsa.
           remaining = configuredSeconds;
         }
         if (remaining !== direttaCountdownLastValue) {
