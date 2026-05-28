@@ -1748,12 +1748,8 @@
         if (!scoreEl) return;
 
         const sc = song._scores || { sum: 0, count: 0 };
-        if (showTotalsPublic) {
-          const avg = sc.count > 0 ? (sc.sum / sc.count).toFixed(1) : '—';
-          scoreEl.innerHTML = `<span>${avg}</span>${sc.count} vot${sc.count === 1 ? 'o' : 'i'}`;
-        } else {
-          scoreEl.innerHTML = '<span>—</span>Voti nascosti';
-        }
+        const avg = sc.count > 0 ? (sc.sum / sc.count).toFixed(1) : '—';
+        scoreEl.innerHTML = `<span>${avg}</span>${sc.count} vot${sc.count === 1 ? 'o' : 'i'}`;
         updated += 1;
       });
 
@@ -1843,9 +1839,7 @@
       const myVote   = getLocalVote(s.id)?.voto || 0;
       const sc       = s._scores || { sum: 0, count: 0 };
       const avg      = sc.count > 0 ? (sc.sum / sc.count).toFixed(1) : '—';
-      const scoreBlock = showTotalsPublic
-        ? `<div class="vote-score"><span>${avg}</span>${sc.count} vot${sc.count === 1 ? 'o' : 'i'}</div>`
-        : `<div class="vote-score"><span>—</span>Voti nascosti</div>`;
+      const scoreBlock = `<div class="vote-score"><span>${avg}</span>${sc.count} vot${sc.count === 1 ? 'o' : 'i'}</div>`;
 
       const btns = [1,2,3,4,5].map(v => {
         const classes = ['btn-vote'];

@@ -35,16 +35,31 @@
       align-items: center;
       padding: 24px 16px 48px;
     }
+    @media (max-width: 768px) {
+      body {
+        background:
+          linear-gradient(180deg, transparent 0%, transparent 35%, rgba(18, 7, 31, 0.85) 75%, var(--bg) 100%) center top / 100% 70vw no-repeat,
+          url('bg_kar_tana.png') center top / contain no-repeat,
+          var(--bg);
+      }
+    }
 
     /* ── header ── */
     header {
       text-align: center;
-      margin-bottom: 36px;
+      margin-bottom: 16px;
     }
     header .logo {
       font-size: 3rem;
       line-height: 1;
       margin-bottom: 8px;
+    }
+    header .logo-img {
+      max-width: 320px;
+      width: 80vw;
+      height: auto;
+      display: block;
+      margin: 0 auto;
     }
     header h1 {
       font-size: 1.6rem;
@@ -723,6 +738,15 @@
       font-weight: 700;
       letter-spacing: 0.02em;
     }
+    .song-item-score {
+      margin-top: 6px;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    .song-item-score span {
+      font-weight: 700;
+      color: var(--gold-soft);
+    }
     .song-item-order {
       position: absolute;
       top: 8px;
@@ -1192,9 +1216,7 @@
 <body>
 
   <header>
-    <div class="logo" aria-hidden="true">🐰🎤</div>
-    <h1>La Tana del Coniglio</h1>
-    <p class="sub">Karaoke · Nola</p>
+    <img src="kar_night_and_logo.png" alt="Karaoke – La Tana del Coniglio" class="logo-img" />
   </header>
 
   <a href="vota.html" id="vota-banner">🗳 Vota le esibizioni! →</a>
@@ -1415,7 +1437,7 @@
     <img id="selfie-lightbox-img" src="" alt="selfie ingrandito" />
   </div>
 
-  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v1.0 &nbsp;|&nbsp; <a href="archive.html" style="color:inherit;text-decoration:underline;">Archivio karaoke</a> &nbsp;|&nbsp; <a href="cookie-policy.html" style="color:inherit;text-decoration:underline;">Cookie Policy</a></footer>
+  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v1.0 &nbsp;|&nbsp; <a id="footer-archive-link" href="archive.html" style="color:inherit;text-decoration:underline;display:none;">Archivio karaoke</a><span id="footer-archive-sep" style="display:none;"> &nbsp;|&nbsp; </span><a href="cookie-policy.html" style="color:inherit;text-decoration:underline;">Cookie Policy</a></footer>
 
   <div id="offline-banner" role="status" aria-live="polite">⚠️ Connessione assente — i dati potrebbero non essere aggiornati</div>
 
@@ -1541,6 +1563,8 @@
     const closedIgProfileCard = document.getElementById('closed-ig-profile-card');
     const closedIgFollowBtn   = document.getElementById('closed-ig-follow-btn');
     const closedArchiveLink = document.getElementById('closed-archive-link');
+    const footerArchiveLink = document.getElementById('footer-archive-link');
+    const footerArchiveSep  = document.getElementById('footer-archive-sep');
     const songListCard = document.getElementById('song-list-card');
     const songListEl   = document.getElementById('song-list');
     const songListStatus = document.getElementById('song-list-status');
@@ -1717,6 +1741,9 @@
           ? 'inline-block'
           : 'none';
       }
+      const archiveVisible = publicSettings?.archivio_pubblico_abilitato === true;
+      if (footerArchiveLink) footerArchiveLink.style.display = archiveVisible ? 'inline' : 'none';
+      if (footerArchiveSep)  footerArchiveSep.style.display  = archiveVisible ? 'inline' : 'none';
     }
 
     function showLeaderboard(show) {
@@ -1801,8 +1828,15 @@
       const revealCountdownEndsAtMs = getWinnerRevealEndsAtMs(serataData);
       clearWaitingIntervals();
       clearSongListPolling();
-      [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
       showSongListCard(false);
+      if (!hasCompletedFollow()) {
+        [stepForm, stepSuccess, stepWaiting, stepBookingsDisabled, stepClosed].forEach(s => s.style.display = 'none');
+        document.querySelector('.steps').style.display = '';
+        stepFollow.style.display = 'block';
+        showLeaderboard(false);
+        return;
+      }
+      [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
       stepClosed.style.display = 'flex';
       document.querySelector('.steps').style.display = 'none';
       setClosedState(
@@ -1939,6 +1973,27 @@
         toSing: indexedItems.filter((item) => !item.cantata),
         completed: indexedItems.filter((item) => item.cantata),
       };
+
+      // Fetch vote totals for concluded songs so they can be displayed publicly.
+      if (songListCache.completed.length) {
+        const completedIds = songListCache.completed.map((item) => Number(item.id));
+        const { data: votesData } = await db
+          .from('voti')
+          .select('prenotazione_id, voto')
+          .in('prenotazione_id', completedIds);
+        const voteTotals = {};
+        (votesData || []).forEach((v) => {
+          const key = Number(v.prenotazione_id);
+          if (!voteTotals[key]) voteTotals[key] = { sum: 0, count: 0 };
+          voteTotals[key].sum += Number(v.voto) || 0;
+          voteTotals[key].count += 1;
+        });
+        songListCache.completed = songListCache.completed.map((item) => {
+          const score = voteTotals[Number(item.id)] || { sum: 0, count: 0 };
+          return { ...item, _scoreSum: score.sum, _scoreCount: score.count };
+        });
+      }
+
       updateWaitingPositionStatus(songListCache.toSing);
       maybeNotifyTurn(songListCache.toSing);
       renderSongList();
@@ -2110,6 +2165,12 @@
         const canOpenSelfie = hasRealSelfie && !selfieHidden;
         const selfieUrl = canOpenSelfie ? rawSelfieUrl : DEFAULT_SELFIE_URL;
         const hasSelfie = Boolean(selfieUrl);
+        const scoreCount = Number(item._scoreCount) || 0;
+        const scoreSum = Number(item._scoreSum) || 0;
+        const scoreAvg = scoreCount > 0 ? (scoreSum / scoreCount).toFixed(1) : '—';
+        const scoreHtml = item.cantata
+          ? `<div class="song-item-score"><span>${scoreAvg}</span> · ${scoreCount} vot${scoreCount === 1 ? 'o' : 'i'}</div>`
+          : '';
         return `
         <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}${currentSong ? ' current-song' : ''}${currentSong && item.in_preparazione ? ' preparing' : ''}${hasSelfie ? ' has-selfie' : ''}" data-id="${item.id}">
           ${hasSelfie ? `<div class="song-item-selfie-bg${canOpenSelfie ? '' : ' is-default'}" style="background-image:url('${escapeCssUrl(selfieUrl)}')"${canOpenSelfie ? ` data-selfie-full="${escapeHtml(rawSelfieUrl)}" role="button" aria-label="ingrandisci selfie di ${escapeHtml(item.nome)}"` : ' aria-hidden="true"'}></div>` : ''}
@@ -2123,6 +2184,7 @@
               ${currentSong && !item.in_preparazione ? `<div class="song-item-badge">🎤 Canzone corrente</div>` : ''}
               ${currentSong && item.in_preparazione ? '<div class="song-item-badge">In preparazione</div>' : ''}
               ${Number(item.id) === currentBookingIdNum ? '<div class="song-item-badge">La tua prenotazione</div>' : ''}
+              ${scoreHtml}
             </div>
           </div>
         </div>
@@ -3081,7 +3143,7 @@
       // Già seguito (al caricamento o in questa sessione): non riavviare il flusso.
       if (followedAtPageLoad || followedInSession) return;
       const open = await checkSerataAperta();
-      if (open) goToForm();
+      if (open || currentVotaBannerMode === 'reveal') goToForm();
     }
 
     document.addEventListener('visibilitychange', () => {
@@ -3096,6 +3158,10 @@
       updateFollowVoteMessage();
       updateBookingsDisabledVoteMessage();
       setVotaBanner();
+      if (currentVotaBannerMode === 'reveal') {
+        await checkSerataAperta();
+        return;
+      }
       stepFollow.style.display = 'none';
       showSongListCard(true);
       showLeaderboard(false);
