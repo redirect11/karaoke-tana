@@ -1154,6 +1154,15 @@
     let votiRealtimeRefreshTimer = null;
     let refreshingSerata = false;
     let direttaAdminToken = '';
+    // ── Sync mode management ───────────────────────────────────
+    // Normal mode: serate (8s poll + realtime), prenotazioni, voti.
+    // Proclamazione mode: serate (realtime only, no poll); no other syncs.
+    let serataSyncInst = null;
+    let prenotazioniSyncInst = null;
+    let votiSyncInst = null;
+    let proclamazioneSyncInst = null;
+    let inProclamazioneMode = false;
+    let refreshingProclamazione = false;
     let direttaAdminActionInFlight = false;
     let direttaAdminSettings = {
       winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
@@ -1217,6 +1226,7 @@
       updateBanner();
       renderDiretta();
       if (data.winner_reveal_countdown_active && !data.vincitore_decretato) {
+        inProclamazioneMode = true;
         void preloadDirettaFinalView();
       } else {
         await loadSongs();
@@ -1262,14 +1272,44 @@
           || Number(data.winner_reveal_current_rank || 0) !== Number(serata?.winner_reveal_current_rank || 0);
         if (!changed) return;
 
+        // Detect transition from normal → proclamazione mode
+        const enteringProclamazione = !inProclamazioneMode
+          && Boolean(data.winner_reveal_countdown_active)
+          && !Boolean(data.vincitore_decretato);
+
         serata           = data;
         votingOpen       = Boolean(data.voto_aperto);
         showTotalsPublic = Boolean(data.mostra_voti_totali);
-        await loadPublicRevealSettings();
+        // Skip re-fetching public reveal settings when already in proclamazione mode
+        // (settings are preloaded once and don't change during the reveal).
+        if (!inProclamazioneMode) {
+          await loadPublicRevealSettings();
+        }
         updateBanner();
         renderDiretta();
-        if (serata.winner_reveal_countdown_active && !serata.vincitore_decretato) {
+
+        if (enteringProclamazione) {
+          // Switch to proclamazione sync mode: stop normal syncs, start serate-only
+          // realtime (no poll) to wait for the countdown start event.
+          inProclamazioneMode = true;
+          _stopNormalSyncs();
+          _startProclamazioneSync();
           void preloadDirettaFinalView();
+        } else if (inProclamazioneMode) {
+          // Still in proclamazione mode. If winner is decreed, no more syncs
+          // needed. If the countdown has started and the proclamazione sync was
+          // already stopped (either by _onProclamazioneSerataChange when it
+          // detected countdownStarted, or by the tick=0 handler), restart it
+          // now — this is the one-shot refresh at countdown end and the sync
+          // must be active again to catch vincitore_decretato once the animation
+          // completes.
+          if (serata.vincitore_decretato) {
+            _stopProclamazioneSync();
+          } else if (serata.winner_reveal_countdown_active
+              && serata.winner_reveal_countdown_ends_at
+              && !proclamazioneSyncInst) {
+            _startProclamazioneSync();
+          }
         } else {
           await loadSongs();
         }
@@ -1634,7 +1674,11 @@
         }
         if (remaining === 0) {
           stopDirettaCountdown();
-          // Countdown finito: entra nella fase reveal restando sul diretta-wrap.
+          // Countdown finito: ferma il sync di proclamazione (nessun traffico
+          // durante l'animazione del reveal). renderDiretta avvia l'animazione
+          // client-side; refreshSerata fa un'unica richiesta per aggiornare lo
+          // stato e, se necessario, riavvia il sync per catturare vincitore_decretato.
+          _stopProclamazioneSync();
           renderDiretta();
           void refreshSerata();
           return;
@@ -2191,21 +2235,104 @@
     function startLiveSync() {
       if (liveSyncStarted) return;
       liveSyncStarted = true;
+      if (inProclamazioneMode) {
+        // In proclamazione mode: serate realtime only (no poll), waiting for
+        // the countdown start event. All other syncs are inactive.
+        _startProclamazioneSync();
+        return;
+      }
+      _startNormalSync();
+    }
+
+    function _startNormalSync() {
       // Stato serata: realtime + poll di fallback (8s).
-      createSerataSync({
+      serataSyncInst = createSerataSync({
         db, tables: ['serate'], pollMs: 8000,
         onChange: () => { refreshSerata(); },
-      }).start();
+      });
+      serataSyncInst.start();
       // Lista canzoni: realtime (il poll della serata fa da fallback).
-      createSerataSync({
+      prenotazioniSyncInst = createSerataSync({
         db, tables: ['prenotazioni'], pollMs: 0,
         onChange: () => { if (serata) loadSongs(); },
-      }).start();
+      });
+      prenotazioniSyncInst.start();
       // Voti/punteggi: realtime.
-      createSerataSync({
+      votiSyncInst = createSerataSync({
         db, tables: ['voti'], pollMs: 0,
         onChange: () => { if (serata) scheduleRealtimeScoresRefresh(); },
-      }).start();
+      });
+      votiSyncInst.start();
+    }
+
+    function _stopNormalSyncs() {
+      [serataSyncInst, prenotazioniSyncInst, votiSyncInst].forEach(s => { try { s && s.stop(); } catch (_) {} });
+      serataSyncInst = prenotazioniSyncInst = votiSyncInst = null;
+    }
+
+    // Proclamazione sync: serate realtime only, no poll.
+    // Reacts only to the countdown-start event (winner_reveal_countdown_ends_at
+    // being set for the first time) and to vincitore_decretato.
+    function _startProclamazioneSync() {
+      if (proclamazioneSyncInst) return;
+      proclamazioneSyncInst = createSerataSync({
+        db, tables: ['serate'], pollMs: 0,
+        onChange: () => { _onProclamazioneSerataChange(); },
+      });
+      proclamazioneSyncInst.start();
+    }
+
+    function _stopProclamazioneSync() {
+      if (proclamazioneSyncInst) {
+        try { proclamazioneSyncInst.stop(); } catch (_) {}
+        proclamazioneSyncInst = null;
+      }
+    }
+
+    async function _onProclamazioneSerataChange() {
+      if (refreshingProclamazione) return;
+      refreshingProclamazione = true;
+      try {
+        const { data } = await db
+          .from('serate')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!data || data.aperta !== true) { redirectToHome(); return; }
+
+        const prevEndsAt = serata?.winner_reveal_countdown_ends_at ?? null;
+        const nextEndsAt = data.winner_reveal_countdown_ends_at ?? null;
+        const countdownStarted = prevEndsAt === null && nextEndsAt !== null;
+        const winnerDecreed = Boolean(data.vincitore_decretato) && !Boolean(serata?.vincitore_decretato);
+        const rankChanged = Number(data.winner_reveal_current_rank || 0) !== Number(serata?.winner_reveal_current_rank || 0);
+        const exitedMode = !Boolean(data.winner_reveal_countdown_active) && Boolean(serata?.winner_reveal_countdown_active);
+
+        if (!countdownStarted && !winnerDecreed && !rankChanged && !exitedMode) return;
+
+        serata = data;
+        votingOpen = Boolean(data.voto_aperto);
+        showTotalsPublic = Boolean(data.mostra_voti_totali);
+
+        if (countdownStarted || winnerDecreed || exitedMode) {
+          // Stop the proclamazione sync: countdown is now ticking (client-side
+          // only until tick=0), winner was decreed, or mode was exited.
+          _stopProclamazioneSync();
+        }
+
+        if (exitedMode) {
+          // Proclamazione mode ended unexpectedly (e.g. admin reset). Switch back
+          // to normal sync so the vote page keeps updating.
+          inProclamazioneMode = false;
+          _startNormalSync();
+          await loadSongs();
+        } else {
+          updateBanner();
+          renderDiretta();
+        }
+      } finally {
+        refreshingProclamazione = false;
+      }
     }
 
     function resolveLanUrl(url) {
