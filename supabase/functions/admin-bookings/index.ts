@@ -1875,8 +1875,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       };
     }
 
-    case "populate_awards_test_data":
-    case "seed_awards_test_data": {
+    case "populate_awards_test_data": {
       if (!isTestEnvironment()) {
         throw new ApiError(403, "forbidden", "Azione disponibile solo in ambiente di test.");
       }
