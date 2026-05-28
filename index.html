@@ -1415,7 +1415,7 @@
     <img id="selfie-lightbox-img" src="" alt="selfie ingrandito" />
   </div>
 
-  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v0.2 &nbsp;|&nbsp; <a href="archive.html" style="color:inherit;text-decoration:underline;">Archivio karaoke</a> &nbsp;|&nbsp; <a href="cookie-policy.html" style="color:inherit;text-decoration:underline;">Cookie Policy</a></footer>
+  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v1.0 &nbsp;|&nbsp; <a href="archive.html" style="color:inherit;text-decoration:underline;">Archivio karaoke</a> &nbsp;|&nbsp; <a href="cookie-policy.html" style="color:inherit;text-decoration:underline;">Cookie Policy</a></footer>
 
   <div id="offline-banner" role="status" aria-live="polite">⚠️ Connessione assente — i dati potrebbero non essere aggiornati</div>
 
@@ -1713,10 +1713,9 @@
           : '';
       }
       if (closedArchiveLink) {
-        // Link sempre visibile: se l'archivio è chiuso al pubblico,
-        // archive.html mostrerà comunque il messaggio "non disponibile".
-        // Gli admin loggati lo vedono indipendentemente dal toggle.
-        closedArchiveLink.style.display = 'inline-block';
+        closedArchiveLink.style.display = publicSettings?.archivio_pubblico_abilitato === true
+          ? 'inline-block'
+          : 'none';
       }
     }
 
