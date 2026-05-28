@@ -27,13 +27,21 @@
 
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
-      background: var(--bg) url('bg_kar_tana.png') center center / cover no-repeat fixed;
+      background: var(--bg);
       color: var(--text);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 24px 16px 48px;
+    }
+    @media (max-width: 768px) {
+      body {
+        background:
+          linear-gradient(180deg, rgba(18, 7, 31, 0.82) 0%, rgba(18, 7, 31, 0.96) 58%, rgba(18, 7, 31, 1) 100%),
+          url('bg_kar_tana.png') center top / contain no-repeat,
+          var(--bg);
+      }
     }
 
     /* ── header ── */
@@ -1199,7 +1207,7 @@
 <body>
 
   <header>
-    <img src="kar_night_and_logo.png" alt="Karaoke – La Tana del Coniglio" class="logo-img" />
+    <img src="logo.svg" alt="Karaoke – La Tana del Coniglio" class="logo-img" />
     <p class="sub">Karaoke · Nola</p>
   </header>
 
