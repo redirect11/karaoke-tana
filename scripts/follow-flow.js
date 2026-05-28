@@ -13,6 +13,9 @@
  *     Restituisce true solo se il flusso di follow va ripristinato (es. dopo che le
  *     prenotazioni tornano abilitate), false se l'utente è già in uno stato attivo.
  *
+ *   FollowFlow.shouldShowVoteLink(params)
+ *     Restituisce true quando il link "Vota" deve essere visibile nel flusso follow.
+ *
  * Compatibile con browser (window global) e Node.js (module.exports).
  */
 (function (global) {
@@ -67,9 +70,22 @@
     return !p.isWaiting && !p.isSuccess && !p.isInBookingFlow;
   }
 
+  /**
+   * Determina se mostrare il link "Vota" nel box follow.
+   *
+   * @param {object} [params]
+   * @param {boolean} [params.voteOpen=false] Votazioni aperte
+   * @returns {boolean}
+   */
+  function shouldShowVoteLink(params) {
+    var p = params || {};
+    return Boolean(p.voteOpen);
+  }
+
   var FollowFlow = {
     computeFollowFlowVisibility: computeFollowFlowVisibility,
     shouldRestoreFollowFlow: shouldRestoreFollowFlow,
+    shouldShowVoteLink: shouldShowVoteLink,
   };
 
   /* Compatibilità UMD: Node.js (require) e browser (window global). */
