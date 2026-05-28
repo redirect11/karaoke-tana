@@ -1819,8 +1819,15 @@
       const revealCountdownEndsAtMs = getWinnerRevealEndsAtMs(serataData);
       clearWaitingIntervals();
       clearSongListPolling();
-      [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
       showSongListCard(false);
+      if (!hasCompletedFollow()) {
+        [stepForm, stepSuccess, stepWaiting, stepBookingsDisabled, stepClosed].forEach(s => s.style.display = 'none');
+        document.querySelector('.steps').style.display = '';
+        stepFollow.style.display = 'block';
+        showLeaderboard(false);
+        return;
+      }
+      [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
       stepClosed.style.display = 'flex';
       document.querySelector('.steps').style.display = 'none';
       setClosedState(
@@ -3099,7 +3106,7 @@
       // Già seguito (al caricamento o in questa sessione): non riavviare il flusso.
       if (followedAtPageLoad || followedInSession) return;
       const open = await checkSerataAperta();
-      if (open) goToForm();
+      if (open || currentVotaBannerMode === 'reveal') goToForm();
     }
 
     document.addEventListener('visibilitychange', () => {
@@ -3114,6 +3121,10 @@
       updateFollowVoteMessage();
       updateBookingsDisabledVoteMessage();
       setVotaBanner();
+      if (currentVotaBannerMode === 'reveal') {
+        await checkSerataAperta();
+        return;
+      }
       stepFollow.style.display = 'none';
       showSongListCard(true);
       showLeaderboard(false);
