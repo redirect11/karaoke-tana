@@ -227,6 +227,15 @@
     }
     .ig-btn-follow:hover { background: #1aa3ff; }
     .ig-btn-follow svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .vote-open-message {
+      display: none;
+      margin-top: 8px;
+    }
+    .vote-open-link {
+      color: var(--gold);
+      font-weight: 700;
+      text-decoration: underline;
+    }
 
     /* ── vota banner ── */
     #vota-banner {
@@ -1221,8 +1230,8 @@
   <div class="card" id="step-follow" style="display:none">
     <h2>Prima di tutto…</h2>
     <p>Segui la nostra pagina Instagram per poter prenotare una canzone.</p>
-    <p id="follow-vote-msg" style="display:none; margin-top:8px;">
-      <a href="vota.html" style="color:var(--gold); font-weight:700; text-decoration:underline;">🗳️ Vota la tua esibizione preferita →</a>
+    <p id="follow-vote-msg" class="vote-open-message">
+      <a href="vota.html" class="vote-open-link">🗳️ Vota la tua esibizione preferita →</a>
     </p>
 
     <div class="ig-profile-card" id="ig-profile-card">
@@ -1319,8 +1328,8 @@
     />
     <h2>Prenotazioni non disponibili</h2>
     <p>Le prenotazioni sono al momento chiuse.</p>
-    <p id="bookings-disabled-vote-msg" style="display:none; margin-top:8px;">
-      <a href="vota.html" style="color:var(--gold); font-weight:700; text-decoration:underline;">🗳️ Vota la tua esibizione preferita →</a>
+    <p id="bookings-disabled-vote-msg" class="vote-open-message">
+      <a href="vota.html" class="vote-open-link">🗳️ Vota la tua esibizione preferita →</a>
     </p>
   </div>
 
@@ -1717,9 +1726,7 @@
     }
 
     function updateFollowVoteMessage() {
-      const shouldShow = window.FollowFlow
-        ? window.FollowFlow.shouldShowVoteLink({ voteOpen })
-        : Boolean(voteOpen);
+      const shouldShow = window.FollowFlow.shouldShowVoteLink({ voteOpen });
       if (followVoteMsg) followVoteMsg.style.display = shouldShow ? 'block' : 'none';
     }
 
