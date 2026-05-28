@@ -1221,6 +1221,9 @@
   <div class="card" id="step-follow" style="display:none">
     <h2>Prima di tutto…</h2>
     <p>Segui la nostra pagina Instagram per poter prenotare una canzone.</p>
+    <p id="follow-vote-msg" style="display:none; margin-top:8px;">
+      <a href="vota.html" style="color:var(--gold); font-weight:700; text-decoration:underline;">🗳️ Vota la tua esibizione preferita →</a>
+    </p>
 
     <div class="ig-profile-card" id="ig-profile-card">
       <div class="ig-pic"></div>
@@ -1518,6 +1521,7 @@
     const stepClosed   = document.getElementById('step-closed');
     const stepBookingsDisabled = document.getElementById('step-bookings-disabled');
     const bookingsDisabledVoteMsg = document.getElementById('bookings-disabled-vote-msg');
+    const followVoteMsg = document.getElementById('follow-vote-msg');
     const stepClosedTitle = stepClosed.querySelector('h2');
     const stepClosedText = document.getElementById('closed-state-message');
     const closedStateNextDate = document.getElementById('closed-state-next-date');
@@ -1710,6 +1714,10 @@
 
     function updateBookingsDisabledVoteMessage() {
       if (bookingsDisabledVoteMsg) bookingsDisabledVoteMsg.style.display = voteOpen ? 'block' : 'none';
+    }
+
+    function updateFollowVoteMessage() {
+      if (followVoteMsg) followVoteMsg.style.display = voteOpen ? 'block' : 'none';
     }
 
     function showBookingsDisabledState() {
@@ -2459,6 +2467,7 @@
         browserNotificationsEnabled = false;
         bookingsAreEnabled = false;
         voteOpen = false;
+        updateFollowVoteMessage();
         currentSerataId = null;
         clearSongListPolling();
         [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach(s => s.style.display = 'none');
@@ -2475,12 +2484,14 @@
       currentSerataId = data.id;
       browserNotificationsEnabled = data.notifiche_browser_abilitate !== false;
       voteOpen = Boolean(data.voto_aperto);
+      updateFollowVoteMessage();
       const winnerDecreed = Boolean(data.vincitore_decretato);
       const revealCountdownActive = Boolean(data.winner_reveal_countdown_active);
       setVotaBanner(winnerDecreed ? 'hidden' : (revealCountdownActive ? 'reveal' : (Boolean(data.voto_aperto) ? 'voting' : 'hidden')));
       if (winnerDecreed) {
         bookingsAreEnabled = false;
         voteOpen = false;
+        updateFollowVoteMessage();
         clearRevealCountdownWatcher();
         clearWaitingIntervals();
         clearSongListPolling();
@@ -2540,6 +2551,7 @@
         if (!data || !data.aperta) {
           bookingsAreEnabled = false;
           voteOpen = false;
+          updateFollowVoteMessage();
           await loadPublicSettings();
           currentSerataId = null;
           clearRevealCountdownWatcher();
@@ -2556,12 +2568,14 @@
         }
         browserNotificationsEnabled = data.notifiche_browser_abilitate !== false;
         voteOpen = Boolean(data.voto_aperto);
+        updateFollowVoteMessage();
         const winnerDecreed = Boolean(data.vincitore_decretato);
         const revealCountdownActive = Boolean(data.winner_reveal_countdown_active);
         setVotaBanner(winnerDecreed ? 'hidden' : (revealCountdownActive ? 'reveal' : (Boolean(data.voto_aperto) ? 'voting' : 'hidden')));
         if (winnerDecreed) {
           bookingsAreEnabled = false;
           voteOpen = false;
+          updateFollowVoteMessage();
           await loadPublicSettings();
           clearRevealCountdownWatcher();
           clearWaitingIntervals();
