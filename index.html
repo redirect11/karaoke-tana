@@ -738,6 +738,15 @@
       font-weight: 700;
       letter-spacing: 0.02em;
     }
+    .song-item-score {
+      margin-top: 6px;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    .song-item-score span {
+      font-weight: 700;
+      color: var(--gold-soft);
+    }
     .song-item-order {
       position: absolute;
       top: 8px;
@@ -1964,6 +1973,27 @@
         toSing: indexedItems.filter((item) => !item.cantata),
         completed: indexedItems.filter((item) => item.cantata),
       };
+
+      // Fetch vote totals for concluded songs so they can be displayed publicly.
+      if (songListCache.completed.length) {
+        const completedIds = songListCache.completed.map((item) => Number(item.id));
+        const { data: votesData } = await db
+          .from('voti')
+          .select('prenotazione_id, voto')
+          .in('prenotazione_id', completedIds);
+        const voteTotals = {};
+        (votesData || []).forEach((v) => {
+          const key = Number(v.prenotazione_id);
+          if (!voteTotals[key]) voteTotals[key] = { sum: 0, count: 0 };
+          voteTotals[key].sum += Number(v.voto) || 0;
+          voteTotals[key].count += 1;
+        });
+        songListCache.completed = songListCache.completed.map((item) => {
+          const score = voteTotals[Number(item.id)] || { sum: 0, count: 0 };
+          return { ...item, _scoreSum: score.sum, _scoreCount: score.count };
+        });
+      }
+
       updateWaitingPositionStatus(songListCache.toSing);
       maybeNotifyTurn(songListCache.toSing);
       renderSongList();
@@ -2135,6 +2165,12 @@
         const canOpenSelfie = hasRealSelfie && !selfieHidden;
         const selfieUrl = canOpenSelfie ? rawSelfieUrl : DEFAULT_SELFIE_URL;
         const hasSelfie = Boolean(selfieUrl);
+        const scoreCount = Number(item._scoreCount) || 0;
+        const scoreSum = Number(item._scoreSum) || 0;
+        const scoreAvg = scoreCount > 0 ? (scoreSum / scoreCount).toFixed(1) : '—';
+        const scoreHtml = item.cantata
+          ? `<div class="song-item-score"><span>${scoreAvg}</span> · ${scoreCount} vot${scoreCount === 1 ? 'o' : 'i'}</div>`
+          : '';
         return `
         <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}${currentSong ? ' current-song' : ''}${currentSong && item.in_preparazione ? ' preparing' : ''}${hasSelfie ? ' has-selfie' : ''}" data-id="${item.id}">
           ${hasSelfie ? `<div class="song-item-selfie-bg${canOpenSelfie ? '' : ' is-default'}" style="background-image:url('${escapeCssUrl(selfieUrl)}')"${canOpenSelfie ? ` data-selfie-full="${escapeHtml(rawSelfieUrl)}" role="button" aria-label="ingrandisci selfie di ${escapeHtml(item.nome)}"` : ' aria-hidden="true"'}></div>` : ''}
@@ -2148,6 +2184,7 @@
               ${currentSong && !item.in_preparazione ? `<div class="song-item-badge">🎤 Canzone corrente</div>` : ''}
               ${currentSong && item.in_preparazione ? '<div class="song-item-badge">In preparazione</div>' : ''}
               ${Number(item.id) === currentBookingIdNum ? '<div class="song-item-badge">La tua prenotazione</div>' : ''}
+              ${scoreHtml}
             </div>
           </div>
         </div>
