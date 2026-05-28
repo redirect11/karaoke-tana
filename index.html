@@ -1726,7 +1726,7 @@
     }
 
     function updateFollowVoteMessage() {
-      const shouldShow = window.FollowFlow.shouldShowVoteLink({ voteOpen });
+      const shouldShow = window.FollowFlow?.shouldShowVoteLink({ voteOpen }) ?? false;
       if (followVoteMsg) followVoteMsg.style.display = shouldShow ? 'block' : 'none';
     }
 
