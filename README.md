@@ -172,6 +172,29 @@ La UI gestisce loading/error sul bottone di submit.
 - In modalità proclamazione è disponibile anche **"Proclamazione diretta"**, che pubblica subito il vincitore senza far comparire alcun countdown sulla pagina pubblica.
 - Se si vuole annullare la diretta prima del countdown, premere **"Disabilita diretta"**.
 
+## Promozione a produzione
+
+Il workflow `.github/workflows/promote-to-production.yml` promuove manualmente `karaoke-tana-test:main` al sito di produzione (`redirect11/karaoke-tana`) tramite una PR review-based.
+
+### Come avviarlo
+
+1. Vai su **Actions → Promote test to production via PR → Run workflow**.
+2. Nel campo **confirm** digita esattamente `DEPLOY`.
+3. (Opzionale) compila **release_name** per aggiungere un suffisso leggibile al nome del branch (es. `hotfix-login`).
+4. Il workflow crea un branch `release/<timestamp>[-suffix]` in `redirect11/karaoke-tana` e apre automaticamente una PR verso `main`.
+5. Fai **review, approve e merge** della PR manualmente: il merge triggera il deploy su `www.ilkaraokedellatana.it`.
+
+### Secret richiesto
+
+Aggiungi il secret `PROD_REPO_TOKEN` nelle **Settings → Secrets and variables → Actions** di questo repo (`redirect11/karaoke-tana-test`).
+
+Deve essere un **fine-grained Personal Access Token** con accesso al solo repo `redirect11/karaoke-tana` e i permessi:
+
+- **Contents: Read and write** (per pushare il branch release)
+- **Pull requests: Read and write** (per aprire la PR)
+
+---
+
 ## Deploy GitHub Pages
 
 ### Deploy sito test (`main`)

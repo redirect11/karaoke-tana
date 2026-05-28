@@ -1601,7 +1601,7 @@
         endRevealAnimation();
         direttaWrap.style.display = 'none';
         content.style.display = '';
-        updateFullscreenBtnVisibility(false);
+        updateFullscreenBtnVisibility(true);
         renderContent();
         renderDirettaAdminControls();
         return;
@@ -1996,7 +1996,7 @@
         endRevealAnimation();
         direttaWrap.style.display = 'none';
         content.style.display = '';
-        updateFullscreenBtnVisibility(false);
+        updateFullscreenBtnVisibility(true);
         renderFinalLeaderboard();
         renderDirettaAdminControls();
         return;
@@ -2023,7 +2023,7 @@
             endRevealAnimation();
             direttaWrap.style.display = 'none';
             content.style.display = '';
-            updateFullscreenBtnVisibility(false);
+            updateFullscreenBtnVisibility(true);
             renderFinalLeaderboard();
             renderDirettaAdminControls();
           }, WINNER_REVEAL_HOLD_MS);
@@ -2069,7 +2069,7 @@
         endRevealAnimation();
         direttaWrap.style.display = 'none';
         content.style.display = '';
-        updateFullscreenBtnVisibility(false);
+        updateFullscreenBtnVisibility(true);
         renderContent();
         renderDirettaAdminControls();
       };
@@ -2270,13 +2270,13 @@
       serataSyncInst = prenotazioniSyncInst = votiSyncInst = null;
     }
 
-    // Proclamazione sync: serate realtime only, no poll.
-    // Reacts only to the countdown-start event (winner_reveal_countdown_ends_at
-    // being set for the first time) and to vincitore_decretato.
+    // Proclamazione sync: serate realtime + poll di fallback (8s), così anche
+    // la proclamazione diretta si aggiorna su schermi che non ricevono eventi
+    // realtime puntuali.
     function _startProclamazioneSync() {
       if (proclamazioneSyncInst) return;
       proclamazioneSyncInst = createSerataSync({
-        db, tables: ['serate'], pollMs: 0,
+        db, tables: ['serate'], pollMs: 8000,
         onChange: () => { _onProclamazioneSerataChange(); },
       });
       proclamazioneSyncInst.start();
@@ -2321,11 +2321,15 @@
         }
 
         if (exitedMode) {
-          // Proclamazione mode ended unexpectedly (e.g. admin reset). Switch back
-          // to normal sync so the vote page keeps updating.
+          // Proclamazione mode ended: either admin reset (no winner) or direct
+          // proclamation (skipCountdown). Switch back to normal sync and reload
+          // songs, then update banner + diretta so the content area is shown
+          // (it was hidden when entering proclamazione mode).
           inProclamazioneMode = false;
           _startNormalSync();
           await loadSongs();
+          updateBanner();
+          renderDiretta();
         } else {
           updateBanner();
           renderDiretta();
