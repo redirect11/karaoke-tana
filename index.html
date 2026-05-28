@@ -1415,7 +1415,7 @@
     <img id="selfie-lightbox-img" src="" alt="selfie ingrandito" />
   </div>
 
-  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v1.0 &nbsp;|&nbsp; <a href="archive.html" style="color:inherit;text-decoration:underline;">Archivio karaoke</a> &nbsp;|&nbsp; <a href="cookie-policy.html" style="color:inherit;text-decoration:underline;">Cookie Policy</a></footer>
+  <footer>La Tana del Coniglio · Nola &nbsp;|&nbsp; Karaoke Booking v1.0 &nbsp;|&nbsp; <a id="footer-archive-link" href="archive.html" style="color:inherit;text-decoration:underline;display:none;">Archivio karaoke</a><span id="footer-archive-sep" style="display:none;"> &nbsp;|&nbsp; </span><a href="cookie-policy.html" style="color:inherit;text-decoration:underline;">Cookie Policy</a></footer>
 
   <div id="offline-banner" role="status" aria-live="polite">⚠️ Connessione assente — i dati potrebbero non essere aggiornati</div>
 
@@ -1541,6 +1541,8 @@
     const closedIgProfileCard = document.getElementById('closed-ig-profile-card');
     const closedIgFollowBtn   = document.getElementById('closed-ig-follow-btn');
     const closedArchiveLink = document.getElementById('closed-archive-link');
+    const footerArchiveLink = document.getElementById('footer-archive-link');
+    const footerArchiveSep  = document.getElementById('footer-archive-sep');
     const songListCard = document.getElementById('song-list-card');
     const songListEl   = document.getElementById('song-list');
     const songListStatus = document.getElementById('song-list-status');
@@ -1717,6 +1719,9 @@
           ? 'inline-block'
           : 'none';
       }
+      const archiveVisible = publicSettings?.archivio_pubblico_abilitato === true;
+      if (footerArchiveLink) footerArchiveLink.style.display = archiveVisible ? 'inline' : 'none';
+      if (footerArchiveSep)  footerArchiveSep.style.display  = archiveVisible ? 'inline' : 'none';
     }
 
     function showLeaderboard(show) {
