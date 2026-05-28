@@ -1,0 +1,100 @@
+name: Promote test to production via PR
+
+# Manually triggered workflow that pushes a release branch from karaoke-tana-test:main
+# into redirect11/karaoke-tana and opens a PR for human review and merge.
+#
+# Required secret in this repository:
+#   PROD_REPO_TOKEN – fine-grained PAT with access to redirect11/karaoke-tana
+#                     Permissions needed: Contents (read & write), Pull requests (read & write)
+#
+# Workflow:
+#   1. Trigger manually from the Actions tab, typing "DEPLOY" in the confirm field.
+#   2. A timestamped release branch is created and pushed to redirect11/karaoke-tana.
+#   3. A PR is opened automatically targeting karaoke-tana:main.
+#   4. A human reviews, approves, and merges the PR — that merge triggers the production deploy.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type DEPLOY to proceed'
+        required: true
+      release_name:
+        description: 'Optional release suffix (e.g. hotfix-login, v2-ads) – appended to branch name'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    if: github.event.inputs.confirm == 'DEPLOY'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout test repo main (full history)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Generate release branch name
+        id: vars
+        run: |
+          TS=$(date -u +'%Y%m%d-%H%M%S')
+          SUFFIX="${{ github.event.inputs.release_name }}"
+          if [ -n "$SUFFIX" ]; then
+            # Sanitize: keep only alphanumeric, hyphens, underscores, dots
+            SAFE_SUFFIX=$(echo "$SUFFIX" | tr -cs 'a-zA-Z0-9._-' '-' | sed 's/^-//;s/-$//')
+            BRANCH="release/${TS}-${SAFE_SUFFIX}"
+          else
+            BRANCH="release/${TS}"
+          fi
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "Release branch: ${BRANCH}"
+
+      - name: Configure git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Add production remote
+        run: |
+          git remote add production \
+            "https://x-access-token:${{ secrets.PROD_REPO_TOKEN }}@github.com/redirect11/karaoke-tana.git"
+
+      - name: Push release branch to production repo
+        run: |
+          git push production "HEAD:refs/heads/${{ steps.vars.outputs.branch }}"
+
+      - name: Create pull request in production repo
+        env:
+          GH_TOKEN: ${{ secrets.PROD_REPO_TOKEN }}
+        run: |
+          BRANCH="${{ steps.vars.outputs.branch }}"
+          TITLE="Promote karaoke-tana-test:main to production (${BRANCH})"
+          BODY=$(cat <<'PREOF'
+## Promozione test → produzione
+
+Questo PR porta `redirect11/karaoke-tana-test:main` in produzione.
+
+**Sorgente:** `redirect11/karaoke-tana-test` – branch `main`
+**Branch release:** RELEASE_BRANCH_PLACEHOLDER
+**Avviato da:** ACTOR_PLACEHOLDER
+
+---
+
+> Fai review, approva e **mergia manualmente** questo PR per avviare il deploy produzione su `redirect11/karaoke-tana`.
+> Non mergere se ci sono dubbi: il merge triggers il deploy di GitHub Pages su `www.ilkaraokedellatana.it`.
+PREOF
+)
+          # Substitute placeholders with runtime values
+          BODY="${BODY/RELEASE_BRANCH_PLACEHOLDER/${BRANCH}}"
+          BODY="${BODY/ACTOR_PLACEHOLDER/@${{ github.actor }}}"
+
+          gh pr create \
+            --repo redirect11/karaoke-tana \
+            --base main \
+            --head "${BRANCH}" \
+            --title "${TITLE}" \
+            --body "${BODY}"
