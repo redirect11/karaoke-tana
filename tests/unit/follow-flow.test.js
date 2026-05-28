@@ -6,6 +6,7 @@
  * Focus areas:
  *   - computeFollowFlowVisibility – return shape, all branches, parameter coercions
  *   - shouldRestoreFollowFlow     – all flag combinations, parameter coercions
+ *   - shouldShowVoteLink          – vote link visibility rules
  */
 
 import { describe, it, expect } from 'vitest';
@@ -14,7 +15,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const FollowFlow = require('../../scripts/follow-flow.js');
 
-const { computeFollowFlowVisibility, shouldRestoreFollowFlow } = FollowFlow;
+const { computeFollowFlowVisibility, shouldRestoreFollowFlow, shouldShowVoteLink } = FollowFlow;
 
 // ─────────────────────────────────────────────────────────────────────────────
 describe('computeFollowFlowVisibility – return shape', () => {
@@ -190,5 +191,17 @@ describe('shouldRestoreFollowFlow – parameter coercions', () => {
 
   it('falsy non-boolean isWaiting (0) → restore', () => {
     expect(shouldRestoreFollowFlow({ isWaiting: 0 })).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('shouldShowVoteLink – vote visibility', () => {
+
+  it('shows vote link when voteOpen=true', () => {
+    expect(shouldShowVoteLink({ voteOpen: true })).toBe(true);
+  });
+
+  it('hides vote link when voteOpen=false', () => {
+    expect(shouldShowVoteLink({ voteOpen: false })).toBe(false);
   });
 });
