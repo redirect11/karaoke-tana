@@ -2270,13 +2270,13 @@
       serataSyncInst = prenotazioniSyncInst = votiSyncInst = null;
     }
 
-    // Proclamazione sync: serate realtime only, no poll.
-    // Reacts only to the countdown-start event (winner_reveal_countdown_ends_at
-    // being set for the first time) and to vincitore_decretato.
+    // Proclamazione sync: serate realtime + poll di fallback (8s), così anche
+    // la proclamazione diretta si aggiorna su schermi che non ricevono eventi
+    // realtime puntuali.
     function _startProclamazioneSync() {
       if (proclamazioneSyncInst) return;
       proclamazioneSyncInst = createSerataSync({
-        db, tables: ['serate'], pollMs: 0,
+        db, tables: ['serate'], pollMs: 8000,
         onChange: () => { _onProclamazioneSerataChange(); },
       });
       proclamazioneSyncInst.start();
