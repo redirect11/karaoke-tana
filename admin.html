@@ -2318,15 +2318,18 @@
           if (!currentUrl) return;
           try {
             const res = await fetch(currentUrl);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const blob = await res.blob();
             const blobUrl = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = blobUrl;
-            a.download = 'selfie.jpg';
+            // Derive filename from URL, fall back to a timestamped default
+            const urlFilename = currentUrl.split('?')[0].split('/').pop();
+            a.download = urlFilename || `selfie-${Date.now()}.jpg`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
           } catch {
             window.open(currentUrl, '_blank');
           }
