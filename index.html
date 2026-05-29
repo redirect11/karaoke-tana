@@ -40,15 +40,15 @@
       content: "";
       position: fixed;
       inset: 0;
-      background-image: url('bg_kar_tana.png');
+      background-image:
+        linear-gradient(to bottom, rgba(18, 7, 31, 0) 56%, rgba(18, 7, 31, 0.74) 82%, rgba(18, 7, 31, 0.96) 100%),
+        url('bg_kar_tana.png');
       background-size: contain;
-      background-position: center bottom;
+      background-position: center top;
       background-repeat: no-repeat;
       filter: blur(0.1px) saturate(0.82) brightness(0.86);
       transform: scale(1.04);
-      opacity: 0.28;
-      -webkit-mask-image: radial-gradient( ellipse at center, black 50%, rgba(0, 0, 0, 0.85) 40%, transparent 70% );
-      mask-image: radial-gradient( ellipse at center, black 50%, rgba(0, 0, 0, 0.85) 40%, transparent 70% );
+      opacity: 0.34;
       z-index: -1;
       pointer-events: none;
     }
