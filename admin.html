@@ -729,6 +729,14 @@
       width: 38px; height: 38px; border-radius: 50%;
       font-size: 1.4rem; line-height: 1; cursor: pointer;
     }
+    .selfie-lightbox-download {
+      position: absolute; bottom: 20px; right: 18px;
+      background: rgba(255,255,255,0.13);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff; padding: 8px 18px; border-radius: 8px;
+      font-size: 0.9rem; cursor: pointer; line-height: 1;
+    }
+    .selfie-lightbox-download:hover { background: rgba(255,255,255,0.26); }
 
     .card-pos {
       position: absolute;
@@ -2078,6 +2086,13 @@
       const hasSelfie = Boolean(selfieUrl);
       card.className = `booking-card${isApproved && index === 0 ? ' next' : ''}${hasSelfie ? ' has-selfie' : ''}${isCurrent ? (isPreparing ? ' current-preparing' : ' current-live') : ''}`;
       card.dataset.id = booking.id;
+      // For completed cards the card-body (z-index:1) sits above the selfie-bg
+      // sibling, so closest('[data-selfie-full]') never reaches the bg div when
+      // clicking on the text area. Attaching the attribute to the card itself
+      // makes any click on the card (outside .btn-action) open the lightbox.
+      if (isCompleted && canOpenSelfie) {
+        card.dataset.selfieFull = selfieUrl;
+      }
 
       const time = new Date(booking.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
@@ -2293,16 +2308,40 @@
       const lb = document.getElementById('selfie-lightbox');
       const lbImg = document.getElementById('selfie-lightbox-img');
       const lbClose = document.getElementById('selfie-lightbox-close');
+      const lbDownload = document.getElementById('selfie-lightbox-download');
       if (!lb || !lbImg) return;
-      function close() { lb.classList.remove('open'); lbImg.src = ''; }
+      let currentUrl = '';
+      function close() { lb.classList.remove('open'); lbImg.src = ''; currentUrl = ''; }
+      if (lbDownload) {
+        lbDownload.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (!currentUrl) return;
+          try {
+            const res = await fetch(currentUrl);
+            const blob = await res.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = 'selfie.jpg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+          } catch {
+            window.open(currentUrl, '_blank');
+          }
+        });
+      }
       document.addEventListener('click', (e) => {
         const target = e.target;
         if (!(target instanceof Element)) return;
         if (target.closest('.btn-action')) return;
+        if (target.closest('.selfie-lightbox-download')) return;
         const t = target.closest('[data-selfie-full]');
         if (t) {
           const url = t.getAttribute('data-selfie-full');
           if (!url) return;
+          currentUrl = url;
           lbImg.src = url;
           lb.classList.add('open');
           return;
@@ -2318,6 +2357,7 @@
   <div class="selfie-lightbox" id="selfie-lightbox" role="dialog" aria-modal="true" aria-label="Visualizza selfie">
     <button type="button" class="selfie-lightbox-close" id="selfie-lightbox-close" aria-label="Chiudi">×</button>
     <img id="selfie-lightbox-img" src="" alt="selfie ingrandito" />
+    <button type="button" class="selfie-lightbox-download" id="selfie-lightbox-download" aria-label="Scarica selfie">⬇ Scarica</button>
   </div>
 
   <script defer src="scripts/vendor/cookieconsent.umd.js"></script>
