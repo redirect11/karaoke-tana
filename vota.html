@@ -1602,7 +1602,7 @@
         direttaWrap.style.display = 'none';
         content.style.display = '';
         updateFullscreenBtnVisibility(true);
-        renderContent();
+        renderFinalLeaderboard();
         renderDirettaAdminControls();
         return;
       }
@@ -2264,13 +2264,12 @@
       serataSyncInst = prenotazioniSyncInst = votiSyncInst = null;
     }
 
-    // Proclamazione sync: serate realtime + poll di fallback (8s), così anche
-    // la proclamazione diretta si aggiorna su schermi che non ricevono eventi
-    // realtime puntuali.
+    // Proclamazione sync: solo realtime su serate (nessun polling) per evitare
+    // jitter durante countdown/reveal.
     function _startProclamazioneSync() {
       if (proclamazioneSyncInst) return;
       proclamazioneSyncInst = createSerataSync({
-        db, tables: ['serate'], pollMs: 8000,
+        db, tables: ['serate'], pollMs: 0,
         onChange: () => { _onProclamazioneSerataChange(); },
       });
       proclamazioneSyncInst.start();
