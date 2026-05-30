@@ -535,6 +535,7 @@ async function getPublicSettings(admin: ReturnType<typeof createClient>) {
       manutenzione_abilitata: false,
       modalita_post_approvazione: POST_APPROVAL_MODE_DIRECT_LIVE,
       home_subtitle_text: "Il karaoke, la votazione e la coda in un unico posto.",
+        home_subtitle_enabled: true,
       home_follow_title: "Prima di tutto…",
       home_follow_message: "Segui la nostra pagina Instagram per poter prenotare una canzone.",
       home_form_title: "Prenota la tua canzone 🎤",
@@ -571,6 +572,7 @@ async function updatePublicSettings(
     archivio_pubblico_abilitato?: boolean;
     manutenzione_abilitata?: boolean;
     modalita_post_approvazione?: PostApprovalMode;
+    home_subtitle_enabled?: boolean;
     home_subtitle_text?: string;
     home_follow_title?: string;
     home_follow_message?: string;
@@ -605,6 +607,7 @@ async function updatePublicSettings(
   if (typeof updates.modalita_post_approvazione === "string") {
     payload.modalita_post_approvazione = normalizePostApprovalMode(updates.modalita_post_approvazione);
   }
+  if (typeof updates.home_subtitle_enabled === "boolean") payload.home_subtitle_enabled = updates.home_subtitle_enabled;
   if (typeof updates.home_subtitle_text === "string") payload.home_subtitle_text = updates.home_subtitle_text.trim();
   if (typeof updates.home_follow_title === "string") payload.home_follow_title = updates.home_follow_title.trim();
   if (typeof updates.home_follow_message === "string") payload.home_follow_message = updates.home_follow_message.trim();
@@ -746,6 +749,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         archivio_pubblico_abilitato?: boolean;
         manutenzione_abilitata?: boolean;
         modalita_post_approvazione?: PostApprovalMode;
+        home_subtitle_enabled?: boolean;
         home_subtitle_text?: string;
         home_follow_title?: string;
         home_follow_message?: string;
@@ -775,6 +779,9 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       }
       if (Object.prototype.hasOwnProperty.call(body, "modalitaPostApprovazione")) {
         updates.modalita_post_approvazione = normalizePostApprovalMode(body.modalitaPostApprovazione);
+      }
+      if (typeof body.homeSubtitleEnabled === "boolean") {
+        updates.home_subtitle_enabled = body.homeSubtitleEnabled;
       }
       if (Object.prototype.hasOwnProperty.call(body, "homeSubtitleText")) {
         updates.home_subtitle_text = typeof body.homeSubtitleText === "string" ? body.homeSubtitleText : String(body.homeSubtitleText ?? "");
@@ -840,6 +847,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         typeof updates.archivio_pubblico_abilitato !== "boolean"
         && typeof updates.manutenzione_abilitata !== "boolean"
         && typeof updates.modalita_post_approvazione !== "string"
+        && typeof updates.home_subtitle_enabled !== "boolean"
         && typeof updates.home_subtitle_text !== "string"
         && typeof updates.home_follow_title !== "string"
         && typeof updates.home_follow_message !== "string"
@@ -864,7 +872,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         throw new ApiError(
           400,
           "invalid_payload",
-          "Specifica almeno archivioPubblicoAbilitato, modalitaPostApprovazione, homeSubtitleText, homeFollowTitle, homeFollowMessage, homeFormTitle, homeFormMessage, homeSuccessTitle, homeSuccessMessage, homeWaitingTitle, homeWaitingMessage, homeBookingsDisabledTitle, homeBookingsDisabledMessage, homeClosedTitle, homeClosedMessage, homeMaintenanceTitle, homeMaintenanceMessage, prossimaSerataData, winnerRevealCountdownDefaultSeconds, winnerRevealAnimationEnabled, winnerRevealAnimationMode o winnerRevealAutoStepSeconds.",
+          "Specifica almeno archivioPubblicoAbilitato, modalitaPostApprovazione, homeSubtitleEnabled, homeSubtitleText, homeFollowTitle, homeFollowMessage, homeFormTitle, homeFormMessage, homeSuccessTitle, homeSuccessMessage, homeWaitingTitle, homeWaitingMessage, homeBookingsDisabledTitle, homeBookingsDisabledMessage, homeClosedTitle, homeClosedMessage, homeMaintenanceTitle, homeMaintenanceMessage, prossimaSerataData, winnerRevealCountdownDefaultSeconds, winnerRevealAnimationEnabled, winnerRevealAnimationMode o winnerRevealAutoStepSeconds.",
         );
       }
       const updatedSettings = await updatePublicSettings(admin, updates);

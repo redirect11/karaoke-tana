@@ -248,6 +248,7 @@ describe('formatCountdown', () => {
 describe('getHomeCopySettings', () => {
   it('returns the default home copy when settings are missing', () => {
     expect(getHomeCopySettings(null)).toEqual({
+      subtitleVisible: true,
       subtitle: 'Il karaoke, la votazione e la coda in un unico posto.',
       followTitle: 'Prima di tutto…',
       followMessage: 'Segui la nostra pagina Instagram per poter prenotare una canzone.',
@@ -268,11 +269,13 @@ describe('getHomeCopySettings', () => {
 
   it('uses custom values and falls back for blank strings', () => {
     expect(getHomeCopySettings({
+      home_subtitle_enabled: false,
       home_subtitle_text: '  La tua serata  ',
       home_follow_title: '',
       home_follow_message: 'Seguici davvero',
       home_closed_message: 'Linea 1\nLinea 2',
     })).toMatchObject({
+      subtitleVisible: false,
       subtitle: 'La tua serata',
       followTitle: 'Prima di tutto…',
       followMessage: 'Seguici davvero',

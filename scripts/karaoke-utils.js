@@ -132,6 +132,7 @@
   // ── Home copy helpers ───────────────────────────────────────────────────
 
   var DEFAULT_HOME_COPY = Object.freeze({
+    subtitleVisible: true,
     subtitle: 'Il karaoke, la votazione e la coda in un unico posto.',
     followTitle: 'Prima di tutto…',
     followMessage: 'Segui la nostra pagina Instagram per poter prenotare una canzone.',
@@ -178,7 +179,9 @@
    * }}
    */
   function getHomeCopySettings(settings) {
+    var subtitleVisible = settings == null || settings.home_subtitle_enabled !== false;
     return {
+      subtitleVisible: subtitleVisible,
       subtitle: normalizeHomeCopyText(settings == null ? null : settings.home_subtitle_text, DEFAULT_HOME_COPY.subtitle),
       followTitle: normalizeHomeCopyText(settings == null ? null : settings.home_follow_title, DEFAULT_HOME_COPY.followTitle),
       followMessage: normalizeHomeCopyText(settings == null ? null : settings.home_follow_message, DEFAULT_HOME_COPY.followMessage),

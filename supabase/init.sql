@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS impostazioni_pubbliche (
   id BIGINT PRIMARY KEY CHECK (id = 1),
   archivio_pubblico_abilitato BOOLEAN NOT NULL DEFAULT FALSE,
   modalita_post_approvazione TEXT NOT NULL DEFAULT 'direct_live',
+  home_subtitle_enabled BOOLEAN NOT NULL DEFAULT TRUE,
   home_subtitle_text TEXT NOT NULL DEFAULT 'Il karaoke, la votazione e la coda in un unico posto.',
   home_follow_title TEXT NOT NULL DEFAULT 'Prima di tutto…',
   home_follow_message TEXT NOT NULL DEFAULT 'Segui la nostra pagina Instagram per poter prenotare una canzone.',
@@ -57,6 +58,7 @@ INSERT INTO impostazioni_pubbliche (
   id,
   archivio_pubblico_abilitato,
   modalita_post_approvazione,
+  home_subtitle_enabled,
   home_subtitle_text,
   home_follow_title,
   home_follow_message,
@@ -82,6 +84,7 @@ VALUES (
   1,
   FALSE,
   'direct_live',
+  TRUE,
   'Il karaoke, la votazione e la coda in un unico posto.',
   'Prima di tutto…',
   'Segui la nostra pagina Instagram per poter prenotare una canzone.',
@@ -157,6 +160,9 @@ ALTER TABLE prenotazioni
 
 ALTER TABLE impostazioni_pubbliche
   ADD COLUMN IF NOT EXISTS modalita_post_approvazione TEXT NOT NULL DEFAULT 'direct_live';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_subtitle_enabled BOOLEAN NOT NULL DEFAULT TRUE;
 
 ALTER TABLE impostazioni_pubbliche
   ADD COLUMN IF NOT EXISTS home_subtitle_text TEXT NOT NULL DEFAULT 'Il karaoke, la votazione e la coda in un unico posto.';

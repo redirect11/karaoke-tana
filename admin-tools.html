@@ -224,7 +224,7 @@
 
     .copy-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: 1fr;
       gap: 12px;
     }
     .copy-field {
@@ -257,7 +257,7 @@
 
     .dev-section { display: none; }
 
-    details > summary {
+    .settings-collapsible > summary {
       list-style: none;
       cursor: pointer;
       display: flex;
@@ -268,14 +268,14 @@
       font-weight: 700;
       user-select: none;
     }
-    details > summary::-webkit-details-marker { display: none; }
-    details > summary::before {
+    .settings-collapsible > summary::-webkit-details-marker { display: none; }
+    .settings-collapsible > summary::before {
       content: '▶';
       font-size: 0.7rem;
       transition: transform 0.2s;
     }
-    details[open] > summary::before { transform: rotate(90deg); }
-    details > .details-body {
+    .settings-collapsible[open] > summary::before { transform: rotate(90deg); }
+    .settings-collapsible > .details-body {
       display: flex;
       flex-direction: column;
       gap: 14px;
@@ -311,7 +311,9 @@
 
       <!-- ── IMPOSTAZIONI PUBBLICHE ─────────────────────────── -->
       <section class="card">
-        <h2>Impostazioni pubbliche</h2>
+        <details class="settings-collapsible" open>
+          <summary>Impostazioni pubbliche</summary>
+          <div class="details-body">
 
         <div class="setting-sub-box">
           <div class="setting-label">Archivio pubblico</div>
@@ -332,76 +334,6 @@
           </div>
           <div class="actions">
             <button class="action-btn btn-public-settings" id="btn-toggle-maintenance-mode" type="button">—</button>
-          </div>
-        </div>
-
-        <div class="setting-sub-box">
-          <div class="setting-label">Testi home</div>
-          <p>Modifica il sottotitolo sotto il logo e i testi visibili nei box della home. I valori vuoti tornano al testo di default. Nei messaggi dei box puoi usare Markdown base: <strong>**grassetto**</strong> e invio per andare a capo.</p>
-          <div class="copy-grid">
-            <div class="copy-field">
-              <label for="home-subtitle-text">Sottotitolo logo</label>
-              <input class="copy-input" id="home-subtitle-text" type="text" maxlength="180" />
-            </div>
-            <div class="copy-field">
-              <label for="home-follow-title">Box Segui: titolo</label>
-              <input class="copy-input" id="home-follow-title" type="text" maxlength="120" />
-            </div>
-            <div class="copy-field">
-              <label for="home-follow-message">Box Segui: messaggio</label>
-              <textarea class="copy-input copy-input--textarea" id="home-follow-message" rows="3" maxlength="240"></textarea>
-            </div>
-            <div class="copy-field">
-              <label for="home-form-title">Box Prenota: titolo</label>
-              <input class="copy-input" id="home-form-title" type="text" maxlength="120" />
-            </div>
-            <div class="copy-field">
-              <label for="home-form-message">Box Prenota: messaggio</label>
-              <textarea class="copy-input copy-input--textarea" id="home-form-message" rows="3" maxlength="240"></textarea>
-            </div>
-            <div class="copy-field">
-              <label for="home-success-title">Box Conferma: titolo</label>
-              <input class="copy-input" id="home-success-title" type="text" maxlength="120" />
-            </div>
-            <div class="copy-field">
-              <label for="home-success-message">Box Conferma: messaggio</label>
-              <textarea class="copy-input copy-input--textarea" id="home-success-message" rows="3" maxlength="240"></textarea>
-            </div>
-            <div class="copy-field">
-              <label for="home-waiting-title">Box Stato: titolo</label>
-              <input class="copy-input" id="home-waiting-title" type="text" maxlength="120" />
-            </div>
-            <div class="copy-field">
-              <label for="home-waiting-message">Box Stato: messaggio</label>
-              <textarea class="copy-input copy-input--textarea" id="home-waiting-message" rows="3" maxlength="240"></textarea>
-            </div>
-            <div class="copy-field">
-              <label for="home-bookings-disabled-title">Box prenotazioni chiuse: titolo</label>
-              <input class="copy-input" id="home-bookings-disabled-title" type="text" maxlength="120" />
-            </div>
-            <div class="copy-field">
-              <label for="home-bookings-disabled-message">Box prenotazioni chiuse: messaggio</label>
-              <textarea class="copy-input copy-input--textarea" id="home-bookings-disabled-message" rows="3" maxlength="240"></textarea>
-            </div>
-            <div class="copy-field">
-              <label for="home-closed-title">Box chiuso: titolo</label>
-              <input class="copy-input" id="home-closed-title" type="text" maxlength="120" />
-            </div>
-            <div class="copy-field">
-              <label for="home-closed-message">Box chiuso: messaggio</label>
-              <textarea class="copy-input copy-input--textarea" id="home-closed-message" rows="3" maxlength="240"></textarea>
-            </div>
-            <div class="copy-field">
-              <label for="home-maintenance-title">Manutenzione: titolo</label>
-              <input class="copy-input" id="home-maintenance-title" type="text" maxlength="120" />
-            </div>
-            <div class="copy-field">
-              <label for="home-maintenance-message">Manutenzione: messaggio</label>
-              <textarea class="copy-input copy-input--textarea" id="home-maintenance-message" rows="3" maxlength="240"></textarea>
-            </div>
-          </div>
-          <div class="actions">
-            <button class="action-btn btn-public-settings" id="btn-save-home-copy" type="button">Salva testi home</button>
           </div>
         </div>
 
@@ -460,11 +392,95 @@
             <button class="action-btn btn-public-settings" id="btn-save-winner-reveal-settings" type="button">Salva reveal</button>
           </div>
         </div>
+          </div>
+        </details>
+      </section>
+
+      <!-- ── TESTI HOME ──────────────────────────────────────── -->
+      <section class="card">
+        <details class="settings-collapsible">
+          <summary>Testi home</summary>
+          <div class="details-body">
+            <div class="setting-sub-box">
+              <p>Modifica il sottotitolo sotto il logo e i testi visibili nei box della home. I valori vuoti tornano al testo di default. Nei messaggi dei box puoi usare Markdown base: <strong>**grassetto**</strong> e invio per andare a capo.</p>
+              <div class="actions">
+                <button class="action-btn btn-public-settings" id="btn-toggle-home-subtitle" type="button">—</button>
+              </div>
+              <div class="copy-grid">
+                <div class="copy-field">
+                  <label for="home-subtitle-text">Sottotitolo logo</label>
+                  <input class="copy-input" id="home-subtitle-text" type="text" maxlength="180" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-follow-title">Box Segui: titolo</label>
+                  <input class="copy-input" id="home-follow-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-follow-message">Box Segui: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-follow-message" rows="3" maxlength="240"></textarea>
+                </div>
+                <div class="copy-field">
+                  <label for="home-form-title">Box Prenota: titolo</label>
+                  <input class="copy-input" id="home-form-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-form-message">Box Prenota: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-form-message" rows="3" maxlength="240"></textarea>
+                </div>
+                <div class="copy-field">
+                  <label for="home-success-title">Box Conferma: titolo</label>
+                  <input class="copy-input" id="home-success-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-success-message">Box Conferma: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-success-message" rows="3" maxlength="240"></textarea>
+                </div>
+                <div class="copy-field">
+                  <label for="home-waiting-title">Box Stato: titolo</label>
+                  <input class="copy-input" id="home-waiting-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-waiting-message">Box Stato: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-waiting-message" rows="3" maxlength="240"></textarea>
+                </div>
+                <div class="copy-field">
+                  <label for="home-bookings-disabled-title">Box prenotazioni chiuse: titolo</label>
+                  <input class="copy-input" id="home-bookings-disabled-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-bookings-disabled-message">Box prenotazioni chiuse: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-bookings-disabled-message" rows="3" maxlength="240"></textarea>
+                </div>
+                <div class="copy-field">
+                  <label for="home-closed-title">Box chiuso: titolo</label>
+                  <input class="copy-input" id="home-closed-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-closed-message">Box chiuso: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-closed-message" rows="3" maxlength="240"></textarea>
+                </div>
+                <div class="copy-field">
+                  <label for="home-maintenance-title">Manutenzione: titolo</label>
+                  <input class="copy-input" id="home-maintenance-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-maintenance-message">Manutenzione: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-maintenance-message" rows="3" maxlength="240"></textarea>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="action-btn btn-public-settings" id="btn-save-home-copy" type="button">Salva testi home</button>
+              </div>
+            </div>
+          </div>
+        </details>
       </section>
 
       <!-- ── NOTIFICHE ──────────────────────────────────────── -->
       <section class="card">
-        <h2>Notifiche</h2>
+        <details class="settings-collapsible">
+          <summary>Notifiche</summary>
+          <div class="details-body">
         <div class="status-box" id="notification-settings-box">
           <strong>Caricamento…</strong>
           <span>Sto leggendo lo stato delle notifiche della serata corrente.</span>
@@ -474,11 +490,13 @@
           <button class="action-btn btn-notification-toggle" id="btn-toggle-browser-notifications">—</button>
         </div>
         <p>Qui puoi abilitare o disabilitare notifiche Telegram e browser per la serata aperta.</p>
+          </div>
+        </details>
       </section>
 
       <!-- ── IMPOSTAZIONI DI SVILUPPO (solo ambiente test) ───── -->
       <section class="card dev-section" id="dev-section">
-        <details open>
+        <details class="settings-collapsible">
           <summary>Impostazioni database (sviluppo)</summary>
           <div class="details-body">
 
@@ -568,6 +586,7 @@
     const winnerRevealAnimationModeSelect = document.getElementById('winner-reveal-animation-mode');
     const winnerRevealAutoStepSecondsInput = document.getElementById('winner-reveal-auto-step-seconds');
     const btnSaveWinnerRevealSettings = document.getElementById('btn-save-winner-reveal-settings');
+    const btnToggleHomeSubtitle = document.getElementById('btn-toggle-home-subtitle');
     const homeSubtitleTextInput = document.getElementById('home-subtitle-text');
     const homeFollowTitleInput = document.getElementById('home-follow-title');
     const homeFollowMessageInput = document.getElementById('home-follow-message');
@@ -603,6 +622,7 @@
       archivio_pubblico_abilitato: false,
       manutenzione_abilitata: false,
       modalita_post_approvazione: 'direct_live',
+      home_subtitle_enabled: true,
       home_subtitle_text: '',
       home_follow_title: '',
       home_follow_message: '',
@@ -640,6 +660,7 @@
     btnSaveWinnerRevealCountdown.addEventListener('click', saveWinnerRevealCountdown);
     btnSaveWinnerRevealSettings.addEventListener('click', saveWinnerRevealSettings);
     btnSaveHomeCopy.addEventListener('click', saveHomeCopy);
+    btnToggleHomeSubtitle.addEventListener('click', toggleHomeSubtitleVisibility);
     winnerRevealAnimationEnabledSelect.addEventListener('change', syncWinnerRevealSettingsControls);
     winnerRevealAnimationModeSelect.addEventListener('change', syncWinnerRevealSettingsControls);
 
@@ -854,6 +875,10 @@
         : 'direct_live';
       postApprovalModeSelect.value = postApprovalMode;
 
+      const subtitleEnabled = publicSettings?.home_subtitle_enabled !== false;
+      btnToggleHomeSubtitle.textContent = subtitleEnabled ? 'Nascondi sottotitolo in home' : 'Mostra sottotitolo in home';
+      homeSubtitleTextInput.disabled = !subtitleEnabled;
+
       nextKaraokeDateInput.value = publicSettings?.prossima_serata_data || '';
 
       const winnerRevealCountdownSeconds = getWinnerRevealCountdownSeconds();
@@ -1036,6 +1061,7 @@
       setBusy(btnSaveHomeCopy, true, 'Salvataggio…');
       try {
         publicSettings = await callAdmin('set_public_settings', {
+          homeSubtitleEnabled: publicSettings?.home_subtitle_enabled !== false,
           homeSubtitleText: homeSubtitleTextInput.value,
           homeFollowTitle: homeFollowTitleInput.value,
           homeFollowMessage: homeFollowMessageInput.value,
@@ -1058,6 +1084,21 @@
       } finally {
         btnSaveHomeCopy.disabled = false;
         btnSaveHomeCopy.textContent = 'Salva testi home';
+      }
+    }
+
+    async function toggleHomeSubtitleVisibility() {
+      const nextValue = !(publicSettings?.home_subtitle_enabled !== false);
+      setBusy(btnToggleHomeSubtitle, true, 'Aggiornamento…');
+      try {
+        publicSettings = await callAdmin('set_public_settings', {
+          homeSubtitleEnabled: nextValue,
+        });
+        renderPublicSettings();
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito ad aggiornare la visibilità del sottotitolo.', true);
+      } finally {
+        btnToggleHomeSubtitle.disabled = false;
       }
     }
 

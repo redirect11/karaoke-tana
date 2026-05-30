@@ -79,7 +79,7 @@
     }
     header .home-subtitle {
       margin-top: 10px;
-      font-size: 0.88rem;
+      font-size: 0.74rem;
       color: var(--muted);
       line-height: 1.45;
       max-width: 34ch;
@@ -1770,7 +1770,7 @@
       if (!db) return publicSettings;
       const { data, error } = await db
         .from('impostazioni_pubbliche')
-        .select('archivio_pubblico_abilitato, manutenzione_abilitata, modalita_post_approvazione, home_subtitle_text, home_follow_title, home_follow_message, home_form_title, home_form_message, home_success_title, home_success_message, home_waiting_title, home_waiting_message, home_bookings_disabled_title, home_bookings_disabled_message, home_closed_title, home_closed_message, home_maintenance_title, home_maintenance_message, prossima_serata_data')
+        .select('archivio_pubblico_abilitato, manutenzione_abilitata, modalita_post_approvazione, home_subtitle_enabled, home_subtitle_text, home_follow_title, home_follow_message, home_form_title, home_form_message, home_success_title, home_success_message, home_waiting_title, home_waiting_message, home_bookings_disabled_title, home_bookings_disabled_message, home_closed_title, home_closed_message, home_maintenance_title, home_maintenance_message, prossima_serata_data')
         .eq('id', 1)
         .maybeSingle();
       if (!error && data) {
@@ -1804,7 +1804,10 @@
 
     function applyHomeCopy() {
       const homeCopy = getHomeCopy();
-      if (homeSubtitleEl) homeSubtitleEl.innerHTML = renderMarkdown(homeCopy.subtitle || '');
+      if (homeSubtitleEl) {
+        homeSubtitleEl.innerHTML = renderMarkdown(homeCopy.subtitle || '');
+        homeSubtitleEl.style.display = homeCopy.subtitleVisible ? 'block' : 'none';
+      }
       if (followTitleEl) followTitleEl.textContent = homeCopy.followTitle || '';
       if (followMessageEl) followMessageEl.innerHTML = renderMarkdown(homeCopy.followMessage || '');
       if (formTitleEl) formTitleEl.textContent = homeCopy.formTitle || '';
