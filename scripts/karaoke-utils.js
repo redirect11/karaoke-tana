@@ -54,6 +54,23 @@
       .replaceAll(')', '\\)');
   }
 
+  /**
+   * Render a very small safe subset of Markdown.
+   * Supported:
+   * - **bold** / __bold__
+   * - newline -> <br>
+   *
+   * Everything else is escaped as plain text.
+   */
+  function renderSimpleMarkdown(value) {
+    var safe = escapeHtml(value);
+    safe = safe
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__(.+?)__/g, '<strong>$1</strong>')
+      .replace(/\r?\n/g, '<br>');
+    return safe;
+  }
+
   // ── URL helpers ──────────────────────────────────────────────────────────
 
   /**
@@ -110,6 +127,74 @@
     var min = Math.floor(totalSec / 60);
     var sec = totalSec % 60;
     return String(min).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+  }
+
+  // ── Home copy helpers ───────────────────────────────────────────────────
+
+  var DEFAULT_HOME_COPY = Object.freeze({
+    subtitle: 'Il karaoke, la votazione e la coda in un unico posto.',
+    followTitle: 'Prima di tutto…',
+    followMessage: 'Segui la nostra pagina Instagram per poter prenotare una canzone.',
+    formTitle: 'Prenota la tua canzone 🎤',
+    formMessage: 'Compila il form e lo staff la aggiungerà alla lista appena possibile.',
+    successTitle: 'Richiesta inviata!',
+    successMessage: 'Lo staff la controllerà e apparirà in lista appena viene approvata.',
+    waitingTitle: 'Stato della tua prenotazione',
+    waitingMessage: 'Sto controllando lo stato della tua prenotazione…',
+    bookingsDisabledTitle: 'Prenotazioni non disponibili',
+    bookingsDisabledMessage: 'Le prenotazioni sono al momento chiuse.',
+    closedTitle: 'Prenotazioni chiuse',
+    closedMessage: 'Al momento non è attiva nessuna serata karaoke.\nTorna più tardi!',
+    maintenanceTitle: '🚧 In manutenzione',
+    maintenanceMessage: 'Sito in manutenzione. Torneremo presto.\nIntanto segui la nostra pagina per scoprire le ultime novità e le prossime date del karaoke',
+  });
+
+  function normalizeHomeCopyText(value, fallback) {
+    var text = value == null ? '' : String(value).trim();
+    return text ? text : fallback;
+  }
+
+  /**
+   * Normalize public home copy coming from `impostazioni_pubbliche`.
+   * Missing or blank values fall back to the default copy.
+   *
+   * @param {object|null} settings
+   * @returns {{
+   *   subtitle: string,
+   *   followTitle: string,
+   *   followMessage: string,
+   *   formTitle: string,
+   *   formMessage: string,
+   *   successTitle: string,
+   *   successMessage: string,
+   *   waitingTitle: string,
+   *   waitingMessage: string,
+   *   bookingsDisabledTitle: string,
+   *   bookingsDisabledMessage: string,
+   *   closedTitle: string,
+   *   closedMessage: string,
+   *   maintenanceTitle: string,
+   *   maintenanceMessage: string,
+   * }}
+   */
+  function getHomeCopySettings(settings) {
+    return {
+      subtitle: normalizeHomeCopyText(settings == null ? null : settings.home_subtitle_text, DEFAULT_HOME_COPY.subtitle),
+      followTitle: normalizeHomeCopyText(settings == null ? null : settings.home_follow_title, DEFAULT_HOME_COPY.followTitle),
+      followMessage: normalizeHomeCopyText(settings == null ? null : settings.home_follow_message, DEFAULT_HOME_COPY.followMessage),
+      formTitle: normalizeHomeCopyText(settings == null ? null : settings.home_form_title, DEFAULT_HOME_COPY.formTitle),
+      formMessage: normalizeHomeCopyText(settings == null ? null : settings.home_form_message, DEFAULT_HOME_COPY.formMessage),
+      successTitle: normalizeHomeCopyText(settings == null ? null : settings.home_success_title, DEFAULT_HOME_COPY.successTitle),
+      successMessage: normalizeHomeCopyText(settings == null ? null : settings.home_success_message, DEFAULT_HOME_COPY.successMessage),
+      waitingTitle: normalizeHomeCopyText(settings == null ? null : settings.home_waiting_title, DEFAULT_HOME_COPY.waitingTitle),
+      waitingMessage: normalizeHomeCopyText(settings == null ? null : settings.home_waiting_message, DEFAULT_HOME_COPY.waitingMessage),
+      bookingsDisabledTitle: normalizeHomeCopyText(settings == null ? null : settings.home_bookings_disabled_title, DEFAULT_HOME_COPY.bookingsDisabledTitle),
+      bookingsDisabledMessage: normalizeHomeCopyText(settings == null ? null : settings.home_bookings_disabled_message, DEFAULT_HOME_COPY.bookingsDisabledMessage),
+      closedTitle: normalizeHomeCopyText(settings == null ? null : settings.home_closed_title, DEFAULT_HOME_COPY.closedTitle),
+      closedMessage: normalizeHomeCopyText(settings == null ? null : settings.home_closed_message, DEFAULT_HOME_COPY.closedMessage),
+      maintenanceTitle: normalizeHomeCopyText(settings == null ? null : settings.home_maintenance_title, DEFAULT_HOME_COPY.maintenanceTitle),
+      maintenanceMessage: normalizeHomeCopyText(settings == null ? null : settings.home_maintenance_message, DEFAULT_HOME_COPY.maintenanceMessage),
+    };
   }
 
   // ── Booking helpers ──────────────────────────────────────────────────────
@@ -352,9 +437,11 @@
   return {
     escapeHtml: escapeHtml,
     escapeCssUrl: escapeCssUrl,
+    renderSimpleMarkdown: renderSimpleMarkdown,
     resolveLanUrl: resolveLanUrl,
     formatPublicDateLabel: formatPublicDateLabel,
     formatCountdown: formatCountdown,
+    getHomeCopySettings: getHomeCopySettings,
     normalizeBookingNumber: normalizeBookingNumber,
     getStoredBookingNumber: getStoredBookingNumber,
     safeParseBookingCookie: safeParseBookingCookie,

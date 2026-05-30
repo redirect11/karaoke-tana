@@ -515,7 +515,7 @@ async function setPreparingBooking(
 async function getPublicSettings(admin: ReturnType<typeof createClient>) {
   const { data, error } = await admin
     .from("impostazioni_pubbliche")
-    .select("id, archivio_pubblico_abilitato, manutenzione_abilitata, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds, winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds")
+    .select("*")
     .eq("id", 1)
     .maybeSingle();
 
@@ -534,13 +534,28 @@ async function getPublicSettings(admin: ReturnType<typeof createClient>) {
       archivio_pubblico_abilitato: false,
       manutenzione_abilitata: false,
       modalita_post_approvazione: POST_APPROVAL_MODE_DIRECT_LIVE,
+      home_subtitle_text: "Il karaoke, la votazione e la coda in un unico posto.",
+      home_follow_title: "Prima di tutto…",
+      home_follow_message: "Segui la nostra pagina Instagram per poter prenotare una canzone.",
+      home_form_title: "Prenota la tua canzone 🎤",
+      home_form_message: "Compila il form e lo staff la aggiungerà alla lista appena possibile.",
+      home_success_title: "Richiesta inviata!",
+      home_success_message: "Lo staff la controllerà e apparirà in lista appena viene approvata.",
+      home_waiting_title: "Stato della tua prenotazione",
+      home_waiting_message: "Sto controllando lo stato della tua prenotazione…",
+      home_bookings_disabled_title: "Prenotazioni non disponibili",
+      home_bookings_disabled_message: "Le prenotazioni sono al momento chiuse.",
+      home_closed_title: "Prenotazioni chiuse",
+      home_closed_message: "Al momento non è attiva nessuna serata karaoke.\nTorna più tardi!",
+      home_maintenance_title: "🚧 In manutenzione",
+      home_maintenance_message: "Sito in manutenzione. Torneremo presto.\nIntanto segui la nostra pagina per scoprire le ultime novità e le prossime date del karaoke",
       prossima_serata_data: null,
       winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
       winner_reveal_animation_enabled: true,
       winner_reveal_animation_mode: WINNER_REVEAL_MODE_AUTOMATIC,
       winner_reveal_auto_step_seconds: DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
     })
-    .select("id, archivio_pubblico_abilitato, manutenzione_abilitata, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds, winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds")
+    .select("*")
     .maybeSingle();
 
   if (insertError || !inserted) {
@@ -556,6 +571,21 @@ async function updatePublicSettings(
     archivio_pubblico_abilitato?: boolean;
     manutenzione_abilitata?: boolean;
     modalita_post_approvazione?: PostApprovalMode;
+    home_subtitle_text?: string;
+    home_follow_title?: string;
+    home_follow_message?: string;
+    home_form_title?: string;
+    home_form_message?: string;
+    home_success_title?: string;
+    home_success_message?: string;
+    home_waiting_title?: string;
+    home_waiting_message?: string;
+    home_bookings_disabled_title?: string;
+    home_bookings_disabled_message?: string;
+    home_closed_title?: string;
+    home_closed_message?: string;
+    home_maintenance_title?: string;
+    home_maintenance_message?: string;
     prossima_serata_data?: string | null;
     winner_reveal_countdown_default_seconds?: number;
     winner_reveal_animation_enabled?: boolean;
@@ -575,6 +605,21 @@ async function updatePublicSettings(
   if (typeof updates.modalita_post_approvazione === "string") {
     payload.modalita_post_approvazione = normalizePostApprovalMode(updates.modalita_post_approvazione);
   }
+  if (typeof updates.home_subtitle_text === "string") payload.home_subtitle_text = updates.home_subtitle_text.trim();
+  if (typeof updates.home_follow_title === "string") payload.home_follow_title = updates.home_follow_title.trim();
+  if (typeof updates.home_follow_message === "string") payload.home_follow_message = updates.home_follow_message.trim();
+  if (typeof updates.home_form_title === "string") payload.home_form_title = updates.home_form_title.trim();
+  if (typeof updates.home_form_message === "string") payload.home_form_message = updates.home_form_message.trim();
+  if (typeof updates.home_success_title === "string") payload.home_success_title = updates.home_success_title.trim();
+  if (typeof updates.home_success_message === "string") payload.home_success_message = updates.home_success_message.trim();
+  if (typeof updates.home_waiting_title === "string") payload.home_waiting_title = updates.home_waiting_title.trim();
+  if (typeof updates.home_waiting_message === "string") payload.home_waiting_message = updates.home_waiting_message.trim();
+  if (typeof updates.home_bookings_disabled_title === "string") payload.home_bookings_disabled_title = updates.home_bookings_disabled_title.trim();
+  if (typeof updates.home_bookings_disabled_message === "string") payload.home_bookings_disabled_message = updates.home_bookings_disabled_message.trim();
+  if (typeof updates.home_closed_title === "string") payload.home_closed_title = updates.home_closed_title.trim();
+  if (typeof updates.home_closed_message === "string") payload.home_closed_message = updates.home_closed_message.trim();
+  if (typeof updates.home_maintenance_title === "string") payload.home_maintenance_title = updates.home_maintenance_title.trim();
+  if (typeof updates.home_maintenance_message === "string") payload.home_maintenance_message = updates.home_maintenance_message.trim();
   if (Object.prototype.hasOwnProperty.call(updates, "prossima_serata_data")) {
     payload.prossima_serata_data = updates.prossima_serata_data ?? null;
   }
@@ -595,7 +640,7 @@ async function updatePublicSettings(
     .from("impostazioni_pubbliche")
     .update(payload)
     .eq("id", 1)
-    .select("id, archivio_pubblico_abilitato, manutenzione_abilitata, modalita_post_approvazione, prossima_serata_data, winner_reveal_countdown_default_seconds, winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds")
+    .select("*")
     .maybeSingle();
 
   if (error || !data) {
@@ -701,6 +746,21 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         archivio_pubblico_abilitato?: boolean;
         manutenzione_abilitata?: boolean;
         modalita_post_approvazione?: PostApprovalMode;
+        home_subtitle_text?: string;
+        home_follow_title?: string;
+        home_follow_message?: string;
+        home_form_title?: string;
+        home_form_message?: string;
+        home_success_title?: string;
+        home_success_message?: string;
+        home_waiting_title?: string;
+        home_waiting_message?: string;
+        home_bookings_disabled_title?: string;
+        home_bookings_disabled_message?: string;
+        home_closed_title?: string;
+        home_closed_message?: string;
+        home_maintenance_title?: string;
+        home_maintenance_message?: string;
         prossima_serata_data?: string | null;
         winner_reveal_countdown_default_seconds?: number;
         winner_reveal_animation_enabled?: boolean;
@@ -715,6 +775,51 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       }
       if (Object.prototype.hasOwnProperty.call(body, "modalitaPostApprovazione")) {
         updates.modalita_post_approvazione = normalizePostApprovalMode(body.modalitaPostApprovazione);
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeSubtitleText")) {
+        updates.home_subtitle_text = typeof body.homeSubtitleText === "string" ? body.homeSubtitleText : String(body.homeSubtitleText ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeFollowTitle")) {
+        updates.home_follow_title = typeof body.homeFollowTitle === "string" ? body.homeFollowTitle : String(body.homeFollowTitle ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeFollowMessage")) {
+        updates.home_follow_message = typeof body.homeFollowMessage === "string" ? body.homeFollowMessage : String(body.homeFollowMessage ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeFormTitle")) {
+        updates.home_form_title = typeof body.homeFormTitle === "string" ? body.homeFormTitle : String(body.homeFormTitle ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeFormMessage")) {
+        updates.home_form_message = typeof body.homeFormMessage === "string" ? body.homeFormMessage : String(body.homeFormMessage ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeSuccessTitle")) {
+        updates.home_success_title = typeof body.homeSuccessTitle === "string" ? body.homeSuccessTitle : String(body.homeSuccessTitle ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeSuccessMessage")) {
+        updates.home_success_message = typeof body.homeSuccessMessage === "string" ? body.homeSuccessMessage : String(body.homeSuccessMessage ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeWaitingTitle")) {
+        updates.home_waiting_title = typeof body.homeWaitingTitle === "string" ? body.homeWaitingTitle : String(body.homeWaitingTitle ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeWaitingMessage")) {
+        updates.home_waiting_message = typeof body.homeWaitingMessage === "string" ? body.homeWaitingMessage : String(body.homeWaitingMessage ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeBookingsDisabledTitle")) {
+        updates.home_bookings_disabled_title = typeof body.homeBookingsDisabledTitle === "string" ? body.homeBookingsDisabledTitle : String(body.homeBookingsDisabledTitle ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeBookingsDisabledMessage")) {
+        updates.home_bookings_disabled_message = typeof body.homeBookingsDisabledMessage === "string" ? body.homeBookingsDisabledMessage : String(body.homeBookingsDisabledMessage ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeClosedTitle")) {
+        updates.home_closed_title = typeof body.homeClosedTitle === "string" ? body.homeClosedTitle : String(body.homeClosedTitle ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeClosedMessage")) {
+        updates.home_closed_message = typeof body.homeClosedMessage === "string" ? body.homeClosedMessage : String(body.homeClosedMessage ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeMaintenanceTitle")) {
+        updates.home_maintenance_title = typeof body.homeMaintenanceTitle === "string" ? body.homeMaintenanceTitle : String(body.homeMaintenanceTitle ?? "");
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "homeMaintenanceMessage")) {
+        updates.home_maintenance_message = typeof body.homeMaintenanceMessage === "string" ? body.homeMaintenanceMessage : String(body.homeMaintenanceMessage ?? "");
       }
       if (Object.prototype.hasOwnProperty.call(body, "prossimaSerataData")) {
         updates.prossima_serata_data = normalizeOptionalDate(body.prossimaSerataData, "prossimaSerataData");
@@ -735,6 +840,21 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         typeof updates.archivio_pubblico_abilitato !== "boolean"
         && typeof updates.manutenzione_abilitata !== "boolean"
         && typeof updates.modalita_post_approvazione !== "string"
+        && typeof updates.home_subtitle_text !== "string"
+        && typeof updates.home_follow_title !== "string"
+        && typeof updates.home_follow_message !== "string"
+        && typeof updates.home_form_title !== "string"
+        && typeof updates.home_form_message !== "string"
+        && typeof updates.home_success_title !== "string"
+        && typeof updates.home_success_message !== "string"
+        && typeof updates.home_waiting_title !== "string"
+        && typeof updates.home_waiting_message !== "string"
+        && typeof updates.home_bookings_disabled_title !== "string"
+        && typeof updates.home_bookings_disabled_message !== "string"
+        && typeof updates.home_closed_title !== "string"
+        && typeof updates.home_closed_message !== "string"
+        && typeof updates.home_maintenance_title !== "string"
+        && typeof updates.home_maintenance_message !== "string"
         && !Object.prototype.hasOwnProperty.call(updates, "prossima_serata_data")
         && !Number.isInteger(updates.winner_reveal_countdown_default_seconds)
         && typeof updates.winner_reveal_animation_enabled !== "boolean"
@@ -744,7 +864,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         throw new ApiError(
           400,
           "invalid_payload",
-          "Specifica almeno archivioPubblicoAbilitato, modalitaPostApprovazione, prossimaSerataData, winnerRevealCountdownDefaultSeconds, winnerRevealAnimationEnabled, winnerRevealAnimationMode o winnerRevealAutoStepSeconds.",
+          "Specifica almeno archivioPubblicoAbilitato, modalitaPostApprovazione, homeSubtitleText, homeFollowTitle, homeFollowMessage, homeFormTitle, homeFormMessage, homeSuccessTitle, homeSuccessMessage, homeWaitingTitle, homeWaitingMessage, homeBookingsDisabledTitle, homeBookingsDisabledMessage, homeClosedTitle, homeClosedMessage, homeMaintenanceTitle, homeMaintenanceMessage, prossimaSerataData, winnerRevealCountdownDefaultSeconds, winnerRevealAnimationEnabled, winnerRevealAnimationMode o winnerRevealAutoStepSeconds.",
         );
       }
       const updatedSettings = await updatePublicSettings(admin, updates);

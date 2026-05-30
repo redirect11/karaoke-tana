@@ -77,6 +77,15 @@
       display: block;
       margin: 0 auto;
     }
+    header .home-subtitle {
+      margin-top: 10px;
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.45;
+      max-width: 34ch;
+      margin-left: auto;
+      margin-right: auto;
+    }
     header h1 {
       font-size: 1.6rem;
       font-weight: 700;
@@ -547,7 +556,7 @@
     #step-success .big-icon, #step-waiting .big-icon, #step-closed .big-icon { font-size: 3.5rem; }
     #step-success h2, #step-waiting h2, #step-closed h2, #step-bookings-disabled h2 { color: var(--gold-soft); font-size: 1.3rem; }
     #step-waiting h2.is-critical { color: #ff4d4f; }
-    #step-success p,  #step-waiting p,  #step-closed p, #step-bookings-disabled p  { font-size: 0.88rem; }
+    #step-success p,  #step-waiting p,  #step-closed p, #step-bookings-disabled p  { font-size: 0.88rem; white-space: pre-line; }
     .closed-state-hero-image {
       width: min(170px, 50vw);
       height: auto;
@@ -1241,6 +1250,7 @@
 
   <header>
     <img src="kar_night_and_logo.png" alt="Karaoke – La Tana del Coniglio" class="logo-img" />
+    <p id="home-subtitle" class="home-subtitle"></p>
   </header>
 
   <a href="vota.html" id="vota-banner">🗳 Vota le esibizioni! →</a>
@@ -1274,8 +1284,8 @@
 
   <!-- STEP 1: follow -->
   <div class="card" id="step-follow" style="display:none">
-    <h2>Prima di tutto…</h2>
-    <p>Segui la nostra pagina Instagram per poter prenotare una canzone.</p>
+    <h2 id="follow-title">Prima di tutto…</h2>
+    <p id="follow-message">Segui la nostra pagina Instagram per poter prenotare una canzone.</p>
     <p id="follow-vote-msg" class="vote-open-message">
       <a href="vota.html" class="vote-open-link">🗳️ Vota la tua esibizione preferita →</a>
     </p>
@@ -1303,8 +1313,8 @@
 
   <!-- STEP 2: form -->
   <div class="card" id="step-form" style="display:none">
-    <h2>Prenota la tua canzone 🎤</h2>
-    <p>Compila il form e lo staff la aggiungerà alla lista appena possibile.</p>
+    <h2 id="form-title">Prenota la tua canzone 🎤</h2>
+    <p id="form-message">Compila il form e lo staff la aggiungerà alla lista appena possibile.</p>
 
     <form id="booking-form" novalidate>
       <div class="form-group">
@@ -1345,7 +1355,7 @@
   <!-- STEP 3: success -->
   <div class="card" id="step-success" style="display:none">
     <div class="big-icon" aria-hidden="true">🎉</div>
-    <h2>Richiesta inviata!</h2>
+    <h2 id="success-title">Richiesta inviata!</h2>
     <p id="success-status">Lo staff la controllerà e apparirà in lista appena viene approvata.</p>
   </div>
 
@@ -1372,8 +1382,8 @@
       height="220"
       loading="lazy"
     />
-    <h2>Prenotazioni non disponibili</h2>
-    <p>Le prenotazioni sono al momento chiuse.</p>
+    <h2 id="bookings-disabled-title">Prenotazioni non disponibili</h2>
+    <p id="bookings-disabled-message">Le prenotazioni sono al momento chiuse.</p>
     <p id="bookings-disabled-vote-msg" class="vote-open-message">
       <a href="vota.html" class="vote-open-link">🗳️ Vota la tua esibizione preferita →</a>
     </p>
@@ -1404,7 +1414,7 @@
       loading="lazy"
     />
     <div id="closed-state-icon" class="big-icon" aria-hidden="true">🌙</div>
-    <h2>Prenotazioni chiuse</h2>
+    <h2 id="closed-state-title">Prenotazioni chiuse</h2>
     <p id="closed-state-message">Al momento non è attiva nessuna serata karaoke.<br>Torna più tardi!</p>
     <p id="closed-state-next-date" style="font-size:0.9rem; color:var(--gold); margin-top:-2px;"></p>
     <div class="ig-profile-card" id="closed-ig-profile-card" style="margin-top:8px; cursor:pointer;">
@@ -1559,6 +1569,7 @@
     let songListChannel = null;
     let usingLegacySongFallback = false;
     let revealCountdownWatcherTimer = null;
+    let publicSettingsRefreshTimer = null;
     let maintenanceAccess = { isAuthenticated: false, isAdmin: false };
     let publicSettings = {
       archivio_pubblico_abilitato: false,
@@ -1575,10 +1586,21 @@
     const stepWaiting  = document.getElementById('step-waiting');
     const stepClosed   = document.getElementById('step-closed');
     const stepBookingsDisabled = document.getElementById('step-bookings-disabled');
+    const homeSubtitleEl = document.getElementById('home-subtitle');
+    const followTitleEl = document.getElementById('follow-title');
+    const followMessageEl = document.getElementById('follow-message');
+    const formTitleEl = document.getElementById('form-title');
+    const formMessageEl = document.getElementById('form-message');
+    const successTitleEl = document.getElementById('success-title');
+    const successMessageEl = document.getElementById('success-status');
+    const bookingsDisabledTitleEl = document.getElementById('bookings-disabled-title');
+    const bookingsDisabledMessageEl = document.getElementById('bookings-disabled-message');
     const bookingsDisabledVoteMsg = document.getElementById('bookings-disabled-vote-msg');
     const followVoteMsg = document.getElementById('follow-vote-msg');
-    const stepClosedTitle = stepClosed.querySelector('h2');
+    const stepClosedTitle = document.getElementById('closed-state-title');
     const stepClosedText = document.getElementById('closed-state-message');
+    const waitingTitleEl = document.getElementById('waiting-title');
+    const waitingStatusEl = document.getElementById('waiting-status');
     const closedStateNextDate = document.getElementById('closed-state-next-date');
     const closedStateBookingDisabledMessage = document.getElementById('closed-state-booking-disabled-message');
     const closedStateIcon = document.getElementById('closed-state-icon');
@@ -1715,13 +1737,20 @@
     function setClosedState(title, message, options = {}) {
       const showVotingClosedHighlight = !!options.showVotingClosedHighlight;
       if (stepClosedTitle) stepClosedTitle.textContent = title;
-      if (stepClosedText) stepClosedText.innerHTML = message;
+      if (stepClosedText) stepClosedText.innerHTML = renderMarkdown(message);
       if (closedStateAlert) closedStateAlert.classList.toggle('is-visible', showVotingClosedHighlight);
       if (closedStateBookingDisabledMessage) {
         closedStateBookingDisabledMessage.style.display = showVotingClosedHighlight ? 'block' : 'none';
       }
       if (closedStateHeroImage) closedStateHeroImage.classList.toggle('is-visible', showVotingClosedHighlight);
       if (closedStateIcon) closedStateIcon.classList.toggle('is-hidden', showVotingClosedHighlight);
+    }
+
+    function renderMarkdown(value) {
+      if (window.KaraokeUtils?.renderSimpleMarkdown) {
+        return window.KaraokeUtils.renderSimpleMarkdown(value);
+      }
+      return escapeHtml(value).replace(/\r?\n/g, '<br>');
     }
 
     function formatPublicDateLabel(dateIso, withWeekday = true) {
@@ -1741,14 +1770,58 @@
       if (!db) return publicSettings;
       const { data, error } = await db
         .from('impostazioni_pubbliche')
-        .select('archivio_pubblico_abilitato, manutenzione_abilitata, modalita_post_approvazione, prossima_serata_data')
+        .select('archivio_pubblico_abilitato, manutenzione_abilitata, modalita_post_approvazione, home_subtitle_text, home_follow_title, home_follow_message, home_form_title, home_form_message, home_success_title, home_success_message, home_waiting_title, home_waiting_message, home_bookings_disabled_title, home_bookings_disabled_message, home_closed_title, home_closed_message, home_maintenance_title, home_maintenance_message, prossima_serata_data')
         .eq('id', 1)
         .maybeSingle();
       if (!error && data) {
         publicSettings = data;
+        applyHomeCopy();
       }
       return publicSettings;
     }
+
+    function clearPublicSettingsPolling() {
+      if (publicSettingsRefreshTimer) {
+        clearInterval(publicSettingsRefreshTimer);
+        publicSettingsRefreshTimer = null;
+      }
+    }
+
+    function ensurePublicSettingsPolling() {
+      if (publicSettingsRefreshTimer || !db) return;
+      publicSettingsRefreshTimer = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          loadPublicSettings().catch(() => {});
+        }
+      }, 30000);
+    }
+
+    function getHomeCopy() {
+      return window.KaraokeUtils?.getHomeCopySettings
+        ? window.KaraokeUtils.getHomeCopySettings(publicSettings)
+        : {};
+    }
+
+    function applyHomeCopy() {
+      const homeCopy = getHomeCopy();
+      if (homeSubtitleEl) homeSubtitleEl.innerHTML = renderMarkdown(homeCopy.subtitle || '');
+      if (followTitleEl) followTitleEl.textContent = homeCopy.followTitle || '';
+      if (followMessageEl) followMessageEl.innerHTML = renderMarkdown(homeCopy.followMessage || '');
+      if (formTitleEl) formTitleEl.textContent = homeCopy.formTitle || '';
+      if (formMessageEl) formMessageEl.innerHTML = renderMarkdown(homeCopy.formMessage || '');
+      if (successTitleEl) successTitleEl.textContent = homeCopy.successTitle || '';
+      if (successMessageEl) successMessageEl.innerHTML = renderMarkdown(homeCopy.successMessage || '');
+      if (stepClosedTitle) stepClosedTitle.textContent = homeCopy.closedTitle || '';
+      if (stepClosedText) stepClosedText.innerHTML = renderMarkdown(homeCopy.closedMessage || '');
+      if (bookingsDisabledTitleEl) bookingsDisabledTitleEl.textContent = homeCopy.bookingsDisabledTitle || '';
+      if (bookingsDisabledMessageEl) bookingsDisabledMessageEl.innerHTML = renderMarkdown(homeCopy.bookingsDisabledMessage || '');
+      if (waitingTitleEl) waitingTitleEl.textContent = homeCopy.waitingTitle || '';
+      if (waitingStatusEl) waitingStatusEl.innerHTML = renderMarkdown(homeCopy.waitingMessage || '');
+    }
+
+    applyHomeCopy();
+
+    ensurePublicSettingsPolling();
 
     function updateClosedPromoContent(options = {}) {
       const showNextDate = options.showNextDate !== false;
@@ -1800,6 +1873,7 @@
     function showBookingsDisabledState() {
       [stepFollow, stepForm, stepSuccess, stepWaiting, stepClosed].forEach(s => s.style.display = 'none');
       document.querySelector('.steps').style.display = 'none';
+      applyHomeCopy();
       updateBookingsDisabledVoteMessage();
       stepBookingsDisabled.style.display = 'block';
       showSongListCard(true);
@@ -1811,13 +1885,11 @@
       clearWaitingIntervals();
       clearSongListPolling();
       clearRevealCountdownWatcher();
+      const homeCopy = getHomeCopy();
       // In manutenzione mostriamo solo il box dedicato: il box "Segui" non deve comparire.
       [stepFollow, stepForm, stepSuccess, stepWaiting, stepBookingsDisabled].forEach((s) => { s.style.display = 'none'; });
       document.querySelector('.steps').style.display = 'none';
-      setClosedState(
-        '🚧 In manutenzione',
-        'Sito in manutenzione. Torneremo presto. Intanto segui la nostra pagina per scoprire le ultime novità e le prossime date del karaoke'
-      );
+      setClosedState(homeCopy.maintenanceTitle, homeCopy.maintenanceMessage);
       stepClosed.style.display = 'flex';
       if (closedStateNextDate) closedStateNextDate.style.display = 'none';
       if (closedArchiveLink) closedArchiveLink.style.display = 'none';
@@ -2568,6 +2640,7 @@
     async function checkSerataAperta() {
       if (!db) return true;
       await loadPublicSettings();
+      const homeCopy = getHomeCopy();
       const { data } = await db
         .from('serate')
         .select('id, aperta, voto_aperto, prenotazioni_abilitate, vincitore_decretato, vincitore_prenotazione_id, winner_reveal_countdown_active, winner_reveal_countdown_ends_at, notifiche_browser_abilitate')
@@ -2586,7 +2659,7 @@
         showSongListCard(false);
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
-        setClosedState('Prenotazioni chiuse', 'Per ora non c’è nessun karaoke in corso.<br>Segui la pagina Instagram per conoscere le ultime novità.');
+        setClosedState(homeCopy.closedTitle, homeCopy.closedMessage);
         updateClosedPromoContent();
         showLeaderboard(false);
         setVotaBanner('hidden');
@@ -2611,7 +2684,7 @@
         showSongListCard(false);
         stepClosed.style.display = 'flex';
         document.querySelector('.steps').style.display = 'none';
-        setClosedState('🏁 Karaoke concluso', 'Il vincitore è stato decretato e le prenotazioni sono chiuse per questa serata.');
+        setClosedState(homeCopy.closedTitle, homeCopy.closedMessage);
         updateClosedPromoContent({ showNextDate: false });
         showLeaderboard(true);
         await loadFinalLeaderboard(data.id, data.vincitore_prenotazione_id);
@@ -2665,6 +2738,7 @@
           voteOpen = false;
           updateFollowVoteMessage();
           await loadPublicSettings();
+          const homeCopy = getHomeCopy();
           currentSerataId = null;
           clearRevealCountdownWatcher();
           clearSongListPolling();
@@ -2672,7 +2746,7 @@
           showSongListCard(false);
           stepClosed.style.display = 'flex';
           document.querySelector('.steps').style.display = 'none';
-          setClosedState('Prenotazioni chiuse', 'Per ora non c\'è nessun karaoke in corso.<br>Segui la pagina Instagram per conoscere le ultime novità.');
+          setClosedState(homeCopy.closedTitle, homeCopy.closedMessage);
           updateClosedPromoContent();
           showLeaderboard(false);
           setVotaBanner('hidden');
@@ -2689,6 +2763,7 @@
           voteOpen = false;
           updateFollowVoteMessage();
           await loadPublicSettings();
+          const homeCopy = getHomeCopy();
           clearRevealCountdownWatcher();
           clearWaitingIntervals();
           clearSongListPolling();
@@ -2696,7 +2771,7 @@
           showSongListCard(false);
           stepClosed.style.display = 'flex';
           document.querySelector('.steps').style.display = 'none';
-          setClosedState('🏁 Karaoke concluso', 'Il vincitore è stato decretato e le prenotazioni sono chiuse per questa serata.');
+          setClosedState(homeCopy.closedTitle, homeCopy.closedMessage);
           updateClosedPromoContent({ showNextDate: false });
           showLeaderboard(true);
           loadFinalLeaderboard(serataId, data.vincitore_prenotazione_id);
@@ -3171,9 +3246,15 @@
     }
 
     document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        loadPublicSettings().catch(() => {});
+      }
       if (document.visibilityState === 'visible') handleReturn();
     });
-    window.addEventListener('focus', handleReturn);
+    window.addEventListener('focus', () => {
+      loadPublicSettings().catch(() => {});
+      handleReturn();
+    });
     window.addEventListener('pageshow', handleReturn);
 
     async function goToForm() {
