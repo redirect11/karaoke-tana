@@ -200,6 +200,21 @@
     };
   }
 
+  /**
+   * Split the to-sing list into current song and queue items.
+   * The first element is treated as current song.
+   *
+   * @param {Array<object>} songs
+   * @returns {{ currentSong: object|null, queueItems: Array<object> }}
+   */
+  function splitCurrentSongAndQueue(songs) {
+    var list = Array.isArray(songs) ? songs : [];
+    return {
+      currentSong: list.length > 0 ? list[0] : null,
+      queueItems: list.slice(1),
+    };
+  }
+
   // ── Booking helpers ──────────────────────────────────────────────────────
 
   /**
@@ -445,6 +460,7 @@
     formatPublicDateLabel: formatPublicDateLabel,
     formatCountdown: formatCountdown,
     getHomeCopySettings: getHomeCopySettings,
+    splitCurrentSongAndQueue: splitCurrentSongAndQueue,
     normalizeBookingNumber: normalizeBookingNumber,
     getStoredBookingNumber: getStoredBookingNumber,
     safeParseBookingCookie: safeParseBookingCookie,

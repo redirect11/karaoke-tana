@@ -129,6 +129,13 @@
       align-items: start;
       gap: 10px;
     }
+    .song-top-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      align-self: start;
+      flex-shrink: 0;
+    }
     .song-index {
       flex-shrink: 0;
       min-width: 34px;
@@ -145,8 +152,6 @@
       -webkit-backdrop-filter: blur(8px) saturate(140%);
       border: 1px solid rgba(255,255,255,0.12);
       color: #fff;
-      justify-self: end;
-      align-self: start;
     }
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(8px); }
@@ -210,10 +215,7 @@
     }
 
     .card-bottom-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: end;
-      gap: 10px;
+      display: block;
     }
 
     .btn-vote {
@@ -1734,6 +1736,7 @@
 
     // ── Load scores ────────────────────────────────────────────
     function updateVisibleScoresOnly() {
+      if (!showTotalsPublic) return true;
       const cards = content.querySelectorAll('.song-card[data-id]');
       if (!cards.length) return false;
       const songsById = new Map(songs.map((song) => [Number(song.id), song]));
@@ -1839,7 +1842,9 @@
       const myVote   = getLocalVote(s.id)?.voto || 0;
       const sc       = s._scores || { sum: 0, count: 0 };
       const avg      = sc.count > 0 ? (sc.sum / sc.count).toFixed(1) : '—';
-      const scoreBlock = `<div class="vote-score"><span>${avg}</span>${sc.count} vot${sc.count === 1 ? 'o' : 'i'}</div>`;
+      const scoreBlock = showTotalsPublic
+        ? `<div class="vote-score"><span>${avg}</span>${sc.count} vot${sc.count === 1 ? 'o' : 'i'}</div>`
+        : '';
 
       const btns = [1,2,3,4,5].map(v => {
         const classes = ['btn-vote'];
@@ -1851,9 +1856,9 @@
       }).join('');
 
       const handsClass = myVote > 0 ? 'rating-hands has-vote' : 'rating-hands';
-      const photoCell = hasPhoto
+      const photoTopBtn = hasPhoto
         ? `<button class="song-photo-btn${canOpenSelfie ? '' : ' is-default'}" type="button"${canOpenSelfie ? ` aria-label="Ingrandisci foto di ${esc(s.nome)}"` : ' aria-label="Foto non disponibile" disabled'}>📷</button>`
-        : '<div aria-hidden="true"></div>';
+        : '';
 
       div.innerHTML = `
         ${selfieBgHtml}
@@ -1863,13 +1868,13 @@
             <div class="song-title">${esc(s.canzone)}</div>
             <div class="song-artist">${esc(s.artista)}</div>
           </div>
-          <div class="song-index">#${Number.isInteger(s._displayIndex) ? s._displayIndex : '—'}</div>
+          <div class="song-top-right">
+            ${photoTopBtn}
+            <div class="song-index">#${Number.isInteger(s._displayIndex) ? s._displayIndex : '—'}</div>
+          </div>
         </div>
+        ${scoreBlock ? `<div class="card-bottom-row">${scoreBlock}</div>` : ''}
         <div class="${handsClass}" role="radiogroup" aria-label="Voto per ${esc(s.canzone)}">${btns}</div>
-        <div class="card-bottom-row">
-          ${scoreBlock}
-          ${photoCell}
-        </div>
       `;
 
       if (votingOpen) {

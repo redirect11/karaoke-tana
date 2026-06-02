@@ -16,6 +16,7 @@ const {
   formatPublicDateLabel,
   formatCountdown,
   getHomeCopySettings,
+  splitCurrentSongAndQueue,
   normalizeBookingNumber,
   getStoredBookingNumber,
   safeParseBookingCookie,
@@ -280,6 +281,31 @@ describe('getHomeCopySettings', () => {
       followTitle: 'Prima di tutto…',
       followMessage: 'Seguici davvero',
       closedMessage: 'Linea 1\nLinea 2',
+    });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('splitCurrentSongAndQueue', () => {
+  it('returns null current song and empty queue for invalid input', () => {
+    expect(splitCurrentSongAndQueue(null)).toEqual({
+      currentSong: null,
+      queueItems: [],
+    });
+  });
+
+  it('keeps first song as current and rest as queue', () => {
+    const songs = [
+      { id: 101, canzone: 'A' },
+      { id: 102, canzone: 'B' },
+      { id: 103, canzone: 'C' },
+    ];
+    expect(splitCurrentSongAndQueue(songs)).toEqual({
+      currentSong: { id: 101, canzone: 'A' },
+      queueItems: [
+        { id: 102, canzone: 'B' },
+        { id: 103, canzone: 'C' },
+      ],
     });
   });
 });

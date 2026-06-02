@@ -645,6 +645,21 @@
     }
 
     /* ── song list ── */
+    #current-song-card {
+      display: none;
+      margin-top: 12px;
+      margin-bottom: 16px;
+    }
+    #current-song-card h3 {
+      color: var(--gold-soft);
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+    #current-song-status {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
     #song-list-card {
       display: none;
       margin-top: 28px;
@@ -1311,6 +1326,12 @@
     </p>
   </div>
 
+  <!-- canzone corrente -->
+  <div class="card" id="current-song-card">
+    <div id="current-song-status"></div>
+    <div id="current-song-content"></div>
+  </div>
+
   <!-- STEP 2: form -->
   <div class="card" id="step-form" style="display:none">
     <h2 id="form-title">Prenota la tua canzone 🎤</h2>
@@ -1364,7 +1385,7 @@
     <div class="waiting-status-hero">
       <div class="big-icon" aria-hidden="true">🎤</div>
     </div>
-    <h2 id="waiting-title" aria-live="polite">Stato della tua prenotazione</h2>
+    <h2 id="waiting-title" aria-live="polite"></h2>
     <p id="waiting-main-message" hidden aria-live="polite"></p>
     <p id="waiting-song"></p>
     <p id="waiting-booking-number" hidden aria-live="polite"></p>
@@ -1614,6 +1635,9 @@
     const songListCard = document.getElementById('song-list-card');
     const songListEl   = document.getElementById('song-list');
     const songListStatus = document.getElementById('song-list-status');
+    const currentSongCard = document.getElementById('current-song-card');
+    const currentSongStatus = document.getElementById('current-song-status');
+    const currentSongContent = document.getElementById('current-song-content');
     // Snapshot al load: i realtime update non devono cambiare la visibilità
     // degli step dopo che l'utente ha appena premuto "Segui".
     const followedAtPageLoad = getCookie('ig_followed') === 'true';
@@ -1669,6 +1693,7 @@
     let browserNotificationsEnabled = true;
     let bookingsAreEnabled = true;
     let voteOpen = false;
+    let showVoteTotalsPublic = false;
     let songListPollInterval = null;
     let songListAvailability = 'loading';
     let songListCache = { toSing: [], completed: [] };
@@ -1822,8 +1847,6 @@
       if (waitingStatusEl) waitingStatusEl.innerHTML = renderMarkdown(homeCopy.waitingMessage || '');
     }
 
-    applyHomeCopy();
-
     ensurePublicSettingsPolling();
 
     function updateClosedPromoContent(options = {}) {
@@ -1853,6 +1876,9 @@
 
     function showSongListCard(show) {
       songListCard.style.display = show ? 'block' : 'none';
+      if (!show && currentSongCard) {
+        currentSongCard.style.display = 'none';
+      }
     }
 
     function updateBookingsDisabledVoteMessage() {
@@ -2267,7 +2293,7 @@
         const scoreCount = Number(item._scoreCount) || 0;
         const scoreSum = Number(item._scoreSum) || 0;
         const scoreAvg = scoreCount > 0 ? (scoreSum / scoreCount).toFixed(1) : '—';
-        const scoreHtml = item.cantata
+        const scoreHtml = item.cantata && showVoteTotalsPublic
           ? `<div class="song-item-score"><span>${scoreAvg}</span> · ${scoreCount} vot${scoreCount === 1 ? 'o' : 'i'}</div>`
           : '';
         return `
@@ -2290,26 +2316,47 @@
       `;
       };
 
+      const splitCurrentSong = window.KaraokeUtils?.splitCurrentSongAndQueue
+        ? window.KaraokeUtils.splitCurrentSongAndQueue
+        : (songItems) => ({
+          currentSong: songItems[0] || null,
+          queueItems: songItems.slice(1),
+        });
+      const toSingSplit = splitCurrentSong(songListCache.toSing);
+      if (currentSongCard && currentSongStatus && currentSongContent) {
+        if (!toSingSplit.currentSong) {
+          currentSongCard.style.display = 'none';
+          currentSongStatus.textContent = '';
+          currentSongContent.innerHTML = '';
+        } else {
+          currentSongCard.style.display = 'block';
+          currentSongStatus.innerHTML = toSingSplit.currentSong.in_preparazione
+            ? '<div class="song-list-section current-song-preparing">⏳ PROSSIMO A CANTARE</div>'
+            : '<div class="song-list-section current-song-live"><span class="live-dot" aria-hidden="true"></span>ON AIR</div>';
+          currentSongContent.innerHTML = renderSongItem(
+            toSingSplit.currentSong,
+            toSingSplit.currentSong.in_preparazione ? 'Getting ready' : 'LIVE',
+            { currentSong: true }
+          );
+        }
+      }
+
       if (activeSongTab === 'completed') {
         songListStatus.textContent = `${items.length} ${items.length === 1 ? 'canzone già cantata' : 'canzoni già cantate'}`;
         songListEl.innerHTML = items.map((item, index) => renderSongItem(item, String(index + 1), { showOrder: false })).join('');
         return;
       }
 
-      songListStatus.textContent = '';
-      const currentSong = items[0];
-      const queueItems = items.slice(1);
-      const currentSongHtml = currentSong
-        ? `${currentSong.in_preparazione
-            ? '<div class="song-list-section current-song-preparing">⏳ PROSSIMO A CANTARE</div>'
-            : '<div class="song-list-section current-song-live"><span class="live-dot" aria-hidden="true"></span>ON AIR</div>'}${renderSongItem(currentSong, currentSong.in_preparazione ? 'Getting ready' : 'LIVE', { currentSong: true })}`
-        : '';
+      const queueItems = toSingSplit.queueItems;
       const queueHtml = queueItems.length
         ? `<div class="song-list-section">In attesa</div>${queueItems.map((item, index) => renderSongItem(item, String(index + 1), {
           alert: myQueueIndex === 1 && Number(item.id) === currentBookingIdNum,
         })).join('')}`
-        : '';
-      songListEl.innerHTML = `${currentSongHtml}${queueHtml}`;
+        : '<div class="song-empty">Nessuna canzone in coda al momento.</div>';
+      songListStatus.textContent = queueItems.length
+        ? `${queueItems.length} ${queueItems.length === 1 ? 'canzone in coda' : 'canzoni in coda'}`
+        : 'Nessuna canzone in coda al momento.';
+      songListEl.innerHTML = queueHtml;
     }
 
     function getNotificationState(bookingId) {
@@ -2646,7 +2693,7 @@
       const homeCopy = getHomeCopy();
       const { data } = await db
         .from('serate')
-        .select('id, aperta, voto_aperto, prenotazioni_abilitate, vincitore_decretato, vincitore_prenotazione_id, winner_reveal_countdown_active, winner_reveal_countdown_ends_at, notifiche_browser_abilitate')
+        .select('id, aperta, voto_aperto, prenotazioni_abilitate, vincitore_decretato, vincitore_prenotazione_id, winner_reveal_countdown_active, winner_reveal_countdown_ends_at, notifiche_browser_abilitate, mostra_voti_totali')
         .eq('aperta', true)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -2672,6 +2719,7 @@
       currentSerataId = data.id;
       browserNotificationsEnabled = data.notifiche_browser_abilitate !== false;
       voteOpen = Boolean(data.voto_aperto);
+      showVoteTotalsPublic = Boolean(data.mostra_voti_totali);
       updateFollowVoteMessage();
       const winnerDecreed = Boolean(data.vincitore_decretato);
       const revealCountdownActive = Boolean(data.winner_reveal_countdown_active);
@@ -2733,7 +2781,7 @@
       try {
         const { data } = await db
           .from('serate')
-          .select('id, aperta, voto_aperto, prenotazioni_abilitate, vincitore_decretato, vincitore_prenotazione_id, winner_reveal_countdown_active, winner_reveal_countdown_ends_at, notifiche_browser_abilitate')
+          .select('id, aperta, voto_aperto, prenotazioni_abilitate, vincitore_decretato, vincitore_prenotazione_id, winner_reveal_countdown_active, winner_reveal_countdown_ends_at, notifiche_browser_abilitate, mostra_voti_totali')
           .eq('id', serataId)
           .maybeSingle();
         if (!data || !data.aperta) {
@@ -2757,6 +2805,7 @@
         }
         browserNotificationsEnabled = data.notifiche_browser_abilitate !== false;
         voteOpen = Boolean(data.voto_aperto);
+        showVoteTotalsPublic = Boolean(data.mostra_voti_totali);
         updateFollowVoteMessage();
         const winnerDecreed = Boolean(data.vincitore_decretato);
         const revealCountdownActive = Boolean(data.winner_reveal_countdown_active);
