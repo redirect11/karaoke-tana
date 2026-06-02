@@ -140,7 +140,7 @@
     formMessage: 'Compila il form e lo staff la aggiungerà alla lista appena possibile.',
     successTitle: 'Richiesta inviata!',
     successMessage: 'Lo staff la controllerà e apparirà in lista appena viene approvata.',
-    waitingTitle: 'Stato della tua prenotazione',
+    waitingTitle: '',
     waitingMessage: 'Sto controllando lo stato della tua prenotazione…',
     bookingsDisabledTitle: 'Prenotazioni non disponibili',
     bookingsDisabledMessage: 'Le prenotazioni sono al momento chiuse.',

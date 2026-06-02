@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Staff Panel – La Tana del Coniglio</title>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6652706779509567" crossorigin="anonymous"></script>
   <style>
     :root {
       --bg:     #12071f;
@@ -2121,7 +2120,7 @@
                 : (isApproved
                   ? (canMarkDone ? '<button class="btn-action btn-done" data-action="done">✓ Fatto</button>' : '')
                   : '<button class="btn-action btn-approve" data-action="approve">Approva</button>')),
-            isCurrent || isCompleted ? '' : '<button class="btn-action btn-edit" data-action="edit">Modifica</button>',
+            isCompleted ? '' : '<button class="btn-action btn-edit" data-action="edit">Modifica</button>',
             isCurrent || isCompleted ? '' : '<button class="btn-action btn-delete" data-action="delete">Elimina</button>',
             hasRealSelfie && !isCompleted
               ? `<button class="btn-action btn-selfie-toggle" data-action="toggle-selfie">${selfieHidden ? 'Mostra foto' : 'Nascondi foto'}</button>`
