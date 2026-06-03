@@ -337,17 +337,6 @@
         </div>
 
         <div class="setting-sub-box">
-          <div class="setting-label">Pubblicità (ads)</div>
-          <p>Abilita o disabilita il caricamento degli annunci pubblicitari su tutte le pagine pubbliche.</p>
-          <div class="status-box" id="ads-enabled-status-box">
-            <strong>Caricamento…</strong>
-          </div>
-          <div class="actions">
-            <button class="action-btn btn-public-settings" id="btn-toggle-ads-enabled" type="button">—</button>
-          </div>
-        </div>
-
-        <div class="setting-sub-box">
           <label class="setting-label" for="post-approval-mode">Cosa fare dopo approvazione</label>
           <p>
             Decide cosa succede alla canzone corrente subito dopo l'approvazione:
@@ -594,8 +583,6 @@
     const toggleBrowserNotificationsBtn = document.getElementById('btn-toggle-browser-notifications');
     const btnToggleArchivePublic = document.getElementById('btn-toggle-archive-public');
     const btnToggleMaintenanceMode = document.getElementById('btn-toggle-maintenance-mode');
-    const btnToggleAdsEnabled = document.getElementById('btn-toggle-ads-enabled');
-    const adsEnabledStatusBox = document.getElementById('ads-enabled-status-box');
     const postApprovalModeSelect = document.getElementById('post-approval-mode');
     const btnSavePostApprovalMode = document.getElementById('btn-save-post-approval-mode');
     const nextKaraokeDateInput = document.getElementById('next-karaoke-date');
@@ -642,7 +629,6 @@
     let publicSettings = {
       archivio_pubblico_abilitato: false,
       manutenzione_abilitata: false,
-      ads_enabled: true,
       modalita_post_approvazione: 'direct_live',
       home_subtitle_enabled: true,
       home_subtitle_text: '',
@@ -677,7 +663,6 @@
     toggleBrowserNotificationsBtn.addEventListener('click', toggleBrowserNotifications);
     btnToggleArchivePublic.addEventListener('click', toggleArchivePublic);
     btnToggleMaintenanceMode.addEventListener('click', toggleMaintenanceMode);
-    btnToggleAdsEnabled.addEventListener('click', toggleAdsEnabled);
     btnSavePostApprovalMode.addEventListener('click', savePostApprovalMode);
     btnSaveNextDate.addEventListener('click', saveNextKaraokeDate);
     btnClearNextDate.addEventListener('click', clearNextKaraokeDate);
@@ -882,9 +867,6 @@
       archivePublicStatusBox.innerHTML = `<strong>Archivio pubblico: ${escapeHtml(archiveStatus)}</strong>`;
       btnToggleArchivePublic.textContent = enabled ? 'Disattiva archivio in home' : 'Attiva archivio in home';
 
-      const adsEnabled = publicSettings?.ads_enabled !== false;
-      adsEnabledStatusBox.innerHTML = `<strong>Pubblicità: ${adsEnabled ? '🟢 attiva' : '⭕ disattivata'}</strong>`;
-      btnToggleAdsEnabled.textContent = adsEnabled ? 'Disattiva ads' : 'Attiva ads';
 
       const maintenanceEnabled = publicSettings?.manutenzione_abilitata === true;
       const maintenanceStatus = maintenanceEnabled ? '🟡 attiva' : '⭕ disattivata';
@@ -964,19 +946,6 @@
       const mode = winnerRevealAnimationModeSelect.value === 'manual' ? 'manual' : 'automatic';
       winnerRevealAnimationModeSelect.disabled = !enabled;
       winnerRevealAutoStepSecondsInput.disabled = !enabled || mode !== 'automatic';
-    }
-
-    async function toggleAdsEnabled() {
-      const nextValue = !(publicSettings?.ads_enabled !== false);
-      setBusy(btnToggleAdsEnabled, true, 'Aggiornamento…');
-      try {
-        publicSettings = await callAdmin('set_public_settings', { adsEnabled: nextValue });
-      } catch (error) {
-        setStatus(error?.message || 'Non sono riuscito ad aggiornare le impostazioni ads.', true);
-      } finally {
-        btnToggleAdsEnabled.disabled = false;
-        renderPublicSettings();
-      }
     }
 
     async function toggleArchivePublic() {
