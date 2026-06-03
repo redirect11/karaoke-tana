@@ -583,7 +583,7 @@
     .skeleton-tile.hero { aspect-ratio: 21 / 9; grid-column: 1 / -1; }
     @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
     @media (max-width: 760px) { .skeleton-tile.hero { aspect-ratio: 4 / 5; } }
-    .ad-banner-top, .ad-banner-bottom { display:flex; justify-content:center; align-items:center; width:100%; max-width:468px; margin-left:auto; margin-right:auto; overflow:hidden; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:1px; box-shadow:0 4px 18px rgba(0,0,0,0.28); }
+    .ad-banner-top, .ad-banner-bottom { display:flex; justify-content:center; align-items:center; width:fit-content; max-width:468px; min-width:min(468px,100%); margin-left:auto; margin-right:auto; overflow:hidden; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:1px; box-shadow:0 4px 18px rgba(0,0,0,0.28); }
     .ad-banner-top { margin-bottom: 24px; }
     .ad-banner-bottom { margin-top: 48px; margin-bottom: 8px; }
   </style>
@@ -609,11 +609,11 @@
   </script>
 </head>
 <body>
-  <main class="wrap">
   <div class="ad-banner-top">
     <script>atOptions={'key':'a3b8fef103394e4a4ca60dec50d256b9','format':'iframe','height':60,'width':468,'params':{}};</script>
     <script src="https://www.highperformanceformat.com/a3b8fef103394e4a4ca60dec50d256b9/invoke.js"></script>
   </div>
+  <main class="wrap">
     <header class="topbar">
       <div class="title-block">
         <h1>Archivio Karaoke</h1>
@@ -629,11 +629,11 @@
         <div class="skeleton skeleton-tile"></div>
       </div>
     </section>
-    <div class="ad-banner-bottom">
-      <script>atOptions={'key':'a3b8fef103394e4a4ca60dec50d256b9','format':'iframe','height':60,'width':468,'params':{}};</script>
-      <script src="https://www.highperformanceformat.com/a3b8fef103394e4a4ca60dec50d256b9/invoke.js"></script>
-    </div>
   </main>
+  <div class="ad-banner-bottom">
+    <script>atOptions={'key':'a3b8fef103394e4a4ca60dec50d256b9','format':'iframe','height':60,'width':468,'params':{}};</script>
+    <script src="https://www.highperformanceformat.com/a3b8fef103394e4a4ca60dec50d256b9/invoke.js"></script>
+  </div>
 
   <!-- Detail modal -->
   <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
