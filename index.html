@@ -3,9 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Prenota la tua canzone al Karaoke de La Tana del Coniglio a Nola. Segui la scaletta, vota le esibizioni e scopri il vincitore della serata!" />
-  <title>Karaoke – La Tana del Coniglio</title>
+  <meta name="description" content="Karaoke ogni giovedì sera a Nola. Prenota la tua canzone dal telefono, segui la scaletta in diretta e vota le esibizioni alla Tana del Coniglio." />
+  <meta name="robots" content="index, follow" />
+  <title>Karaoke Nola ogni Giovedì – La Tana del Coniglio</title>
+  <link rel="canonical" href="https://www.ilkaraokedellatana.it/" />
   <link rel="manifest" href="manifest.json" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="it_IT" />
+  <meta property="og:title" content="Karaoke ogni giovedì a Nola – La Tana del Coniglio" />
+  <meta property="og:description" content="Karaoke ogni giovedì sera a Nola. Prenota la tua canzone dal telefono, segui la scaletta in diretta e vota le esibizioni alla Tana del Coniglio." />
+  <meta property="og:image" content="https://www.ilkaraokedellatana.it/kar_night_and_logo.png" />
+  <meta property="og:url" content="https://www.ilkaraokedellatana.it/" />
+  <meta property="og:site_name" content="La Tana del Coniglio – Karaoke Nola" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Karaoke ogni giovedì a Nola – La Tana del Coniglio" />
+  <meta name="twitter:description" content="Prenota la tua canzone al karaoke del giovedì sera a Nola. Scaletta in diretta, votazioni live, classifica serale." />
+  <meta name="twitter:image" content="https://www.ilkaraokedellatana.it/kar_night_and_logo.png" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="preload" as="image" href="kar_night_and_logo.png" fetchpriority="high" />
   <style>
     :root {
       --bg:        #12071f;
@@ -1288,13 +1303,121 @@
       from { transform: translateY(100%); }
       to   { transform: translateY(0); }
     }
+
+    /* ── venue info (static, crawlable) ── */
+    .venue-info-section {
+      margin-top: 36px;
+      width: 100%;
+      max-width: 440px;
+      text-align: center;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      padding-top: 24px;
+    }
+    .venue-info-section h2 {
+      font-size: 0.8rem;
+      color: var(--gold-soft);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .venue-info-section p {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .venue-info-section strong { color: var(--text); }
+    .venue-info-section a { color: var(--muted); text-decoration: underline; }
+    .venue-info-section a:hover { color: var(--gold-soft); }
   </style>
   <link rel="stylesheet" href="scripts/vendor/cookieconsent.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["BarOrPub", "EntertainmentBusiness"],
+    "@id": "https://www.ilkaraokedellatana.it/#business",
+    "name": "La Tana del Coniglio",
+    "description": "Lounge bar a Nola con serate karaoke ogni giovedì dalle 21:00. Prenota la tua canzone dal telefono, segui la scaletta in diretta.",
+    "url": "https://www.ilkaraokedellatana.it",
+    "telephone": "+393493265028",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Corso Tommaso Vitale 87",
+      "addressLocality": "Nola",
+      "addressRegion": "NA",
+      "postalCode": "80035",
+      "addressCountry": "IT"
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Wednesday","Thursday","Friday","Saturday","Sunday"],
+        "opens": "18:30",
+        "closes": "02:00"
+      }
+    ],
+    "priceRange": "€€",
+    "sameAs": [
+      "https://www.instagram.com/latanadelconiglio_nola/",
+      "https://www.facebook.com/people/La-tana-del-coniglio/61558657110329/",
+      "https://www.tripadvisor.it/Restaurant_Review-g580205-d27184530-Reviews-La_Tana_Del_Coniglio-Nola_Province_of_Naples_Campania.html"
+    ],
+    "image": "https://www.ilkaraokedellatana.it/kar_night_and_logo.png"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": "Karaoke del giovedì – La Tana del Coniglio",
+    "description": "Serata karaoke ogni giovedì con prenotazione canzoni in tempo reale, votazioni live e classifica serale.",
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "startDate": "2024-01-04T21:00:00+01:00",
+    "eventSchedule": {
+      "@type": "Schedule",
+      "byDay": "https://schema.org/Thursday",
+      "startTime": "21:00",
+      "endTime": "02:00",
+      "scheduleTimezone": "Europe/Rome",
+      "repeatFrequency": "P1W"
+    },
+    "location": {
+      "@type": "Place",
+      "name": "La Tana del Coniglio",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Corso Tommaso Vitale 87",
+        "addressLocality": "Nola",
+        "addressRegion": "NA",
+        "postalCode": "80035",
+        "addressCountry": "IT"
+      }
+    },
+    "organizer": { "@id": "https://www.ilkaraokedellatana.it/#business" },
+    "url": "https://www.ilkaraokedellatana.it",
+    "image": "https://www.ilkaraokedellatana.it/kar_night_and_logo.png",
+    "isAccessibleForFree": true
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": "https://www.ilkaraokedellatana.it/#website",
+    "name": "Karaoke – La Tana del Coniglio",
+    "url": "https://www.ilkaraokedellatana.it",
+    "inLanguage": "it-IT",
+    "publisher": { "@id": "https://www.ilkaraokedellatana.it/#business" }
+  }
+  </script>
 </head>
 <body>
 
   <header>
     <img src="kar_night_and_logo.png" alt="Karaoke – La Tana del Coniglio" class="logo-img" />
+    <h1 class="sr-only">Karaoke ogni giovedì a Nola – La Tana del Coniglio</h1>
     <p id="home-subtitle" class="home-subtitle"></p>
   </header>
 
@@ -1520,9 +1643,19 @@
     <img id="selfie-lightbox-img" src="" alt="selfie ingrandito" />
   </div>
 
+  <section class="venue-info-section">
+    <div class="sr-only">
+      <h2>La Tana del Coniglio · Karaoke a Nola</h2>
+      <p>Lounge bar nel cuore di Nola con serate karaoke ogni giovedì sera dalle 21:00. Prenota la tua canzone direttamente dal telefono, segui la scaletta in diretta e vota le esibizioni dal tuo posto.</p>
+    </div>
+    <p>
+      📍 <a href="https://www.google.com/maps/search/?api=1&query=Corso+Tommaso+Vitale+87,+80035+Nola+NA" target="_blank" rel="noopener">Corso Tommaso Vitale 87, 80035 Nola (NA)</a>
+      &nbsp;·&nbsp; 📞 <a href="tel:+393493265028">+39 349 326 5028</a>
+      &nbsp;·&nbsp; Mer–Dom 18:30 – 02:00
+    </p>
+  </section>
+
   <footer>
-    <a href="https://www.google.com/maps/search/?api=1&query=Corso+Tommaso+Vitale+87,+80035+Nola+NA" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">La Tana del Coniglio · Corso Tommaso Vitale 87, 80035 – Nola</a>
-    &nbsp;|&nbsp;
     <a href="chi-siamo.html" style="color:inherit;text-decoration:underline;">Chi siamo</a>
     &nbsp;|&nbsp;
     <a id="footer-archive-link" href="archive.html" style="color:inherit;text-decoration:underline;display:none;">Archivio karaoke</a><span id="footer-archive-sep" style="display:none;"> &nbsp;|&nbsp; </span><a href="cookie-policy.html" style="color:inherit;text-decoration:underline;">Cookie Policy</a>
