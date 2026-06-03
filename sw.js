@@ -1,3 +1,8 @@
+// Fetch handler richiesto da Chrome per il banner "Installa app" (PWA).
+// Passthrough: non intercetta nulla, lascia passare tutte le richieste normalmente.
+self.addEventListener('fetch', function () {});
+
+// Monetag push notifications
 self.options = {
     "domain": "5gvci.com",
     "zoneId": 11093156

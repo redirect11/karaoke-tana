@@ -2,12 +2,19 @@
   "name": "Karaoke – La Tana del Coniglio",
   "short_name": "Karaoke Tana",
   "description": "Prenota la tua canzone, vota le esibizioni e segui la classifica del Karaoke de La Tana del Coniglio a Nola.",
-  "start_url": "./index.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#12071f",
   "theme_color": "#12071f",
   "lang": "it",
+  "orientation": "portrait-primary",
   "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "logo.png",
       "sizes": "512x512",
