@@ -2157,6 +2157,18 @@
       if (!show && currentSongCard) {
         currentSongCard.style.display = 'none';
       }
+      // Posiziona il box ads: prima della lista canzoni se aperto, dopo step-closed se chiuso
+      var adBox = document.getElementById('ad-inline-box');
+      if (adBox) {
+        if (show) {
+          songListCard.parentNode.insertBefore(adBox, songListCard);
+        } else {
+          var stepClosed = document.getElementById('step-closed');
+          if (stepClosed && stepClosed.nextSibling !== adBox) {
+            stepClosed.parentNode.insertBefore(adBox, stepClosed.nextSibling);
+          }
+        }
+      }
     }
 
     function updateBookingsDisabledVoteMessage() {
