@@ -2555,7 +2555,7 @@
       if (!items.length) {
         songListStatus.textContent = activeSongTab === 'completed'
           ? 'Nessuna canzone conclusa al momento.'
-          : 'Nessuna canzone in coda al momento.';
+          : '';
         songListEl.innerHTML = activeSongTab === 'completed'
           ? '<div class="song-empty">Le canzoni già cantate appariranno qui.</div>'
           : '<div class="song-empty">Appena arrivano nuove prenotazioni, le vedrai qui.</div>';
@@ -2576,7 +2576,7 @@
         : '<div class="song-empty">Nessuna canzone in coda al momento.</div>';
       songListStatus.textContent = queueItems.length
         ? `${queueItems.length} ${queueItems.length === 1 ? 'canzone in coda' : 'canzoni in coda'}`
-        : 'Nessuna canzone in coda al momento.';
+        : '';
       songListEl.innerHTML = queueHtml;
     }
 
