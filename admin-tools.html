@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Impostazioni – La Tana del Coniglio</title>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6652706779509567" crossorigin="anonymous"></script>
   <style>
     :root {
       --bg:     #12071f;
@@ -222,9 +221,42 @@
     .setting-sub-box .setting-label { margin-bottom: 0; }
     .setting-sub-box > p { margin: 0; }
 
+    .copy-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .copy-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .copy-field label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--gold-s);
+    }
+    .copy-input {
+      width: 100%;
+      min-height: 42px;
+      background: var(--bg);
+      border: 1.5px solid #3d2366;
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.88rem;
+      padding: 10px 12px;
+      outline: none;
+      resize: vertical;
+      line-height: 1.45;
+    }
+    .copy-input:focus { border-color: var(--gold); }
+    .copy-input.copy-input--textarea { min-height: 84px; }
+
     .dev-section { display: none; }
 
-    details > summary {
+    .settings-collapsible > summary {
       list-style: none;
       cursor: pointer;
       display: flex;
@@ -235,14 +267,14 @@
       font-weight: 700;
       user-select: none;
     }
-    details > summary::-webkit-details-marker { display: none; }
-    details > summary::before {
+    .settings-collapsible > summary::-webkit-details-marker { display: none; }
+    .settings-collapsible > summary::before {
       content: '▶';
       font-size: 0.7rem;
       transition: transform 0.2s;
     }
-    details[open] > summary::before { transform: rotate(90deg); }
-    details > .details-body {
+    .settings-collapsible[open] > summary::before { transform: rotate(90deg); }
+    .settings-collapsible > .details-body {
       display: flex;
       flex-direction: column;
       gap: 14px;
@@ -278,7 +310,9 @@
 
       <!-- ── IMPOSTAZIONI PUBBLICHE ─────────────────────────── -->
       <section class="card">
-        <h2>Impostazioni pubbliche</h2>
+        <details class="settings-collapsible" open>
+          <summary>Impostazioni pubbliche</summary>
+          <div class="details-body">
 
         <div class="setting-sub-box">
           <div class="setting-label">Archivio pubblico</div>
@@ -357,11 +391,95 @@
             <button class="action-btn btn-public-settings" id="btn-save-winner-reveal-settings" type="button">Salva reveal</button>
           </div>
         </div>
+          </div>
+        </details>
+      </section>
+
+      <!-- ── TESTI HOME ──────────────────────────────────────── -->
+      <section class="card">
+        <details class="settings-collapsible">
+          <summary>Testi home</summary>
+          <div class="details-body">
+            <div class="setting-sub-box">
+              <p>Modifica il sottotitolo sotto il logo e i testi visibili nei box della home. I valori vuoti tornano al testo di default. Nei messaggi dei box puoi usare Markdown base: <strong>**grassetto**</strong> e invio per andare a capo.</p>
+              <div class="actions">
+                <button class="action-btn btn-public-settings" id="btn-toggle-home-subtitle" type="button">—</button>
+              </div>
+              <div class="copy-grid">
+                <div class="copy-field">
+                  <label for="home-subtitle-text">Sottotitolo logo</label>
+                  <input class="copy-input" id="home-subtitle-text" type="text" maxlength="180" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-follow-title">Box Segui: titolo</label>
+                  <input class="copy-input" id="home-follow-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-follow-message">Box Segui: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-follow-message" rows="3" maxlength="240"></textarea>
+                </div>
+                <div class="copy-field">
+                  <label for="home-form-title">Box Prenota: titolo</label>
+                  <input class="copy-input" id="home-form-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-form-message">Box Prenota: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-form-message" rows="3" maxlength="240"></textarea>
+                </div>
+                <div class="copy-field">
+                  <label for="home-success-title">Box Conferma: titolo</label>
+                  <input class="copy-input" id="home-success-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-success-message">Box Conferma: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-success-message" rows="3" maxlength="240"></textarea>
+                </div>
+                <div class="copy-field">
+                  <label for="home-waiting-title">Box Stato: titolo</label>
+                  <input class="copy-input" id="home-waiting-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-waiting-message">Box Stato: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-waiting-message" rows="3" maxlength="240"></textarea>
+                </div>
+                <div class="copy-field">
+                  <label for="home-bookings-disabled-title">Box prenotazioni chiuse: titolo</label>
+                  <input class="copy-input" id="home-bookings-disabled-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-bookings-disabled-message">Box prenotazioni chiuse: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-bookings-disabled-message" rows="3" maxlength="240"></textarea>
+                </div>
+                <div class="copy-field">
+                  <label for="home-closed-title">Box chiuso: titolo</label>
+                  <input class="copy-input" id="home-closed-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-closed-message">Box chiuso: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-closed-message" rows="3" maxlength="240"></textarea>
+                </div>
+                <div class="copy-field">
+                  <label for="home-maintenance-title">Manutenzione: titolo</label>
+                  <input class="copy-input" id="home-maintenance-title" type="text" maxlength="120" />
+                </div>
+                <div class="copy-field">
+                  <label for="home-maintenance-message">Manutenzione: messaggio</label>
+                  <textarea class="copy-input copy-input--textarea" id="home-maintenance-message" rows="3" maxlength="240"></textarea>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="action-btn btn-public-settings" id="btn-save-home-copy" type="button">Salva testi home</button>
+              </div>
+            </div>
+          </div>
+        </details>
       </section>
 
       <!-- ── NOTIFICHE ──────────────────────────────────────── -->
       <section class="card">
-        <h2>Notifiche</h2>
+        <details class="settings-collapsible">
+          <summary>Notifiche</summary>
+          <div class="details-body">
         <div class="status-box" id="notification-settings-box">
           <strong>Caricamento…</strong>
           <span>Sto leggendo lo stato delle notifiche della serata corrente.</span>
@@ -371,11 +489,13 @@
           <button class="action-btn btn-notification-toggle" id="btn-toggle-browser-notifications">—</button>
         </div>
         <p>Qui puoi abilitare o disabilitare notifiche Telegram e browser per la serata aperta.</p>
+          </div>
+        </details>
       </section>
 
       <!-- ── IMPOSTAZIONI DI SVILUPPO (solo ambiente test) ───── -->
       <section class="card dev-section" id="dev-section">
-        <details open>
+        <details class="settings-collapsible">
           <summary>Impostazioni database (sviluppo)</summary>
           <div class="details-body">
 
@@ -465,6 +585,23 @@
     const winnerRevealAnimationModeSelect = document.getElementById('winner-reveal-animation-mode');
     const winnerRevealAutoStepSecondsInput = document.getElementById('winner-reveal-auto-step-seconds');
     const btnSaveWinnerRevealSettings = document.getElementById('btn-save-winner-reveal-settings');
+    const btnToggleHomeSubtitle = document.getElementById('btn-toggle-home-subtitle');
+    const homeSubtitleTextInput = document.getElementById('home-subtitle-text');
+    const homeFollowTitleInput = document.getElementById('home-follow-title');
+    const homeFollowMessageInput = document.getElementById('home-follow-message');
+    const homeFormTitleInput = document.getElementById('home-form-title');
+    const homeFormMessageInput = document.getElementById('home-form-message');
+    const homeSuccessTitleInput = document.getElementById('home-success-title');
+    const homeSuccessMessageInput = document.getElementById('home-success-message');
+    const homeWaitingTitleInput = document.getElementById('home-waiting-title');
+    const homeWaitingMessageInput = document.getElementById('home-waiting-message');
+    const homeBookingsDisabledTitleInput = document.getElementById('home-bookings-disabled-title');
+    const homeBookingsDisabledMessageInput = document.getElementById('home-bookings-disabled-message');
+    const homeClosedTitleInput = document.getElementById('home-closed-title');
+    const homeClosedMessageInput = document.getElementById('home-closed-message');
+    const homeMaintenanceTitleInput = document.getElementById('home-maintenance-title');
+    const homeMaintenanceMessageInput = document.getElementById('home-maintenance-message');
+    const btnSaveHomeCopy = document.getElementById('btn-save-home-copy');
     const pwdBtn = document.getElementById('pwd-btn');
 
     const ADMIN_EMAIL = 'admin@tana.it';
@@ -484,6 +621,22 @@
       archivio_pubblico_abilitato: false,
       manutenzione_abilitata: false,
       modalita_post_approvazione: 'direct_live',
+      home_subtitle_enabled: true,
+      home_subtitle_text: '',
+      home_follow_title: '',
+      home_follow_message: '',
+      home_form_title: '',
+      home_form_message: '',
+      home_success_title: '',
+      home_success_message: '',
+      home_waiting_title: '',
+      home_waiting_message: '',
+      home_bookings_disabled_title: '',
+      home_bookings_disabled_message: '',
+      home_closed_title: '',
+      home_closed_message: '',
+      home_maintenance_title: '',
+      home_maintenance_message: '',
       prossima_serata_data: null,
       winner_reveal_countdown_default_seconds: DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS,
       winner_reveal_animation_enabled: true,
@@ -505,6 +658,8 @@
     btnClearNextDate.addEventListener('click', clearNextKaraokeDate);
     btnSaveWinnerRevealCountdown.addEventListener('click', saveWinnerRevealCountdown);
     btnSaveWinnerRevealSettings.addEventListener('click', saveWinnerRevealSettings);
+    btnSaveHomeCopy.addEventListener('click', saveHomeCopy);
+    btnToggleHomeSubtitle.addEventListener('click', toggleHomeSubtitleVisibility);
     winnerRevealAnimationEnabledSelect.addEventListener('change', syncWinnerRevealSettingsControls);
     winnerRevealAnimationModeSelect.addEventListener('change', syncWinnerRevealSettingsControls);
 
@@ -678,6 +833,25 @@
     }
 
     function renderPublicSettings() {
+      const homeCopy = window.KaraokeUtils?.getHomeCopySettings
+        ? window.KaraokeUtils.getHomeCopySettings(publicSettings)
+        : {
+          subtitle: publicSettings?.home_subtitle_text || '',
+          followTitle: publicSettings?.home_follow_title || '',
+          followMessage: publicSettings?.home_follow_message || '',
+          formTitle: publicSettings?.home_form_title || '',
+          formMessage: publicSettings?.home_form_message || '',
+          successTitle: publicSettings?.home_success_title || '',
+          successMessage: publicSettings?.home_success_message || '',
+          waitingTitle: publicSettings?.home_waiting_title || '',
+          waitingMessage: publicSettings?.home_waiting_message || '',
+          bookingsDisabledTitle: publicSettings?.home_bookings_disabled_title || '',
+          bookingsDisabledMessage: publicSettings?.home_bookings_disabled_message || '',
+          closedTitle: publicSettings?.home_closed_title || '',
+          closedMessage: publicSettings?.home_closed_message || '',
+          maintenanceTitle: publicSettings?.home_maintenance_title || '',
+          maintenanceMessage: publicSettings?.home_maintenance_message || '',
+        };
       const enabled = publicSettings?.archivio_pubblico_abilitato === true;
       const archiveStatus = enabled ? '🟢 attivo' : '⭕ nascosto';
       archivePublicStatusBox.innerHTML = `<strong>Archivio pubblico: ${escapeHtml(archiveStatus)}</strong>`;
@@ -700,6 +874,10 @@
         : 'direct_live';
       postApprovalModeSelect.value = postApprovalMode;
 
+      const subtitleEnabled = publicSettings?.home_subtitle_enabled !== false;
+      btnToggleHomeSubtitle.textContent = subtitleEnabled ? 'Nascondi sottotitolo in home' : 'Mostra sottotitolo in home';
+      homeSubtitleTextInput.disabled = !subtitleEnabled;
+
       nextKaraokeDateInput.value = publicSettings?.prossima_serata_data || '';
 
       const winnerRevealCountdownSeconds = getWinnerRevealCountdownSeconds();
@@ -710,6 +888,22 @@
       winnerRevealAnimationModeSelect.value = revealSettings.mode;
       winnerRevealAutoStepSecondsInput.value = String(revealSettings.autoStepSeconds);
       syncWinnerRevealSettingsControls();
+
+      homeSubtitleTextInput.value = homeCopy.subtitle || '';
+      homeFollowTitleInput.value = homeCopy.followTitle || '';
+      homeFollowMessageInput.value = homeCopy.followMessage || '';
+      homeFormTitleInput.value = homeCopy.formTitle || '';
+      homeFormMessageInput.value = homeCopy.formMessage || '';
+      homeSuccessTitleInput.value = homeCopy.successTitle || '';
+      homeSuccessMessageInput.value = homeCopy.successMessage || '';
+      homeWaitingTitleInput.value = homeCopy.waitingTitle || '';
+      homeWaitingMessageInput.value = homeCopy.waitingMessage || '';
+      homeBookingsDisabledTitleInput.value = homeCopy.bookingsDisabledTitle || '';
+      homeBookingsDisabledMessageInput.value = homeCopy.bookingsDisabledMessage || '';
+      homeClosedTitleInput.value = homeCopy.closedTitle || '';
+      homeClosedMessageInput.value = homeCopy.closedMessage || '';
+      homeMaintenanceTitleInput.value = homeCopy.maintenanceTitle || '';
+      homeMaintenanceMessageInput.value = homeCopy.maintenanceMessage || '';
     }
 
     function getWinnerRevealCountdownSeconds() {
@@ -859,6 +1053,51 @@
       } finally {
         btnSaveWinnerRevealSettings.disabled = false;
         btnSaveWinnerRevealSettings.textContent = 'Salva reveal';
+      }
+    }
+
+    async function saveHomeCopy() {
+      setBusy(btnSaveHomeCopy, true, 'Salvataggio…');
+      try {
+        publicSettings = await callAdmin('set_public_settings', {
+          homeSubtitleEnabled: publicSettings?.home_subtitle_enabled !== false,
+          homeSubtitleText: homeSubtitleTextInput.value,
+          homeFollowTitle: homeFollowTitleInput.value,
+          homeFollowMessage: homeFollowMessageInput.value,
+          homeFormTitle: homeFormTitleInput.value,
+          homeFormMessage: homeFormMessageInput.value,
+          homeSuccessTitle: homeSuccessTitleInput.value,
+          homeSuccessMessage: homeSuccessMessageInput.value,
+          homeWaitingTitle: homeWaitingTitleInput.value,
+          homeWaitingMessage: homeWaitingMessageInput.value,
+          homeBookingsDisabledTitle: homeBookingsDisabledTitleInput.value,
+          homeBookingsDisabledMessage: homeBookingsDisabledMessageInput.value,
+          homeClosedTitle: homeClosedTitleInput.value,
+          homeClosedMessage: homeClosedMessageInput.value,
+          homeMaintenanceTitle: homeMaintenanceTitleInput.value,
+          homeMaintenanceMessage: homeMaintenanceMessageInput.value,
+        });
+        renderPublicSettings();
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito ad aggiornare i testi della home.', true);
+      } finally {
+        btnSaveHomeCopy.disabled = false;
+        btnSaveHomeCopy.textContent = 'Salva testi home';
+      }
+    }
+
+    async function toggleHomeSubtitleVisibility() {
+      const nextValue = !(publicSettings?.home_subtitle_enabled !== false);
+      setBusy(btnToggleHomeSubtitle, true, 'Aggiornamento…');
+      try {
+        publicSettings = await callAdmin('set_public_settings', {
+          homeSubtitleEnabled: nextValue,
+        });
+        renderPublicSettings();
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito ad aggiornare la visibilità del sottotitolo.', true);
+      } finally {
+        btnToggleHomeSubtitle.disabled = false;
       }
     }
 

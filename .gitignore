@@ -3,6 +3,10 @@ config.js
 # Variabili d'ambiente locali (per override docker-compose.dev.yml)
 .env.dev
 
+# Variabili d'ambiente Edge Functions (sviluppo locale)
+supabase/.env
+supabase/functions/.env
+
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
 

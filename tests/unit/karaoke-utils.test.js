@@ -11,9 +11,12 @@ import utils from '../../scripts/karaoke-utils.js';
 const {
   escapeHtml,
   escapeCssUrl,
+  renderSimpleMarkdown,
   resolveLanUrl,
   formatPublicDateLabel,
   formatCountdown,
+  getHomeCopySettings,
+  splitCurrentSongAndQueue,
   normalizeBookingNumber,
   getStoredBookingNumber,
   safeParseBookingCookie,
@@ -103,6 +106,26 @@ describe('escapeCssUrl', () => {
 
   it('leaves plain URLs unchanged', () => {
     expect(escapeCssUrl('https://example.com/image.png')).toBe('https://example.com/image.png');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('renderSimpleMarkdown', () => {
+  it('renders markdown bold with double asterisks', () => {
+    expect(renderSimpleMarkdown('ciao **mondo**')).toBe('ciao <strong>mondo</strong>');
+  });
+
+  it('renders markdown bold with double underscores', () => {
+    expect(renderSimpleMarkdown('ciao __mondo__')).toBe('ciao <strong>mondo</strong>');
+  });
+
+  it('renders line breaks as br tags', () => {
+    expect(renderSimpleMarkdown('riga 1\nriga 2')).toBe('riga 1<br>riga 2');
+  });
+
+  it('escapes html before markdown rendering', () => {
+    expect(renderSimpleMarkdown('<script>alert(1)</script> **ok**'))
+      .toBe('&lt;script&gt;alert(1)&lt;/script&gt; <strong>ok</strong>');
   });
 });
 
@@ -219,6 +242,71 @@ describe('formatCountdown', () => {
 
   it('ceils exactly 1 ms to 1 second', () => {
     expect(formatCountdown(1)).toBe('00:01');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('getHomeCopySettings', () => {
+  it('returns the default home copy when settings are missing', () => {
+    expect(getHomeCopySettings(null)).toEqual({
+      subtitleVisible: true,
+      subtitle: 'Il karaoke, la votazione e la coda in un unico posto.',
+      followTitle: 'Prima di tutto…',
+      followMessage: 'Segui la nostra pagina Instagram per poter prenotare una canzone.',
+      formTitle: 'Prenota la tua canzone 🎤',
+      formMessage: 'Compila il form e lo staff la aggiungerà alla lista appena possibile.',
+      successTitle: 'Richiesta inviata!',
+      successMessage: 'Lo staff la controllerà e apparirà in lista appena viene approvata.',
+      waitingTitle: '',
+      waitingMessage: 'Sto controllando lo stato della tua prenotazione…',
+      bookingsDisabledTitle: 'Prenotazioni non disponibili',
+      bookingsDisabledMessage: 'Le prenotazioni sono al momento chiuse.',
+      closedTitle: 'Prenotazioni chiuse',
+      closedMessage: 'Al momento non è attiva nessuna serata karaoke.\nTorna più tardi!',
+      maintenanceTitle: '🚧 In manutenzione',
+      maintenanceMessage: 'Sito in manutenzione. Torneremo presto.\nIntanto segui la nostra pagina per scoprire le ultime novità e le prossime date del karaoke',
+    });
+  });
+
+  it('uses custom values and falls back for blank strings', () => {
+    expect(getHomeCopySettings({
+      home_subtitle_enabled: false,
+      home_subtitle_text: '  La tua serata  ',
+      home_follow_title: '',
+      home_follow_message: 'Seguici davvero',
+      home_closed_message: 'Linea 1\nLinea 2',
+    })).toMatchObject({
+      subtitleVisible: false,
+      subtitle: 'La tua serata',
+      followTitle: 'Prima di tutto…',
+      followMessage: 'Seguici davvero',
+      closedMessage: 'Linea 1\nLinea 2',
+    });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('splitCurrentSongAndQueue', () => {
+  it('returns null current song and empty queue for invalid input', () => {
+    expect(splitCurrentSongAndQueue(null)).toEqual({
+      currentSong: null,
+      queueItems: [],
+    });
+  });
+
+  it('keeps first song as current and rest as queue', () => {
+    const songs = [
+      { id: 101, canzone: 'A' },
+      { id: 102, canzone: 'B' },
+      { id: 103, canzone: 'C' },
+    ];
+    expect(splitCurrentSongAndQueue(songs)).toEqual({
+      currentSong: { id: 101, canzone: 'A' },
+      queueItems: [
+        { id: 102, canzone: 'B' },
+        { id: 103, canzone: 'C' },
+      ],
+    });
   });
 });
 

@@ -65,7 +65,15 @@ docker ps -aq | xargs -r docker rm -f 2>/dev/null || true
 docker network prune -f 2>/dev/null || true
 ok "Pulizia completata."
 
-# ── 6. supabase start ─────────────────────────────────────────
+# ── 6. Secrets edge functions ────────────────────────────────
+# supabase/functions/.env  → letto da supabase start per il runtime Deno
+# supabase/.env            → usato da supabase secrets set / CLI interno
+log "Scrittura secrets edge functions..."
+printf "APP_ENV=test\n" > /workspace/supabase/functions/.env
+printf "APP_ENV=test\n" > /workspace/supabase/.env
+ok "Secrets scritti (supabase/.env + supabase/functions/.env)."
+
+# ── 7. supabase start ─────────────────────────────────────────
 echo ""
 log "Avvio stack Supabase (prima volta: ~5-10 min per download immagini)..."
 echo ""
@@ -80,7 +88,7 @@ fi
 echo ""
 ok "Stack Supabase avviato."
 
-# ── 7. Leggi anon key e service_role key ─────────────────────
+# ── 8. Leggi anon key e service_role key ─────────────────────
 log "Lettura credenziali Supabase locali..."
 
 ANON_KEY=""
@@ -131,7 +139,7 @@ fi
 ok "Chiave anon:          ${ANON_KEY:0:20}..."
 ok "Chiave service_role:  ${SERVICE_ROLE_KEY:0:20}..."
 
-# ── 8. Genera config.js con la chiave reale ───────────────────
+# ── 9. Genera config.js con la chiave reale ───────────────────
 log "Generazione config.js..."
 SUPABASE_URL="http://localhost:54321" \
 SUPABASE_ANON_KEY="$ANON_KEY" \
@@ -143,7 +151,7 @@ APP_ENV="test" \
   node /workspace/scripts/generate-pages-config.mjs /workspace
 ok "config.js generato."
 
-# ── 9. Seed utente admin via Admin API ────────────────────────
+# ── 10. Seed utente admin via Admin API ───────────────────────
 if [ -n "$SERVICE_ROLE_KEY" ]; then
   log "Creazione utente admin (admin@tana.it)..."
   SUPABASE_URL="http://localhost:54321" \

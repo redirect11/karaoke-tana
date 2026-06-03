@@ -30,6 +30,22 @@ CREATE TABLE IF NOT EXISTS impostazioni_pubbliche (
   id BIGINT PRIMARY KEY CHECK (id = 1),
   archivio_pubblico_abilitato BOOLEAN NOT NULL DEFAULT FALSE,
   modalita_post_approvazione TEXT NOT NULL DEFAULT 'direct_live',
+  home_subtitle_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  home_subtitle_text TEXT NOT NULL DEFAULT 'Il karaoke, la votazione e la coda in un unico posto.',
+  home_follow_title TEXT NOT NULL DEFAULT 'Prima di tutto…',
+  home_follow_message TEXT NOT NULL DEFAULT 'Segui la nostra pagina Instagram per poter prenotare una canzone.',
+  home_form_title TEXT NOT NULL DEFAULT 'Prenota la tua canzone 🎤',
+  home_form_message TEXT NOT NULL DEFAULT 'Compila il form e lo staff la aggiungerà alla lista appena possibile.',
+  home_success_title TEXT NOT NULL DEFAULT 'Richiesta inviata!',
+  home_success_message TEXT NOT NULL DEFAULT 'Lo staff la controllerà e apparirà in lista appena viene approvata.',
+  home_waiting_title TEXT NOT NULL DEFAULT 'Stato della tua prenotazione',
+  home_waiting_message TEXT NOT NULL DEFAULT 'Sto controllando lo stato della tua prenotazione…',
+  home_bookings_disabled_title TEXT NOT NULL DEFAULT 'Prenotazioni non disponibili',
+  home_bookings_disabled_message TEXT NOT NULL DEFAULT 'Le prenotazioni sono al momento chiuse.',
+  home_closed_title TEXT NOT NULL DEFAULT 'Prenotazioni chiuse',
+  home_closed_message TEXT NOT NULL DEFAULT E'Al momento non è attiva nessuna serata karaoke.\nTorna più tardi!',
+  home_maintenance_title TEXT NOT NULL DEFAULT '🚧 In manutenzione',
+  home_maintenance_message TEXT NOT NULL DEFAULT 'Sito in manutenzione. Torneremo presto.\nIntanto segui la nostra pagina per scoprire le ultime novità e le prossime date del karaoke',
   winner_reveal_animation_enabled BOOLEAN NOT NULL DEFAULT TRUE,
   winner_reveal_animation_mode TEXT NOT NULL DEFAULT 'automatic',
   winner_reveal_auto_step_seconds INTEGER NOT NULL DEFAULT 3,
@@ -42,13 +58,54 @@ INSERT INTO impostazioni_pubbliche (
   id,
   archivio_pubblico_abilitato,
   modalita_post_approvazione,
+  home_subtitle_enabled,
+  home_subtitle_text,
+  home_follow_title,
+  home_follow_message,
+  home_form_title,
+  home_form_message,
+  home_success_title,
+  home_success_message,
+  home_waiting_title,
+  home_waiting_message,
+  home_bookings_disabled_title,
+  home_bookings_disabled_message,
+  home_closed_title,
+  home_closed_message,
+  home_maintenance_title,
+  home_maintenance_message,
   winner_reveal_animation_enabled,
   winner_reveal_animation_mode,
   winner_reveal_auto_step_seconds,
   winner_reveal_countdown_default_seconds,
   prossima_serata_data
 )
-VALUES (1, FALSE, 'direct_live', TRUE, 'automatic', 3, 5, NULL)
+VALUES (
+  1,
+  FALSE,
+  'direct_live',
+  TRUE,
+  'Il karaoke, la votazione e la coda in un unico posto.',
+  'Prima di tutto…',
+  'Segui la nostra pagina Instagram per poter prenotare una canzone.',
+  'Prenota la tua canzone 🎤',
+  'Compila il form e lo staff la aggiungerà alla lista appena possibile.',
+  'Richiesta inviata!',
+  'Lo staff la controllerà e apparirà in lista appena viene approvata.',
+  'Stato della tua prenotazione',
+  'Sto controllando lo stato della tua prenotazione…',
+  'Prenotazioni non disponibili',
+  'Le prenotazioni sono al momento chiuse.',
+  'Prenotazioni chiuse',
+  E'Al momento non è attiva nessuna serata karaoke.\nTorna più tardi!',
+  '🚧 In manutenzione',
+  'Sito in manutenzione. Torneremo presto.\nIntanto segui la nostra pagina per scoprire le ultime novità e le prossime date del karaoke',
+  TRUE,
+  'automatic',
+  3,
+  5,
+  NULL
+)
 ON CONFLICT (id) DO NOTHING;
 
 -- Impedisce più di una serata aperta contemporaneamente
@@ -103,6 +160,54 @@ ALTER TABLE prenotazioni
 
 ALTER TABLE impostazioni_pubbliche
   ADD COLUMN IF NOT EXISTS modalita_post_approvazione TEXT NOT NULL DEFAULT 'direct_live';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_subtitle_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_subtitle_text TEXT NOT NULL DEFAULT 'Il karaoke, la votazione e la coda in un unico posto.';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_follow_title TEXT NOT NULL DEFAULT 'Prima di tutto…';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_follow_message TEXT NOT NULL DEFAULT 'Segui la nostra pagina Instagram per poter prenotare una canzone.';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_form_title TEXT NOT NULL DEFAULT 'Prenota la tua canzone 🎤';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_form_message TEXT NOT NULL DEFAULT 'Compila il form e lo staff la aggiungerà alla lista appena possibile.';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_success_title TEXT NOT NULL DEFAULT 'Richiesta inviata!';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_success_message TEXT NOT NULL DEFAULT 'Lo staff la controllerà e apparirà in lista appena viene approvata.';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_waiting_title TEXT NOT NULL DEFAULT 'Stato della tua prenotazione';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_waiting_message TEXT NOT NULL DEFAULT 'Sto controllando lo stato della tua prenotazione…';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_bookings_disabled_title TEXT NOT NULL DEFAULT 'Prenotazioni non disponibili';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_bookings_disabled_message TEXT NOT NULL DEFAULT 'Le prenotazioni sono al momento chiuse.';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_closed_title TEXT NOT NULL DEFAULT 'Prenotazioni chiuse';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_closed_message TEXT NOT NULL DEFAULT E'Al momento non è attiva nessuna serata karaoke.\nTorna più tardi!';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_maintenance_title TEXT NOT NULL DEFAULT '🚧 In manutenzione';
+
+ALTER TABLE impostazioni_pubbliche
+  ADD COLUMN IF NOT EXISTS home_maintenance_message TEXT NOT NULL DEFAULT E'Sito in manutenzione. Torneremo presto.\nIntanto segui la nostra pagina per scoprire le ultime novità e le prossime date del karaoke';
 
 ALTER TABLE impostazioni_pubbliche
   ADD COLUMN IF NOT EXISTS winner_reveal_animation_enabled BOOLEAN NOT NULL DEFAULT TRUE;

@@ -6,7 +6,6 @@
   <meta name="description" content="Vota le esibizioni del Karaoke de La Tana del Coniglio a Nola. Dai le tue preferenze e segui la classifica in tempo reale!" />
   <title>Vota le esibizioni – La Tana del Coniglio</title>
   <link rel="manifest" href="manifest.json" />
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6652706779509567" crossorigin="anonymous"></script>
   <style>
     :root {
       --bg:     #12071f;
@@ -129,6 +128,13 @@
       align-items: start;
       gap: 10px;
     }
+    .song-top-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      align-self: start;
+      flex-shrink: 0;
+    }
     .song-index {
       flex-shrink: 0;
       min-width: 34px;
@@ -145,8 +151,6 @@
       -webkit-backdrop-filter: blur(8px) saturate(140%);
       border: 1px solid rgba(255,255,255,0.12);
       color: #fff;
-      justify-self: end;
-      align-self: start;
     }
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(8px); }
@@ -210,10 +214,7 @@
     }
 
     .card-bottom-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: end;
-      gap: 10px;
+      display: block;
     }
 
     .btn-vote {
@@ -379,7 +380,6 @@
       line-height: 1;
       letter-spacing: 0.03em;
       transform: scale(1);
-      transition: transform 200ms ease-out, text-shadow 220ms ease-out, box-shadow 220ms ease-out;
       position: relative;
       display: inline-flex;
       align-items: center;
@@ -895,6 +895,37 @@
       font-size: 0.9rem;
     }
 
+    /* ── diretta mode background (non-fullscreen) ── */
+    body.is-diretta {
+      background: #08060f;
+    }
+    body.is-diretta::before,
+    body.is-diretta::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+    body.is-diretta::before {
+      background-image: url('concert_ai.webp');
+      background-size: min(94vw, 1460px) auto;
+      background-position: center calc(50% + 8vh);
+      background-repeat: no-repeat;
+      filter: blur(1.25px) saturate(0.96) brightness(0.76);
+      opacity: 0.6;
+      z-index: 0;
+    }
+    body.is-diretta::after {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(240,201,74,0.24) 0%, rgba(112,55,158,0.2) 32%, rgba(8,6,15,0.86) 72%),
+        linear-gradient(180deg, rgba(8,6,15,0.2) 0%, rgba(8,6,15,0.66) 48%, rgba(18,7,31,0.93) 100%);
+      z-index: 0;
+    }
+    body.is-diretta > * {
+      position: relative;
+      z-index: 1;
+    }
+
     /* ── top-5 reveal animation ── */
     #top5-reveal-overlay {
       display: none;
@@ -1094,6 +1125,10 @@
     const content       = document.getElementById('content');
     const statusBanner  = document.getElementById('status-banner');
     const direttaWrap   = document.getElementById('diretta-wrap');
+    function setDirettaVisible(visible) {
+      direttaWrap.style.display = visible ? 'flex' : 'none';
+      document.body.classList.toggle('is-diretta', visible);
+    }
     const direttaTitle  = document.getElementById('diretta-title');
     const direttaText   = document.getElementById('diretta-text');
     const direttaCountdownEl = document.getElementById('diretta-countdown');
@@ -1558,6 +1593,16 @@
       const winnerDecreed = Boolean(serata?.vincitore_decretato);
       const endsAtMs = Date.parse(serata?.winner_reveal_countdown_ends_at || '');
       const hasCountdown = Number.isFinite(endsAtMs);
+      const nextKey = hasCountdown ? String(endsAtMs) : '';
+
+      // Se il countdown è già attivo per lo stesso endsAtMs, non resettarlo:
+      // stopDirettaCountdown azzera direttaCountdownLastValue e il tick
+      // ripartirebbe nel mezzo del secondo corrente causando scatti anticipati.
+      if (direttaActive && !winnerDecreed && hasCountdown
+          && direttaCountdownTimer && direttaCountdownKey === nextKey) {
+        renderDirettaAdminControls();
+        return;
+      }
 
       stopDirettaCountdown();
 
@@ -1568,7 +1613,7 @@
 
       if (!direttaActive) {
         endRevealAnimation();
-        direttaWrap.style.display = 'none';
+        setDirettaVisible(false);
         content.style.display = '';
         direttaCountdownEl.classList.add('hidden');
         direttaCountdownEl.classList.remove('tick', 'end');
@@ -1577,7 +1622,7 @@
         return;
       }
 
-      direttaWrap.style.display = 'flex';
+      setDirettaVisible(true);
       content.style.display = 'none';
       updateFullscreenBtnVisibility(true);
 
@@ -1599,10 +1644,10 @@
           return;
         }
         endRevealAnimation();
-        direttaWrap.style.display = 'none';
+        setDirettaVisible(false);
         content.style.display = '';
         updateFullscreenBtnVisibility(true);
-        renderContent();
+        renderFinalLeaderboard();
         renderDirettaAdminControls();
         return;
       }
@@ -1624,69 +1669,43 @@
       direttaCountdownEl.classList.remove('hidden');
       void preloadDirettaFinalView();
 
+      // Misura il tempo dal momento in cui il client osserva il countdown,
+      // non dai boundary del server. In questo modo il primo numero è sempre
+      // mostrato per un secondo intero, indipendentemente dal ritardo di rete
+      // tra l'avvio del countdown e la ricezione del dato.
+      const seenAtMs = Date.now();
+      const seenRemaining = Math.ceil(Math.max(0, endsAtMs - seenAtMs) / 1000);
+
       const configuredSeconds = Number(serata?.winner_reveal_countdown_seconds);
-      const startedAtMs = Date.parse(serata?.winner_reveal_countdown_started_at || '');
       if (Number.isInteger(configuredSeconds) && configuredSeconds > 0) {
         direttaCountdownEl.textContent = String(configuredSeconds).padStart(2, '0');
       }
-      const nextCountdownKey = `${endsAtMs}|${Number.isInteger(configuredSeconds) ? configuredSeconds : ''}`;
-      if (direttaCountdownKey !== nextCountdownKey) {
-        direttaCountdownKey = nextCountdownKey;
-        direttaCountdownSeenAtMs = Date.now();
-      }
 
       const tick = () => {
-        const now = Date.now();
-        const msLeft = endsAtMs - now;
-        let remaining = Math.max(0, Math.ceil(msLeft / 1000));
-        if (
-          Number.isInteger(configuredSeconds)
-          && configuredSeconds > 0
-          && Number.isFinite(startedAtMs)
-        ) {
-          const elapsedMs = Math.max(0, now - startedAtMs);
-          remaining = Math.max(0, configuredSeconds - Math.floor(elapsedMs / 1000));
-        } else if (Number.isInteger(configuredSeconds) && configuredSeconds > 0) {
-          const elapsedSinceSeen = now - direttaCountdownSeenAtMs;
-          remaining = Math.max(0, configuredSeconds - Math.floor(elapsedSinceSeen / 1000));
-        }
-        if (
-          Number.isInteger(configuredSeconds)
-          && configuredSeconds > 0
-          && (now - direttaCountdownSeenAtMs) < 1000
-          && (endsAtMs - direttaCountdownSeenAtMs) > (configuredSeconds * 1000) - 1500
-        ) {
-          // Tieni il primo valore visibile per ~1s, indipendentemente dal
-          // clock drift attuale del client. La condizione si basa sul `msLeft`
-          // del momento in cui abbiamo iniziato a osservare il countdown
-          // (sawAt): se in quell'istante il countdown era praticamente al suo
-          // start (entro 1.5s dal full configurato), siamo a inizio sequenza
-          // e va mostrato il valore iniziale, anche se ora il client è
-          // andato avanti per drift. Chi si collega a metà countdown ha
-          // sawAt con msLeft già basso e la condizione resta falsa.
-          remaining = configuredSeconds;
-        }
+        const elapsed = Date.now() - seenAtMs;
+        const remaining = Math.max(0, seenRemaining - Math.floor(elapsed / 1000));
+
         if (remaining !== direttaCountdownLastValue) {
           direttaCountdownLastValue = remaining;
-          direttaCountdownEl.textContent = String(remaining).padStart(2, '0');
           direttaCountdownEl.classList.remove('tick');
-          window.requestAnimationFrame(() => direttaCountdownEl.classList.add('tick'));
+          direttaCountdownEl.textContent = String(remaining).padStart(2, '0');
+          void direttaCountdownEl.offsetWidth;
+          direttaCountdownEl.classList.add('tick');
         }
+
         if (remaining === 0) {
           stopDirettaCountdown();
-          // Countdown finito: ferma il sync di proclamazione (nessun traffico
-          // durante l'animazione del reveal). renderDiretta avvia l'animazione
-          // client-side; refreshSerata fa un'unica richiesta per aggiornare lo
-          // stato e, se necessario, riavvia il sync per catturare vincitore_decretato.
           _stopProclamazioneSync();
           renderDiretta();
           void refreshSerata();
           return;
         }
-        const nextChangeInMs = msLeft - ((remaining - 1) * 1000);
-        const nextDelay = Math.max(45, Math.min(220, nextChangeInMs + 18));
-        direttaCountdownTimer = setTimeout(tick, nextDelay);
+
+        // Prossima cifra esattamente 1 secondo dopo l'inizio di quella corrente
+        const msUntilNextChange = 1000 - (elapsed % 1000);
+        direttaCountdownTimer = setTimeout(tick, msUntilNextChange + 30);
       };
+      direttaCountdownKey = nextKey;
       tick();
       renderDirettaAdminControls();
     }
@@ -1734,6 +1753,7 @@
 
     // ── Load scores ────────────────────────────────────────────
     function updateVisibleScoresOnly() {
+      if (!showTotalsPublic) return true;
       const cards = content.querySelectorAll('.song-card[data-id]');
       if (!cards.length) return false;
       const songsById = new Map(songs.map((song) => [Number(song.id), song]));
@@ -1839,7 +1859,9 @@
       const myVote   = getLocalVote(s.id)?.voto || 0;
       const sc       = s._scores || { sum: 0, count: 0 };
       const avg      = sc.count > 0 ? (sc.sum / sc.count).toFixed(1) : '—';
-      const scoreBlock = `<div class="vote-score"><span>${avg}</span>${sc.count} vot${sc.count === 1 ? 'o' : 'i'}</div>`;
+      const scoreBlock = showTotalsPublic
+        ? `<div class="vote-score"><span>${avg}</span>${sc.count} vot${sc.count === 1 ? 'o' : 'i'}</div>`
+        : '';
 
       const btns = [1,2,3,4,5].map(v => {
         const classes = ['btn-vote'];
@@ -1851,9 +1873,9 @@
       }).join('');
 
       const handsClass = myVote > 0 ? 'rating-hands has-vote' : 'rating-hands';
-      const photoCell = hasPhoto
+      const photoTopBtn = hasPhoto
         ? `<button class="song-photo-btn${canOpenSelfie ? '' : ' is-default'}" type="button"${canOpenSelfie ? ` aria-label="Ingrandisci foto di ${esc(s.nome)}"` : ' aria-label="Foto non disponibile" disabled'}>📷</button>`
-        : '<div aria-hidden="true"></div>';
+        : '';
 
       div.innerHTML = `
         ${selfieBgHtml}
@@ -1863,13 +1885,13 @@
             <div class="song-title">${esc(s.canzone)}</div>
             <div class="song-artist">${esc(s.artista)}</div>
           </div>
-          <div class="song-index">#${Number.isInteger(s._displayIndex) ? s._displayIndex : '—'}</div>
+          <div class="song-top-right">
+            ${photoTopBtn}
+            <div class="song-index">#${Number.isInteger(s._displayIndex) ? s._displayIndex : '—'}</div>
+          </div>
         </div>
+        ${scoreBlock ? `<div class="card-bottom-row">${scoreBlock}</div>` : ''}
         <div class="${handsClass}" role="radiogroup" aria-label="Voto per ${esc(s.canzone)}">${btns}</div>
-        <div class="card-bottom-row">
-          ${scoreBlock}
-          ${photoCell}
-        </div>
       `;
 
       if (votingOpen) {
@@ -1988,7 +2010,7 @@
       if (elapsedMs >= totalMs) {
         // Sequenza già conclusa per chi si è collegato tardi: vai diretto al final.
         endRevealAnimation();
-        direttaWrap.style.display = 'none';
+        setDirettaVisible(false);
         content.style.display = '';
         updateFullscreenBtnVisibility(true);
         renderFinalLeaderboard();
@@ -2015,7 +2037,7 @@
           const t = setTimeout(() => {
             autoRevealSequenceStarted = false;
             endRevealAnimation();
-            direttaWrap.style.display = 'none';
+            setDirettaVisible(false);
             content.style.display = '';
             updateFullscreenBtnVisibility(true);
             renderFinalLeaderboard();
@@ -2061,7 +2083,7 @@
     function playWinnerRevealThenFinal() {
       const goFinal = () => {
         endRevealAnimation();
-        direttaWrap.style.display = 'none';
+        setDirettaVisible(false);
         content.style.display = '';
         updateFullscreenBtnVisibility(true);
         renderContent();
@@ -2074,7 +2096,7 @@
         const winner = ranking[0];
         if (winner) {
           revealWinnerPlaying = true;
-          direttaWrap.style.display = 'flex';
+          setDirettaVisible(true);
           content.style.display = 'none';
           updateFullscreenBtnVisibility(true);
           animateRevealCard(winner, 1, true);
@@ -2264,13 +2286,12 @@
       serataSyncInst = prenotazioniSyncInst = votiSyncInst = null;
     }
 
-    // Proclamazione sync: serate realtime + poll di fallback (8s), così anche
-    // la proclamazione diretta si aggiorna su schermi che non ricevono eventi
-    // realtime puntuali.
+    // Proclamazione sync: solo realtime su serate (nessun polling) per evitare
+    // jitter durante countdown/reveal.
     function _startProclamazioneSync() {
       if (proclamazioneSyncInst) return;
       proclamazioneSyncInst = createSerataSync({
-        db, tables: ['serate'], pollMs: 8000,
+        db, tables: ['serate'], pollMs: 0,
         onChange: () => { _onProclamazioneSerataChange(); },
       });
       proclamazioneSyncInst.start();
