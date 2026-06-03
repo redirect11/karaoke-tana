@@ -3752,6 +3752,12 @@
     // salva cookie e mostra schermata di attesa.
     document.getElementById('booking-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      // Popunder alla prima prenotazione di ogni sessione
+      if (!sessionStorage.getItem('pu_fired')) {
+        sessionStorage.setItem('pu_fired', '1');
+        var pu = window.open('https://omg10.com/4/11096193', '_blank');
+        if (pu) { pu.blur(); window.focus(); }
+      }
       const nome    = document.getElementById('nome').value.trim();
       const canzone = document.getElementById('canzone').value.trim();
       const artista = document.getElementById('artista').value.trim();
