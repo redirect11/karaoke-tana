@@ -770,7 +770,11 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         winner_reveal_animation_enabled?: boolean;
         winner_reveal_animation_mode?: "manual" | "automatic";
         winner_reveal_auto_step_seconds?: number;
+        ads_enabled?: boolean;
       } = {};
+      if (typeof body.adsEnabled === "boolean") {
+        updates.ads_enabled = body.adsEnabled;
+      }
       if (typeof body.archivioPubblicoAbilitato === "boolean") {
         updates.archivio_pubblico_abilitato = body.archivioPubblicoAbilitato;
       }
@@ -868,6 +872,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         && typeof updates.winner_reveal_animation_enabled !== "boolean"
         && typeof updates.winner_reveal_animation_mode !== "string"
         && !Number.isInteger(updates.winner_reveal_auto_step_seconds)
+        && typeof updates.ads_enabled !== "boolean"
       ) {
         throw new ApiError(
           400,

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chi siamo – Karaoke La Tana del Coniglio · Nola</title>
+  <meta name="description" content="Scopri chi organizza il karaoke del giovedì sera alla Tana del Coniglio di Nola. Un comitato indipendente di appassionati di musica." />
+  <style>
+    :root {
+      --bg:        #12071f;
+      --bg2:       #1e0f35;
+      --card:      #2a1650;
+      --gold:      #d4a017;
+      --gold-soft: #f0c94a;
+      --text:      #f0e6d3;
+      --muted:     #a08ca0;
+      --radius:    14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 64px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header .logo { font-size: 2.4rem; line-height: 1; margin-bottom: 8px; }
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.03em;
+    }
+    header p.sub {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .content {
+      width: 100%;
+      max-width: 680px;
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      line-height: 1.65;
+    }
+
+    h2 {
+      font-size: 1.05rem;
+      color: var(--gold-soft);
+      margin: 28px 0 10px;
+    }
+    h2:first-child { margin-top: 0; }
+
+    p { font-size: 0.88rem; color: var(--text); margin-bottom: 12px; }
+    p:last-child { margin-bottom: 0; }
+
+    a { color: var(--gold-soft); text-decoration: underline; }
+    a:hover { color: var(--gold); }
+
+    .info-box {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(212,160,23,0.2);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin: 16px 0;
+      font-size: 0.88rem;
+    }
+    .info-box .label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+    .info-box .value {
+      color: var(--text);
+      font-weight: 500;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 16px 0;
+    }
+    @media (max-width: 480px) {
+      .info-grid { grid-template-columns: 1fr; }
+    }
+
+    .map-wrap {
+      margin-top: 16px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(212,160,23,0.2);
+    }
+    .map-wrap iframe {
+      display: block;
+      width: 100%;
+      height: 280px;
+      border: 0;
+    }
+    .map-link {
+      display: block;
+      text-align: center;
+      margin-top: 10px;
+      font-size: 0.85rem;
+    }
+
+    .back-link {
+      margin-top: 28px;
+      font-size: 0.85rem;
+    }
+    .back-link a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+    .back-link a:hover { color: var(--text); }
+
+    footer {
+      margin-top: 40px;
+      font-size: 0.72rem;
+      color: #3d2366;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">🐰🎤</div>
+    <h1>Chi siamo</h1>
+    <p class="sub">Karaoke ogni giovedì · La Tana del Coniglio · Nola</p>
+  </header>
+
+  <div class="content">
+
+    <h2>Il progetto</h2>
+    <p>
+      Siamo un gruppo indipendente di appassionati di musica e karaoke che collabora con
+      <strong>La Tana del Coniglio</strong> di Nola per organizzare le serate karaoke
+      del <strong>giovedì sera</strong>. Non siamo il locale: siamo volontari che mettono
+      a disposizione tecnologia, organizzazione e passione per rendere ogni serata
+      un'esperienza unica.
+    </p>
+    <p>
+      Questa piattaforma è lo strumento che abbiamo costruito per gestire le prenotazioni,
+      le votazioni e la coda delle canzoni in tempo reale — tutto direttamente dal tuo telefono,
+      senza app da scaricare.
+    </p>
+
+    <h2>Il locale</h2>
+    <p>
+      La Tana del Coniglio è un bar e pub accogliente nel cuore di Nola, noto per la cura
+      degli ambienti, la selezione musicale di qualità e un'atmosfera autentica che mescola
+      cultura popolare e buona compagnia. Il locale propone cibo genuino, cocktail curati
+      e — curiosità — dischi in vinile in vendita per chi ama la musica anche da portare a casa.
+    </p>
+    <p>
+      Lo staff è sempre disponibile, competente e pronto a consigliarti su drink e proposte
+      della serata. Un posto dove stare bene, che si venga per la prima volta o da habitué.
+    </p>
+
+    <div class="info-grid">
+      <div class="info-box">
+        <div class="label">Indirizzo</div>
+        <div class="value">Corso Tommaso Vitale 87<br>80035 – Nola (NA)</div>
+      </div>
+      <div class="info-box">
+        <div class="label">Orari</div>
+        <div class="value">Mer–Dom: 18:30 – 02:00<br>Lun–Mar: chiuso</div>
+      </div>
+      <div class="info-box">
+        <div class="label">Telefono</div>
+        <div class="value"><a href="tel:+393493265028">+39 349 326 5028</a></div>
+      </div>
+      <div class="info-box">
+        <div class="label">Karaoke</div>
+        <div class="value">Ogni <strong>giovedì sera</strong><br>a partire dalle 21:00</div>
+      </div>
+    </div>
+
+    <h2>Nola, una città che sa cantare</h2>
+    <p>
+      Nola è una delle città più antiche della Campania, fondata dagli Ausoni e poi diventata
+      romana nel 313 a.C. È famosa in tutto il mondo per aver dato il commiato a
+      <strong>Augusto</strong>, il primo imperatore romano, scomparso qui il 19 agosto del 14 d.C.
+      — tanto che la città gli dedicò un tempio nel luogo esatto della sua morte.
+    </p>
+    <p>
+      Ma Nola è soprattutto la città della <strong>Festa dei Gigli</strong>, patrimonio UNESCO
+      dell'umanità dal 2013. Ogni anno, il 22 giugno, otto torri di legno alte 25 metri — i gigli —
+      vengono portate a spalla da squadre di uomini chiamati <em>paranze</em>, tra musica, devozione
+      e folla festante. Una tradizione che risale al 431 d.C., quando San Paolino, vescovo di Nola,
+      tornò dalla prigionia in Africa liberando i cittadini nolani: il popolo lo accolse portando
+      fasci di gigli raccolti dai campi.
+    </p>
+    <p>
+      Una città con mille anni di storia, fiera delle sue radici e sempre pronta a celebrarle
+      con musica, colori e — perché no — un buon karaoke.
+    </p>
+
+    <h2>Come raggiungerci</h2>
+    <p>
+      La Tana del Coniglio si trova in <strong>Corso Tommaso Vitale 87</strong>, nel centro di Nola,
+      facilmente raggiungibile in auto, in treno (stazione di Nola, linea Napoli–Nola–Baiano)
+      o in bus dalla zona metropolitana di Napoli.
+    </p>
+
+    <div class="map-wrap">
+      <iframe
+        src="https://maps.google.com/maps?q=Corso+Tommaso+Vitale+87,+80035+Nola+NA,+Italy&output=embed&z=17"
+        allowfullscreen=""
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        title="La Tana del Coniglio su Google Maps"
+      ></iframe>
+    </div>
+    <div class="map-link">
+      <a href="https://www.google.com/maps/search/?api=1&query=Corso+Tommaso+Vitale+87,+80035+Nola+NA" target="_blank" rel="noopener">
+        📍 Apri in Google Maps →
+      </a>
+    </div>
+
+    <div class="back-link">← <a href="index.html">Torna alla home</a></div>
+  </div>
+
+  <footer>
+    <a href="https://www.google.com/maps/search/?api=1&query=Corso+Tommaso+Vitale+87,+80035+Nola+NA" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">La Tana del Coniglio · Corso Tommaso Vitale 87, 80035 – Nola</a>
+    &nbsp;|&nbsp; <a href="cookie-policy.html" style="color:inherit;text-decoration:underline;">Cookie Policy</a>
+    &nbsp;|&nbsp; <a href="index.html" style="color:inherit;text-decoration:underline;">Home</a>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="scripts/ads-loader.js"></script>
+</body>
+</html>
