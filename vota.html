@@ -1063,6 +1063,7 @@
     </div>
     <div id="diretta-admin-controls" class="diretta-admin-controls hidden">
       <button id="btn-start-diretta-countdown" class="btn-start-countdown" type="button">🎬 Avvia countdown (admin)</button>
+      <button id="btn-start-diretta-reveal-only" class="btn-start-countdown" type="button" style="display:none">✨ Avvia Revealing (admin)</button>
       <button id="btn-diretta-decree-now" class="btn-decree-now" type="button">🏆 Proclamazione diretta (admin)</button>
       <div id="diretta-admin-note" class="diretta-admin-note">Controlli disponibili per admin autenticati.</div>
     </div>
@@ -1103,6 +1104,7 @@
   <div id="offline-banner" role="status" aria-live="polite">⚠️ Connessione assente — i dati potrebbero non essere aggiornati</div>
 
   <script src="config.js"></script>
+  <script>window.ADS_MANUAL_LOAD = true;</script>
   <script src="scripts/ads-loader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="scripts/maintenance-mode.js"></script>
@@ -1135,6 +1137,7 @@
     const direttaCountdownEl = document.getElementById('diretta-countdown');
     const direttaAdminControls = document.getElementById('diretta-admin-controls');
     const startDirettaCountdownBtn = document.getElementById('btn-start-diretta-countdown');
+    const startDirettaRevealOnlyBtn = document.getElementById('btn-start-diretta-reveal-only');
     const decreeDirettaNowBtn = document.getElementById('btn-diretta-decree-now');
     const direttaAdminNote = document.getElementById('diretta-admin-note');
     const top5RevealOverlay = document.getElementById('top5-reveal-overlay');
@@ -1316,11 +1319,7 @@
         serata           = data;
         votingOpen       = Boolean(data.voto_aperto);
         showTotalsPublic = Boolean(data.mostra_voti_totali);
-        // Skip re-fetching public reveal settings when already in proclamazione mode
-        // (settings are preloaded once and don't change during the reveal).
-        if (!inProclamazioneMode) {
-          await loadPublicRevealSettings();
-        }
+        await loadPublicRevealSettings();
         updateBanner();
         renderDiretta();
 
@@ -1413,12 +1412,22 @@
     }
 
     function getWinnerRevealSettings(settings = publicRevealSettings) {
+      // Se la serata ha uno snapshot dei settings (scritto al momento dell'avvio
+      // countdown/revealing), usa quello — è la fonte di verità sincronizzata
+      // via realtime su tutti i client senza query separate.
+      const src = (serata?.reveal_animation_enabled != null)
+        ? {
+            winner_reveal_animation_enabled: serata.reveal_animation_enabled,
+            winner_reveal_animation_mode: serata.reveal_animation_mode,
+            winner_reveal_auto_step_seconds: serata.reveal_auto_step_seconds,
+          }
+        : settings;
       if (typeof window.KaraokeUtils?.getWinnerRevealSettings === 'function') {
-        return window.KaraokeUtils.getWinnerRevealSettings(settings);
+        return window.KaraokeUtils.getWinnerRevealSettings(src);
       }
-      const enabled = settings?.winner_reveal_animation_enabled !== false;
-      const mode = settings?.winner_reveal_animation_mode === 'manual' ? 'manual' : 'automatic';
-      const autoStepSeconds = Number(settings?.winner_reveal_auto_step_seconds);
+      const enabled = src?.winner_reveal_animation_enabled !== false;
+      const mode = src?.winner_reveal_animation_mode === 'manual' ? 'manual' : 'automatic';
+      const autoStepSeconds = Number(src?.winner_reveal_auto_step_seconds);
       return {
         enabled,
         mode,
@@ -1496,15 +1505,22 @@
         const { data } = await db.auth.getSession();
         token = data?.session?.access_token || '';
       } catch (_) { token = ''; }
-      if (!token) return;
+      if (!token) {
+        // Nessuna sessione admin: carica gli ads normalmente
+        if (typeof window.loadAds === 'function') window.loadAds();
+        return;
+      }
       direttaAdminToken = token;
       try {
         await callAdmin('ping');
       } catch (_) {
         direttaAdminToken = '';
         renderDirettaAdminControls();
+        // Token non valido per admin: carica gli ads
+        if (typeof window.loadAds === 'function') window.loadAds();
         return;
       }
+      // Admin confermato: non caricare ads
       void loadDirettaAdminSettings();
       renderDirettaAdminControls();
     }
@@ -1522,11 +1538,43 @@
       decreeDirettaNowBtn.disabled = direttaAdminActionInFlight;
       if (countdownStarted) {
         startDirettaCountdownBtn.disabled = true;
-        direttaAdminNote.textContent = 'Countdown già avviato da un pannello admin. Puoi comunque proclamare subito il vincitore.';
+        if (startDirettaRevealOnlyBtn) startDirettaRevealOnlyBtn.style.display = 'none';
+        direttaAdminNote.textContent = 'Countdown già avviato. Puoi comunque proclamare subito il vincitore.';
         return;
       }
       startDirettaCountdownBtn.disabled = direttaAdminActionInFlight;
-      direttaAdminNote.textContent = 'Puoi avviare il countdown da qui oppure proclamare subito il vincitore.';
+      // Mostra "Avvia Revealing" solo se l'animazione è abilitata
+      const revealEnabled = direttaAdminSettings?.winner_reveal_animation_enabled !== false;
+      if (startDirettaRevealOnlyBtn) {
+        startDirettaRevealOnlyBtn.style.display = revealEnabled ? '' : 'none';
+        startDirettaRevealOnlyBtn.disabled = direttaAdminActionInFlight;
+      }
+      direttaAdminNote.textContent = revealEnabled
+        ? 'Puoi avviare il countdown, saltarlo andando direttamente al revealing, oppure proclamare subito il vincitore.'
+        : 'Puoi avviare il countdown oppure proclamare subito il vincitore.';
+    }
+
+    async function startDirettaRevealOnlyFromVota() {
+      if (!serata?.id || !direttaAdminToken || direttaAdminActionInFlight) return;
+      if (Number.isFinite(Date.parse(serata?.winner_reveal_countdown_ends_at || ''))) return;
+      if (!confirm('Avviare subito il revealing senza countdown da questa pagina?')) return;
+      direttaAdminActionInFlight = true;
+      renderDirettaAdminControls();
+      try {
+        const result = await callAdmin('start_winner_reveal_only', { serataId: serata.id });
+        if (result?.serata) {
+          serata = result.serata;
+          votingOpen = Boolean(serata.voto_aperto);
+          showTotalsPublic = Boolean(serata.mostra_voti_totali);
+        }
+        updateBanner();
+        renderDiretta();
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito ad avviare il revealing.');
+      } finally {
+        direttaAdminActionInFlight = false;
+        renderDirettaAdminControls();
+      }
     }
 
     async function startDirettaCountdownFromVota() {
@@ -2091,6 +2139,10 @@
         renderDirettaAdminControls();
       };
       if (revealWinnerPlaying) return;
+      // Se la sequenza automatica è ancora in corso, non interromperla:
+      // il timer di reveal(1) chiama già renderFinalLeaderboard() autonomamente.
+      // Interrompere ora causerebbe il salto del rank 2 (reveal cancellato a metà).
+      if (autoRevealSequenceStarted) return;
       stopAutomaticReveal();
       if (top5RevealActive && getWinnerRevealSettings().enabled) {
         const ranking = buildRanking();
@@ -2331,9 +2383,17 @@
         showTotalsPublic = Boolean(data.mostra_voti_totali);
 
         if (countdownStarted || winnerDecreed || exitedMode) {
-          // Stop the proclamazione sync: countdown is now ticking (client-side
-          // only until tick=0), winner was decreed, or mode was exited.
           _stopProclamazioneSync();
+          // Se il countdown è già scaduto al momento dell'evento (es. start_winner_reveal_only
+          // imposta ends_at=now), il tick non parte mai e refreshSerata() non viene chiamata
+          // → il sync non verrebbe mai riavviato → i rank change successivi non arriverebbero.
+          // In questo caso riavviamo subito il sync per ricevere i rank change manuali/automatici.
+          if (countdownStarted && !winnerDecreed && !exitedMode) {
+            const newEndsAtMs = Date.parse(String(data.winner_reveal_countdown_ends_at || ''));
+            if (Number.isFinite(newEndsAtMs) && newEndsAtMs <= Date.now()) {
+              _startProclamazioneSync();
+            }
+          }
         }
 
         if (exitedMode) {
@@ -2386,6 +2446,7 @@
       renderDirettaAdminControls();
     });
     startDirettaCountdownBtn?.addEventListener('click', startDirettaCountdownFromVota);
+    startDirettaRevealOnlyBtn?.addEventListener('click', startDirettaRevealOnlyFromVota);
     decreeDirettaNowBtn?.addEventListener('click', decreeWinnerDirectFromVota);
 
     // ── Fullscreen toggle ──────────────────────────────────────

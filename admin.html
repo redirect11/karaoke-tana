@@ -262,6 +262,55 @@
       text-align: right;
       white-space: nowrap;
     }
+    /* ── Pulsante Svela grande ── */
+    .btn-reveal-manual {
+      width: 100%;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 800;
+      border-radius: 12px;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+    }
+    .btn-reveal-manual.btn-winner {
+      background: linear-gradient(135deg, #f0c94a 0%, #c89a27 100%);
+      border-color: transparent;
+      color: #1a0d00;
+    }
+    .btn-reveal-manual:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-reveal-manual:not(:disabled):active { opacity: 0.8; }
+
+    /* ── Reveal ranking (durante la proclamazione) ── */
+    .admin-ranking-row.reveal-live {
+      opacity: 0.55;
+    }
+    .admin-ranking-row.reveal-cursor {
+      border-color: rgba(240,201,74,0.75);
+      background: linear-gradient(135deg, rgba(240,201,74,0.22) 0%, rgba(50,28,90,0.95) 100%);
+      box-shadow: 0 0 0 2px rgba(240,201,74,0.25), 0 4px 16px rgba(240,201,74,0.1);
+      flex-wrap: wrap;
+    }
+    .admin-ranking-row.reveal-cursor .admin-ranking-rank {
+      background: var(--gold);
+      color: #12071f;
+      font-size: 0.82rem;
+    }
+    .admin-ranking-row.reveal-cursor .admin-ranking-song-title { color: #fff; }
+    .admin-ranking-row.reveal-pending {
+      opacity: 0.3;
+    }
+    .reveal-cursor-label {
+      width: 100%;
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
 
     .serata-main-grid {
       width: 100%;
@@ -956,25 +1005,40 @@
             <ol>
               <li>
                 <strong>Apri le votazioni dopo aver aperto il karaoke.</strong>
-                Usa il pulsante <em>Apri votazioni</em> nel pannello serata: da quel momento il pubblico può votare dalla pagina <code>vota.html</code> e le prenotazioni rimangono attive in parallelo.
+                Usa <em>Apri votazioni</em> nel pannello serata: da quel momento il pubblico vota da <code>vota.html</code> e le prenotazioni restano attive.
               </li>
               <li>
-                <strong>Quando vuoi chiudere le votazioni, premi <em>Termina votazioni</em>.</strong>
-                Questo pulsante chiude contemporaneamente i voti <em>e</em> le prenotazioni e attiva la <strong>modalità proclamazione</strong>.
-                <br><strong>⚠️ Importante:</strong> in modalità proclamazione è possibile <em>solo</em> proclamare il vincitore e successivamente chiudere il karaoke. Non è possibile riaprire le prenotazioni o i voti.
+                <strong>Quando vuoi chiudere, premi <em>Termina votazioni</em>.</strong>
+                Chiude voti e prenotazioni e attiva la <strong>modalità proclamazione</strong>.
+                Da questo momento puoi solo proclamare il vincitore e chiudere il karaoke.
+                <br><strong>⚠️ Finché non avvii countdown o revealing puoi ancora annullare</strong> con <em>Annulla proclamazione</em>.
               </li>
               <li>
-                <strong>Countdown e proiezione del risultato.</strong>
-                Per un reveal scenico:
+                <strong>Scegli come rivelare il vincitore (configurabile in Impostazioni):</strong>
                 <ol type="a">
-                  <li>Dal computer collegato al proiettore, apri la pagina pubblica <code>vota.html</code> e proiettala in sala (usa il pulsante <em>Apri pagina voti/countdown ↗</em> nell'app admin per aprirla velocemente).</li>
-                  <li>Dall'app admin (sullo smartphone o su un secondo dispositivo), premi <strong>Avvia countdown</strong>: comparirà subito il numero iniziale e poi partirà il conto alla rovescia visibile sul proiettore.</li>
-                  <li>Allo scadere del countdown parte il reveal: in base alle impostazioni può essere manuale (con pulsante admin) o automatico (con timer), oppure può essere saltato mostrando subito la classifica finale.</li>
-                  <li>Se preferisci saltare il countdown, usa direttamente <strong>Proclamazione diretta</strong> per pubblicare il risultato immediatamente.</li>
+                  <li>
+                    <strong>Countdown + Revealing</strong> — premi <em>🎬 Avvia countdown</em>: parte il timer visibile sul proiettore (<code>vota.html</code>), poi al termine parte il reveal automatico o manuale.
+                  </li>
+                  <li>
+                    <strong>Solo Revealing</strong> (salta il countdown) — premi <em>✨ Avvia Revealing</em>: va direttamente all'animazione reveal senza timer. Disponibile solo se il revealing è abilitato nelle impostazioni.
+                  </li>
+                  <li>
+                    <strong>Solo Countdown</strong> (senza animazione) — disabilita il revealing in Impostazioni, poi premi <em>Avvia countdown</em>: allo scadere compare direttamente la classifica finale.
+                  </li>
+                  <li>
+                    <strong>Proclamazione diretta</strong> — premi <em>🏆 Proclamazione diretta</em>: salta countdown e revealing, mostra subito la classifica. Sempre disponibile.
+                  </li>
                 </ol>
               </li>
+              <li>
+                <strong>Modalità reveal (impostabile in Impostazioni sviluppatore):</strong>
+                <ul>
+                  <li><em>Automatica</em> — le posizioni vengono svelate a intervalli fissi senza intervento admin.</li>
+                  <li><em>Manuale</em> — ogni posizione si svela con il pulsante <em>Svela posizione X</em> nel pannello admin.</li>
+                </ul>
+              </li>
             </ol>
-            <p class="help-note">💡 <strong>Nota:</strong> i pulsanti <em>Disabilita prenotazioni</em> e <em>Disabilita voti</em> sono temporanei — puoi abilitarli e disabilitarli liberamente durante la serata quante volte vuoi, senza conseguenze sulla modalità corrente.</p>
+            <p class="help-note">💡 <strong>Nota:</strong> i pulsanti <em>Disabilita prenotazioni</em> e <em>Disabilita voti</em> sono temporanei — puoi usarli liberamente durante la serata senza conseguenze sulla modalità corrente.</p>
           </section>
           <section class="help-card">
             <h4>Istruzioni archivio (semplici)</h4>
@@ -1444,6 +1508,7 @@
 
     // Stato del pannello collassabile preservato tra re-render
     let serataPanelOpen = false;
+    let autoCollapsedForReveal = false;
 
     function renderSerata() {
       clearAutoRevealStepTimer();
@@ -1501,6 +1566,15 @@
           : '';
         const inProclamazioneMode = winnerRevealCountdownActive && !winnerDecreed;
 
+        // Auto-collassa il box serata la prima volta che entra in reveal phase
+        if (revealPhaseActive && !autoCollapsedForReveal) {
+          serataPanelOpen = false;
+          autoCollapsedForReveal = true;
+        }
+        if (!revealPhaseActive) {
+          autoCollapsedForReveal = false;
+        }
+
         if (inProclamazioneMode) {
           dotClass = 'is-proclamation';
           summaryStatus = '🟠 Modalità proclamazione';
@@ -1544,6 +1618,17 @@
             <div class="control-grid">
               ${winnerDecreed ? `
                 <div class="control-note">🏁 Karaoke concluso: le azioni della serata sono terminate. L'unica operazione disponibile è <strong>Chiudi karaoke</strong>.</div>
+              ` : (revealPhaseActive ? `
+                ${revealAutomaticMode ? `
+                  <div class="control-note" id="auto-reveal-status-note">
+                    ${hasRevealCurrentRank
+                      ? `🎯 Svelando la posizione ${revealCurrentRank > 1 ? revealCurrentRank : 'vincitore'}${autoRevealTimerLabel ? ` · prossimo step tra ${autoRevealTimerLabel}` : ''}`
+                      : '🎯 Inizio il reveal automatico…'}
+                  </div>
+                ` : ''}
+                ${revealManualMode ? `
+                  <div class="control-note">🎭 Reveal manuale — usa il box della classifica per svelare le posizioni.</div>
+                ` : ''}
               ` : (inProclamazioneMode ? `
                 <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
                   ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
@@ -1551,19 +1636,12 @@
                 <button class="btn-serata btn-winner" id="btn-start-winner-countdown"${revealCountdownEndsAtMs ? ' disabled' : ''}>
                   ${revealCountdownEndsAtMs ? '🎬 Countdown avviato' : '🎬 Avvia countdown'}
                 </button>
-                <button class="btn-serata btn-winner" id="btn-decree-winner">🏆 Proclamazione diretta</button>
-                <button class="btn-serata btn-secondary" id="btn-disable-diretta">Annulla proclamazione</button>
-                ${revealManualMode ? `
-                  <button class="btn-serata btn-winner${manualRevealAction?.winnerAction ? '' : ' btn-secondary'}" id="btn-manual-reveal-next"${manualRevealAction ? '' : ' disabled'}>
-                    ${manualRevealAction ? manualRevealAction.label : 'Attendi inizializzazione reveal…'}
-                  </button>
+                ${revealSettings.enabled && !revealCountdownEndsAtMs ? `
+                  <button class="btn-serata btn-winner" id="btn-start-winner-reveal-only">✨ Avvia Revealing</button>
                 ` : ''}
-                ${revealAutomaticMode ? `
-                  <div class="control-note" id="auto-reveal-status-note">
-                    ${hasRevealCurrentRank
-                      ? `🎯 Svelando la posizione ${revealCurrentRank > 1 ? revealCurrentRank : 'vincitore'}${autoRevealTimerLabel ? ` · prossimo step tra ${autoRevealTimerLabel}` : ''}`
-                      : '🎯 Inizializzazione reveal automatico…'}
-                  </div>
+                <button class="btn-serata btn-winner" id="btn-decree-winner">🏆 Proclamazione diretta</button>
+                ${!revealCountdownEndsAtMs ? `
+                  <button class="btn-serata btn-secondary" id="btn-disable-diretta">Annulla proclamazione</button>
                 ` : ''}
               ` : `
                 <button class="btn-serata ${prenOpen ? 'btn-voto-close' : 'btn-voto-open'}" id="btn-toggle-prenotazioni">
@@ -1576,7 +1654,7 @@
                 <button class="btn-serata btn-secondary" id="btn-toggle-show-totals">
                   ${showTotals ? 'Nascondi totali pubblici' : 'Mostra totali pubblici'}
                 </button>
-              `)}
+              `))}
             </div>
           </div>
         `;
@@ -1622,14 +1700,23 @@
       document.getElementById('btn-close-serata').addEventListener('click', closeSerata);
       const openVotaPageLink = document.getElementById('btn-open-vota-page');
       if (openVotaPageLink) openVotaPageLink.addEventListener('click', openVotaPage);
+      const endsAtMsNow = getWinnerRevealEndsAtMs(currentSerata);
+      const revealPhaseActiveNow = Boolean(currentSerata.winner_reveal_countdown_active)
+        && !winnerDecreed
+        && Boolean(endsAtMsNow)
+        && endsAtMsNow <= Date.now()
+        && getWinnerRevealSettings().enabled;
       if (!winnerDecreed) {
         if (inProclamazioneMode) {
-          document.getElementById('btn-toggle-show-totals').addEventListener('click', toggleShowVoteTotals);
-          document.getElementById('btn-start-winner-countdown').addEventListener('click', startWinnerCountdown);
-          document.getElementById('btn-decree-winner').addEventListener('click', decreeWinnerDirect);
-          document.getElementById('btn-disable-diretta').addEventListener('click', disableDiretta);
-          const manualRevealBtn = document.getElementById('btn-manual-reveal-next');
-          if (manualRevealBtn) manualRevealBtn.addEventListener('click', revealNextWinnerPosition);
+          if (!revealPhaseActiveNow) {
+            // Prima del reveal: mostra tutti i controlli di avvio
+            document.getElementById('btn-toggle-show-totals')?.addEventListener('click', toggleShowVoteTotals);
+            document.getElementById('btn-start-winner-countdown')?.addEventListener('click', startWinnerCountdown);
+            document.getElementById('btn-start-winner-reveal-only')?.addEventListener('click', startWinnerRevealOnly);
+            document.getElementById('btn-decree-winner')?.addEventListener('click', decreeWinnerDirect);
+            document.getElementById('btn-disable-diretta')?.addEventListener('click', disableDiretta);
+          }
+          // Il pulsante Svela è nel ranking card — wired in renderAdminFinalRanking
         } else {
           document.getElementById('btn-toggle-prenotazioni').addEventListener('click', togglePrenotazioni);
           document.getElementById('btn-toggle-voto').addEventListener('click', toggleVoto);
@@ -1640,6 +1727,19 @@
       }
       renderAdminFinalRanking();
       scheduleAutoRevealStatusTick();
+      // Modalità manuale: inizializza il rank (advance_winner_reveal) se è null.
+      // In automatico lo fa maybeAutoManageWinnerReveal; in manuale va triggerato
+      // esplicitamente perché scheduleWinnerRevealAutomation non viene chiamata.
+      if (currentSerata && !currentSerata.vincitore_decretato && currentSerata.winner_reveal_countdown_active) {
+        const _endsAtMs = Date.parse(String(currentSerata.winner_reveal_countdown_ends_at || ''));
+        const _countdownEnded = Number.isFinite(_endsAtMs) && _endsAtMs <= Date.now();
+        const _currentRank = Number(currentSerata.winner_reveal_current_rank);
+        const _hasRank = Number.isInteger(_currentRank) && _currentRank >= 1;
+        const _revealSettings = getWinnerRevealSettings();
+        if (_revealSettings.enabled && _revealSettings.mode === 'manual' && _countdownEnded && !_hasRank) {
+          scheduleWinnerRevealAutomation(50);
+        }
+      }
     }
 
     function openVotaPage(event) {
@@ -1777,6 +1877,23 @@
         updateLiveDot();
       } catch (error) {
         alert(error?.message || 'Non sono riuscito ad aggiornare la visibilità dei voti.');
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function startWinnerRevealOnly() {
+      if (!currentSerata) return;
+      if (!confirm('Avviare subito il revealing (senza countdown) per il reveal del vincitore?')) return;
+      const btn = document.getElementById('btn-start-winner-reveal-only');
+      if (btn) btn.disabled = true;
+      try {
+        const result = await callAdmin('start_winner_reveal_only', { serataId: currentSerata.id });
+        currentSerata = result?.serata || currentSerata;
+        syncConnected = true;
+        renderSerata();
+        updateLiveDot();
+      } catch (error) {
+        alert(error?.message || 'Non sono riuscito ad avviare il revealing.');
         if (btn) btn.disabled = false;
       }
     }
@@ -1927,6 +2044,93 @@
     function renderAdminFinalRanking() {
       if (!adminRankingWrap) return;
       const winnerDecreed = Boolean(currentSerata?.vincitore_decretato);
+
+      // Mostra la classifica anche durante il reveal (prima del decreto)
+      if (!winnerDecreed && currentSerata?.winner_reveal_countdown_active) {
+        const endsAtMs = Date.parse(String(currentSerata.winner_reveal_countdown_ends_at || ''));
+        const countdownEnded = Number.isFinite(endsAtMs) && endsAtMs <= Date.now();
+        const revealSettings = getWinnerRevealSettings();
+        if (countdownEnded && revealSettings.enabled) {
+          const ranking = buildAdminFinalRanking(bookings);
+          const top5 = ranking.slice(0, 5);
+          if (!top5.length) { adminRankingWrap.style.display = 'none'; return; }
+
+          const currentRank = Number(currentSerata.winner_reveal_current_rank) || 0;
+          const nextRank = currentRank > 1 ? currentRank - 1 : (currentRank === 0 ? top5.length : null);
+          const isManual = revealSettings.mode === 'manual';
+          const manualRevealAction = isManual && currentRank >= 1
+            ? (typeof window.getWinnerRevealAdminAction === 'function'
+                ? window.getWinnerRevealAdminAction(currentRank)
+                : (currentRank === 2
+                    ? { label: '🏆 Svela vincitore', winnerAction: true }
+                    : (currentRank > 2 ? { label: `Svela la posizione ${currentRank - 1}`, winnerAction: false } : null)))
+            : null;
+
+          const rows = top5.map((item, i) => {
+            const pos = i + 1; // 1 = winner, 5 = last
+
+            // Posizioni rivelate: pos >= currentRank (già in onda o già passate)
+            // Cursore: pos === nextRank (prossima da svelare) → luminosa
+            // Pending: pos < nextRank (non ancora toccate) → scura
+            const isRevealed = currentRank > 0 && pos > currentRank;
+            const isLive     = currentRank > 0 && pos === currentRank;
+            const isCursor   = nextRank !== null && pos === nextRank;
+            const isPending  = !isRevealed && !isLive && !isCursor;
+
+            let rowClass = '';
+            if (isCursor)      rowClass = 'reveal-cursor';
+            else if (isLive || isRevealed) rowClass = 'reveal-live';
+            else if (isPending) rowClass = 'reveal-pending';
+
+            const cursorLabel = isCursor
+              ? `<div class="reveal-cursor-label">▶ Prossima da svelare</div>`
+              : '';
+
+            return `
+              <div class="admin-ranking-row${rowClass ? ' ' + rowClass : ''}">
+                ${cursorLabel}
+                <div class="admin-ranking-rank">${pos}</div>
+                <div class="admin-ranking-song">
+                  <div class="admin-ranking-song-title">${esc(item.nome)}</div>
+                  <div class="admin-ranking-song-meta">${esc(item.canzone)} · ${esc(item.artista || '')}</div>
+                </div>
+                <div class="admin-ranking-points">${isRevealed || isLive ? `${item.score_total} pt` : '—'}</div>
+              </div>`;
+          }).join('');
+
+          const modeLabel = isManual ? 'Manuale' : 'Automatico';
+          const statusLabel = currentRank === 0
+            ? 'In attesa di inizializzazione…'
+            : (nextRank === null ? 'Pronto per decreto vincitore' : `Posizione ${currentRank} in onda · prossima: ${nextRank}`);
+
+          // Pulsante Svela (solo manuale) in fondo al card
+          const svelaBtn = isManual && manualRevealAction
+            ? `<div style="padding:0 12px 14px">
+                <button class="btn-reveal-manual${manualRevealAction.winnerAction ? ' btn-winner' : ''}" id="btn-manual-reveal-next">
+                  ${manualRevealAction.label}
+                </button>
+               </div>`
+            : '';
+
+          adminRankingWrap.style.display = 'block';
+          adminRankingWrap.innerHTML = `
+            <section class="admin-ranking-card">
+              <div class="admin-ranking-head">
+                <h3>🎭 Revealing in corso · ${modeLabel}</h3>
+                <p>${statusLabel}</p>
+              </div>
+              <div class="admin-ranking-list">${rows}</div>
+              ${svelaBtn}
+            </section>`;
+
+          // Wiring pulsante Svela
+          adminRankingWrap.querySelector('#btn-manual-reveal-next')
+            ?.addEventListener('click', revealNextWinnerPosition);
+
+          return;
+        }
+      }
+
       if (!winnerDecreed) {
         adminRankingWrap.style.display = 'none';
         adminRankingWrap.innerHTML = '';

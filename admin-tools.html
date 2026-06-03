@@ -511,6 +511,14 @@
           <div class="details-body">
 
             <div class="setting-sub-box">
+              <div class="setting-label">Popola archivio demo</div>
+              <p>Crea <strong>5 serate passate</strong> con canzoni, voti e vincitori diversi per testare la pagina archivio. Le serate vengono ricreate ogni volta (le precedenti con le stesse date vengono sostituite).</p>
+              <div class="actions">
+                <button class="action-btn btn-populate-awards" id="btn-populate-archive">Popola archivio demo</button>
+              </div>
+            </div>
+
+            <div class="setting-sub-box">
               <div class="setting-label">Demo premiazione karaoke</div>
               <p>Crea o ripopola una serata aperta con canzoni e voti di test, pronta in <strong>modalità proclamazione</strong> per provare velocemente countdown e animazioni finali.</p>
               <div class="actions">
@@ -579,6 +587,7 @@
     const maintenanceModeStatusBox = document.getElementById('maintenance-mode-status-box');
     const statusMessage = document.getElementById('status-message');
     const populateAwardsSerataBtn = document.getElementById('btn-populate-awards-serata');
+    const populateArchiveBtn = document.getElementById('btn-populate-archive');
     const cleanSerataBtn = document.getElementById('btn-clean-serata');
     const cleanAllBtn = document.getElementById('btn-clean-all');
     const toggleTelegramNotificationsBtn = document.getElementById('btn-toggle-telegram-notifications');
@@ -661,6 +670,7 @@
     document.getElementById('pwd-btn').addEventListener('click', loginAdmin);
     pwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAdmin(); });
     populateAwardsSerataBtn.addEventListener('click', populateAwardsDemoData);
+    populateArchiveBtn?.addEventListener('click', populateArchiveDemoData);
     cleanSerataBtn.addEventListener('click', cleanupCurrentSerata);
     cleanAllBtn.addEventListener('click', cleanupAllData);
     toggleTelegramNotificationsBtn.addEventListener('click', toggleTelegramNotifications);
@@ -1146,6 +1156,19 @@
       } finally {
         setBusy(cleanSerataBtn, false, 'Pulisci prenotazioni serata corrente');
         await loadCurrentSerata();
+      }
+    }
+
+    async function populateArchiveDemoData() {
+      if (!confirm('Creare 5 serate passate di test per l\'archivio? Le serate con le stesse date verranno sostituite.')) return;
+      setBusy(populateArchiveBtn, true, 'Creazione archivio…');
+      try {
+        const result = await callAdmin('populate_archive_test_data');
+        setStatus(`Archivio demo pronto: ${result?.serateCreated || 0} serate, ${result?.bookingsCreated || 0} canzoni, ${result?.votesCreated || 0} voti creati.`);
+      } catch (error) {
+        setStatus(error?.message || 'Non sono riuscito a creare l\'archivio demo.', true);
+      } finally {
+        setBusy(populateArchiveBtn, false, 'Popola archivio demo');
       }
     }
 

@@ -226,6 +226,73 @@ function buildAwardsTestVotes(
   );
 }
 
+// ─── Dati test archivio ─────────────────────────────────────────────────────
+const ARCHIVE_TEST_NIGHTS: Array<{
+  daysAgo: number;
+  songs: Array<{ nome: string; canzone: string; artista: string; voti: number[] }>;
+}> = [
+  {
+    daysAgo: 7,
+    songs: [
+      { nome: "Sofia",     canzone: "La notte",                    artista: "Arisa",             voti: [5,5,5,5,5] },
+      { nome: "Roberto",   canzone: "Azzurro",                     artista: "Adriano Celentano", voti: [5,5,4,5,4] },
+      { nome: "Chiara",    canzone: "Almeno tu nell'universo",     artista: "Mia Martini",       voti: [4,5,4,4,5] },
+      { nome: "Antonio",   canzone: "Come saprei",                 artista: "Giorgia",           voti: [4,4,4,4,4] },
+      { nome: "Valentina", canzone: "Ogni volta",                  artista: "Laura Pausini",     voti: [3,4,4,3,4] },
+    ],
+  },
+  {
+    daysAgo: 14,
+    songs: [
+      { nome: "Francesco", canzone: "Hey Jude",          artista: "The Beatles",  voti: [5,5,5,5,5,4] },
+      { nome: "Maria",     canzone: "Bohemian Rhapsody", artista: "Queen",        voti: [5,5,4,4,5,5] },
+      { nome: "Giovanni",  canzone: "Hotel California",  artista: "Eagles",       voti: [4,4,5,4,4,4] },
+      { nome: "Elena",     canzone: "Shallow",           artista: "Lady Gaga",    voti: [4,4,4,4,3,4] },
+      { nome: "Paolo",     canzone: "Africa",            artista: "Toto",         voti: [3,4,3,3,4,3] },
+      { nome: "Irene",     canzone: "Summertime",        artista: "Janis Joplin", voti: [3,3,4,3,3,3] },
+    ],
+  },
+  {
+    daysAgo: 21,
+    songs: [
+      { nome: "Carla",    canzone: "Tutta colpa mia",      artista: "Elisa",          voti: [5,5,5,4,5,5] },
+      { nome: "Stefano",  canzone: "Generale",             artista: "Francesco De Gregori", voti: [5,4,5,5,4,5] },
+      { nome: "Roberta",  canzone: "Volare",               artista: "Domenico Modugno",     voti: [5,4,5,4,4,4] },
+      { nome: "Michele",  canzone: "Con te partirò",       artista: "Andrea Bocelli",       voti: [4,4,4,4,4,5] },
+      { nome: "Laura",    canzone: "Ancora ancora ancora", artista: "Mina",                 voti: [4,4,4,3,5,4] },
+      { nome: "Daniele",  canzone: "L'italiano",           artista: "Toto Cutugno",         voti: [3,4,3,4,4,3] },
+      { nome: "Anna",     canzone: "Cuore matto",          artista: "Little Tony",          voti: [3,3,4,3,3,4] },
+    ],
+  },
+  {
+    daysAgo: 28,
+    songs: [
+      { nome: "Luca B.",   canzone: "Purple Rain",           artista: "Prince",      voti: [5,5,5,5,5,5] },
+      { nome: "Marta",     canzone: "Nothing Compares 2 U",  artista: "Sinéad O'Connor", voti: [5,5,5,4,5,4] },
+      { nome: "Giorgio",   canzone: "Don't Stop Me Now",     artista: "Queen",       voti: [4,5,4,5,4,4] },
+      { nome: "Cristina",  canzone: "Sweet Child O' Mine",   artista: "Guns N' Roses", voti: [4,4,4,4,4,4] },
+      { nome: "Simone",    canzone: "With or Without You",   artista: "U2",          voti: [4,3,4,4,3,4] },
+    ],
+  },
+  {
+    daysAgo: 35,
+    songs: [
+      { nome: "Beatrice",  canzone: "Nessun dorma",       artista: "Giacomo Puccini",   voti: [5,5,5,5,5,5,5] },
+      { nome: "Fabrizio",  canzone: "Il pescatore",       artista: "Fabrizio De André", voti: [5,5,5,5,5,4,4] },
+      { nome: "Miriam",    canzone: "Perdere l'amore",    artista: "Massimo Ranieri",   voti: [4,5,4,5,4,5,4] },
+      { nome: "Riccardo",  canzone: "Luglio",             artista: "Riccardo Cocciante",voti: [4,4,5,4,4,4,4] },
+      { nome: "Silvia",    canzone: "Il cielo in una stanza", artista: "Gino Paoli",   voti: [4,4,4,4,4,4,3] },
+    ],
+  },
+];
+
+function buildArchiveTestDate(daysAgo: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - daysAgo);
+  return d.toISOString().slice(0, 10);
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 const POST_APPROVAL_MODE_DIRECT_LIVE = "direct_live";
 const POST_APPROVAL_MODE_PREPARATION_THEN_LIVE = "preparation_then_live";
 
@@ -311,6 +378,27 @@ async function ensureAdminAuth(req: Request): Promise<void> {
 
   if (!adminRow) {
     throw new ApiError(403, "forbidden", "Accesso riservato agli amministratori.");
+  }
+}
+
+async function getRevealSettingsSnapshot(admin: ReturnType<typeof createClient>) {
+  try {
+    const { data } = await admin
+      .from("impostazioni_pubbliche")
+      .select("winner_reveal_animation_enabled, winner_reveal_animation_mode, winner_reveal_auto_step_seconds")
+      .eq("id", 1)
+      .maybeSingle();
+    return {
+      reveal_animation_enabled: data?.winner_reveal_animation_enabled !== false,
+      reveal_animation_mode: data?.winner_reveal_animation_mode === "manual" ? "manual" : "automatic",
+      reveal_auto_step_seconds: Number(data?.winner_reveal_auto_step_seconds) || DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
+    };
+  } catch (_) {
+    return {
+      reveal_animation_enabled: true,
+      reveal_animation_mode: "automatic" as const,
+      reveal_auto_step_seconds: DEFAULT_WINNER_REVEAL_AUTO_STEP_SECONDS,
+    };
   }
 }
 
@@ -1433,6 +1521,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
 
       const startedAt = new Date();
       const endsAt = new Date(startedAt.getTime() + countdownSeconds * 1000);
+      const revealSnapshot = await getRevealSettingsSnapshot(admin);
       const { data: updatedSerata, error: updateError } = await admin
         .from("serate")
         .update({
@@ -1442,6 +1531,7 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           winner_reveal_countdown_started_at: startedAt.toISOString(),
           winner_reveal_countdown_ends_at: endsAt.toISOString(),
           winner_reveal_countdown_seconds: countdownSeconds,
+          ...revealSnapshot,
           ...clearRevealProgressState(),
         })
         .eq("id", currentSerata.id)
@@ -1462,6 +1552,51 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           top5_preview: top5,
         },
       };
+    }
+
+    case "start_winner_reveal_only": {
+      // Avvia il revealing senza countdown: imposta ends_at = now (già scaduto)
+      // così vota.html entra subito in fase reveal senza mostrare il timer.
+      const currentSerata = body.serataId != null
+        ? await getSerataById(admin, toPositiveInt(body.serataId, "serataId"))
+        : await getOpenSerata(admin);
+
+      if (!currentSerata?.id) {
+        throw new ApiError(404, "not_found", "Nessuna serata aperta trovata.");
+      }
+      if (currentSerata.vincitore_decretato) {
+        throw new ApiError(409, "winner_already_decreed", "Il vincitore è già stato decretato.");
+      }
+      if (currentSerata.voto_aperto) {
+        throw new ApiError(409, "voting_still_open", "Chiudi prima le votazioni per avviare il revealing.");
+      }
+      if (!currentSerata.winner_reveal_countdown_active) {
+        throw new ApiError(409, "not_in_proclamazione_mode", "La serata non è in modalità proclamazione.");
+      }
+      if (Number.isFinite(Date.parse(String(currentSerata.winner_reveal_countdown_ends_at || "")))) {
+        throw new ApiError(409, "countdown_already_started", "Il countdown è già stato avviato.");
+      }
+
+      const now = new Date();
+      const revealSnapshot = await getRevealSettingsSnapshot(admin);
+      const { data: updatedSerata, error: updateError } = await admin
+        .from("serate")
+        .update({
+          winner_reveal_countdown_started_at: now.toISOString(),
+          winner_reveal_countdown_ends_at: now.toISOString(),
+          winner_reveal_countdown_seconds: null,
+          ...revealSnapshot,
+          ...clearRevealProgressState(),
+        })
+        .eq("id", currentSerata.id)
+        .select("*")
+        .maybeSingle();
+
+      if (updateError || !updatedSerata) {
+        throw new ApiError(500, "update_failed", "Non sono riuscito ad avviare il revealing.");
+      }
+
+      return { status: 200, data: { serata: updatedSerata } };
     }
 
     case "set_browser_notifications":
@@ -1726,12 +1861,14 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
         const countdownSeconds = parseCountdownSeconds(body.countdownSeconds ?? DEFAULT_WINNER_REVEAL_COUNTDOWN_SECONDS);
         const startedAt = new Date();
         const endsAt = new Date(startedAt.getTime() + countdownSeconds * 1000);
+        const revealSnapshot = await getRevealSettingsSnapshot(admin);
         const { data: countdownSerata, error: countdownError } = await admin
           .from("serate")
           .update({
             winner_reveal_countdown_started_at: startedAt.toISOString(),
             winner_reveal_countdown_ends_at: endsAt.toISOString(),
             winner_reveal_countdown_seconds: countdownSeconds,
+            ...revealSnapshot,
             ...clearRevealProgressState(),
           })
           .eq("id", currentSerata.id)
@@ -2108,6 +2245,106 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
           bookingsCount: normalizedBookings.length,
           votesCount: insertedVotes?.length ?? 0,
         },
+      };
+    }
+
+    case "populate_archive_test_data": {
+      if (!isTestEnvironment()) {
+        throw new ApiError(403, "forbidden", "Azione disponibile solo in ambiente di test.");
+      }
+
+      // Cancella serate di archivio già esistenti con le date test per evitare duplicati
+      const testDates = ARCHIVE_TEST_NIGHTS.map((n) => buildArchiveTestDate(n.daysAgo));
+      await admin.from("serate").delete().in("data", testDates).eq("aperta", false);
+
+      let serateCreated = 0;
+      let bookingsCreated = 0;
+      let votesCreated = 0;
+
+      for (const night of ARCHIVE_TEST_NIGHTS) {
+        const date = buildArchiveTestDate(night.daysAgo);
+        const baseTime = new Date(`${date}T20:30:00.000Z`).getTime();
+        const voteBaseTime = new Date(`${date}T21:00:00.000Z`).getTime();
+
+        // Crea la serata chiusa
+        const { data: newSerata, error: serataErr } = await admin
+          .from("serate")
+          .insert({
+            data: date,
+            aperta: false,
+            voto_aperto: false,
+            mostra_voti_totali: true,
+            vincitore_decretato: false, // aggiornato dopo
+            vincitore_prenotazione_id: null,
+            winner_reveal_countdown_active: false,
+            prenotazioni_abilitate: false,
+            archiviato_nascosto: false,
+            ...clearRevealProgressState(),
+          })
+          .select("id")
+          .maybeSingle();
+
+        if (serataErr || !newSerata?.id) continue;
+        const serataId = Number(newSerata.id);
+
+        // Crea le prenotazioni
+        const bookingPayloads = night.songs.map((s, i) => ({
+          nome: s.nome,
+          canzone: s.canzone,
+          artista: s.artista,
+          serata_id: serataId,
+          approvata: true,
+          cantata: true,
+          in_preparazione: false,
+          created_at: new Date(baseTime + i * 60_000).toISOString(),
+        }));
+        const { error: bookingsErr } = await admin.from("prenotazioni").insert(bookingPayloads);
+        if (bookingsErr) continue;
+
+        // Rilegge le prenotazioni per avere gli ID
+        const { data: seededBookings } = await admin
+          .from("prenotazioni")
+          .select("id")
+          .eq("serata_id", serataId)
+          .order("created_at", { ascending: true });
+
+        const bookingIds = (seededBookings ?? [])
+          .map((b) => Number(b.id))
+          .filter((id) => Number.isInteger(id) && id > 0);
+
+        if (bookingIds.length !== night.songs.length) continue;
+
+        // Crea i voti
+        const votePayloads = bookingIds.flatMap((bookingId, bi) =>
+          night.songs[bi].voti.map((voto, vi) => ({
+            prenotazione_id: bookingId,
+            voto,
+            created_at: new Date(voteBaseTime + bi * 60_000 + vi * 1_000).toISOString(),
+          }))
+        );
+        await admin.from("voti").insert(votePayloads);
+
+        // Calcola il vincitore (chi ha il totale voti più alto)
+        const totals = night.songs.map((s, i) =>
+          s.voti.reduce((sum, v) => sum + v, 0)
+        );
+        const winnerIndex = totals.indexOf(Math.max(...totals));
+        const winnerId = bookingIds[winnerIndex];
+
+        // Aggiorna la serata con il vincitore
+        await admin
+          .from("serate")
+          .update({ vincitore_decretato: true, vincitore_prenotazione_id: winnerId })
+          .eq("id", serataId);
+
+        serateCreated++;
+        bookingsCreated += bookingIds.length;
+        votesCreated += votePayloads.length;
+      }
+
+      return {
+        status: 200,
+        data: { serateCreated, bookingsCreated, votesCreated },
       };
     }
 
