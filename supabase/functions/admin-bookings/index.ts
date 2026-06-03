@@ -681,6 +681,7 @@ async function updatePublicSettings(
     winner_reveal_animation_enabled?: boolean;
     winner_reveal_animation_mode?: "manual" | "automatic";
     winner_reveal_auto_step_seconds?: number;
+    ads_enabled?: boolean;
   },
 ) {
   await getPublicSettings(admin);
@@ -725,6 +726,9 @@ async function updatePublicSettings(
   }
   if (Number.isInteger(updates.winner_reveal_auto_step_seconds)) {
     payload.winner_reveal_auto_step_seconds = updates.winner_reveal_auto_step_seconds;
+  }
+  if (typeof updates.ads_enabled === "boolean") {
+    payload.ads_enabled = updates.ads_enabled;
   }
 
   const { data, error } = await admin
