@@ -918,8 +918,9 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
 
     case "set_archive_cover": {
       const serataId = toPositiveInt(body.serataId, "serataId");
+      const useDefaultCover = body.useDefaultCover === true;
       let prenotazioneId: number | null = null;
-      if (body.prenotazioneId !== null && body.prenotazioneId !== undefined && body.prenotazioneId !== "") {
+      if (!useDefaultCover && body.prenotazioneId !== null && body.prenotazioneId !== undefined && body.prenotazioneId !== "") {
         prenotazioneId = toPositiveInt(body.prenotazioneId, "prenotazioneId");
         // Verifica che la prenotazione appartenga alla serata indicata
         const { data: booking, error: bookingErr } = await admin
@@ -936,10 +937,10 @@ async function executeAction(admin: ReturnType<typeof createClient>, action: str
       }
       const { data, error } = await admin
         .from("serate")
-        .update({ cover_prenotazione_id: prenotazioneId })
+        .update({ cover_prenotazione_id: prenotazioneId, cover_use_default: useDefaultCover })
         .eq("id", serataId)
         .eq("aperta", false)
-        .select("id, archiviato_nascosto, cover_prenotazione_id")
+        .select("id, archiviato_nascosto, cover_prenotazione_id, cover_use_default")
         .single();
       if (error) {
         throw new ApiError(500, "query_failed", "Errore durante l'aggiornamento della copertina.");

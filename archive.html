@@ -844,7 +844,7 @@
     async function loadEverything() {
       let query = db
         .from('serate')
-        .select('id, data, created_at, vincitore_prenotazione_id, vincitore_decretato, archiviato_nascosto, cover_prenotazione_id')
+        .select('id, data, created_at, vincitore_prenotazione_id, vincitore_decretato, archiviato_nascosto, cover_prenotazione_id, cover_use_default')
         .eq('aperta', false)
         .order('data', { ascending: false })
         .order('created_at', { ascending: false });
@@ -919,20 +919,23 @@
       if (!winner && top5.length) winner = top5[0];
 
       // Cover photo priority order:
-      //   1. cover_prenotazione_id (override admin) → cerca il selfie tra TUTTE le prenotazioni
-      //   2. selfie del vincitore
-      //   3. random tra i selfie caricati
+      //   1. cover_use_default=true            → logo.png (placeholder)
+      //   2. cover_prenotazione_id             → selfie specifico
+      //   3. selfie del vincitore
+      //   4. random tra i selfie caricati
       let coverUrl = '';
-      const coverOverrideId = Number(serata.cover_prenotazione_id);
-      if (Number.isInteger(coverOverrideId) && coverOverrideId > 0) {
-        const coverBooking = allBookings.find((b) => Number(b.id) === coverOverrideId);
-        if (coverBooking?.selfie_url) coverUrl = coverBooking.selfie_url;
-      }
-      if (!coverUrl) coverUrl = winner?.selfie_url || '';
-      if (!coverUrl) {
-        const withSelfies = allBookings.filter((b) => typeof b.selfie_url === 'string' && b.selfie_url.length > 0);
-        if (withSelfies.length) {
-          coverUrl = withSelfies[Math.floor(Math.random() * withSelfies.length)].selfie_url;
+      if (!serata.cover_use_default) {
+        const coverOverrideId = Number(serata.cover_prenotazione_id);
+        if (Number.isInteger(coverOverrideId) && coverOverrideId > 0) {
+          const coverBooking = allBookings.find((b) => Number(b.id) === coverOverrideId);
+          if (coverBooking?.selfie_url) coverUrl = coverBooking.selfie_url;
+        }
+        if (!coverUrl) coverUrl = winner?.selfie_url || '';
+        if (!coverUrl) {
+          const withSelfies = allBookings.filter((b) => typeof b.selfie_url === 'string' && b.selfie_url.length > 0);
+          if (withSelfies.length) {
+            coverUrl = withSelfies[Math.floor(Math.random() * withSelfies.length)].selfie_url;
+          }
         }
       }
       return { songs, ranking, top5, winner, coverUrl, allBookings };
@@ -1275,8 +1278,9 @@
     function openCoverPicker(serata, view) {
       const bookings = (view.allBookings || []).filter((b) => typeof b.selfie_url === 'string' && b.selfie_url.length > 0);
       const currentCoverId = Number(serata.cover_prenotazione_id) || null;
-      coverPickerState = { serata, selectedId: currentCoverId };
-      renderCoverPicker(bookings, currentCoverId);
+      const currentUseDefault = serata.cover_use_default === true;
+      coverPickerState = { serata, selectedId: currentUseDefault ? 'logo' : currentCoverId, useDefault: currentUseDefault };
+      renderCoverPicker(bookings, currentCoverId, currentUseDefault);
       coverPickerOverlay.classList.add('open');
       document.body.style.overflow = 'hidden';
     }
@@ -1293,10 +1297,10 @@
       if (e.key === 'Escape' && coverPickerOverlay.classList.contains('open')) closeCoverPicker();
     });
 
-    function renderCoverPicker(bookings, currentCoverId) {
+    function renderCoverPicker(bookings, currentCoverId, currentUseDefault) {
       const optionsHtml = bookings.length
         ? bookings.map((b) => `
-            <div class="cover-option${Number(b.id) === currentCoverId ? ' selected' : ''}"
+            <div class="cover-option${Number(b.id) === currentCoverId && !currentUseDefault ? ' selected' : ''}"
                  style="background-image:url('${esc(resolveLanUrl(b.selfie_url))}')"
                  data-cover-id="${Number(b.id)}">
               <div class="cover-option-name">${esc(b.nome)}</div>
@@ -1306,8 +1310,12 @@
       coverPickerContent.innerHTML = `
         <h3>Scegli la foto di copertina</h3>
         <div class="cover-picker-grid">
-          <div class="cover-option-empty${!currentCoverId ? ' selected' : ''}" data-cover-id="">
+          <div class="cover-option-empty${!currentCoverId && !currentUseDefault ? ' selected' : ''}" data-cover-id="">
             ↺ automatica (vincitore o random)
+          </div>
+          <div class="cover-option-empty${currentUseDefault ? ' selected' : ''}" data-cover-id="logo"
+               style="background-image:url('logo.png'); background-size:contain; background-repeat:no-repeat; background-position:center; background-color:#1e0f35;">
+            <div class="cover-option-name">Logo (default)</div>
           </div>
           ${optionsHtml}
         </div>
@@ -1319,7 +1327,13 @@
       coverPickerContent.querySelectorAll('[data-cover-id]').forEach((el) => {
         el.addEventListener('click', () => {
           const raw = el.getAttribute('data-cover-id');
-          coverPickerState.selectedId = raw ? Number(raw) : null;
+          if (raw === 'logo') {
+            coverPickerState.selectedId = 'logo';
+            coverPickerState.useDefault = true;
+          } else {
+            coverPickerState.selectedId = raw ? Number(raw) : null;
+            coverPickerState.useDefault = false;
+          }
           coverPickerContent.querySelectorAll('[data-cover-id]').forEach((n) => n.classList.remove('selected'));
           el.classList.add('selected');
         });
@@ -1336,7 +1350,8 @@
       try {
         await callAdmin('set_archive_cover', {
           serataId: Number(coverPickerState.serata.id),
-          prenotazioneId: coverPickerState.selectedId,
+          prenotazioneId: coverPickerState.useDefault ? null : coverPickerState.selectedId,
+          useDefaultCover: coverPickerState.useDefault === true,
         });
         closeCoverPicker();
         await reloadGallery();
