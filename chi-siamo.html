@@ -444,7 +444,8 @@
     var al=document.getElementById('nav-archive-link');
     if(al&&window.config&&window.config.SUPABASE_URL){fetch(window.config.SUPABASE_URL+'/rest/v1/impostazioni_pubbliche?select=archivio_pubblico_abilitato&id=eq.1',{headers:{apikey:window.config.SUPABASE_ANON_KEY,Authorization:'Bearer '+window.config.SUPABASE_ANON_KEY}}).then(function(r){return r.json();}).then(function(data){if(Array.isArray(data)&&data.length&&data[0].archivio_pubblico_abilitato!==true)al.style.display='none';}).catch(function(){});}
     var tw=document.getElementById('nav-test-toggle'),tb=document.getElementById('nav-test-btn');
-    if(tw&&tb&&(window.location.hostname!=='www.ilkaraokedellatana.it'&&window.location.hostname!==''||(window.config&&window.config.APP_ENV==='test'))){tw.style.display='flex';function stb(){var on=localStorage.getItem('kt_test_banner_visible')!=='0';tb.textContent=on?'ON':'OFF';tb.style.background=on?'#2fc66c':'rgba(255,255,255,0.12)';}stb();tw.addEventListener('click',stb);}
+    var _cfg=(typeof window.CONFIG==='object'&&window.CONFIG)||(typeof CONFIG==='object'&&CONFIG)||{};
+    if(tw&&tb&&_cfg.APP_ENV==='test'){tw.style.display='flex';function stb(){var on=localStorage.getItem('kt_test_banner_visible')!=='0';tb.textContent=on?'ON':'OFF';tb.style.background=on?'#2fc66c':'rgba(255,255,255,0.12)';}stb();tw.addEventListener('click',stb);}
   </script>
 </body>
 </html>
