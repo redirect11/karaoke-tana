@@ -1472,6 +1472,7 @@
     "publisher": { "@id": "https://www.ilkaraokedellatana.it/#business" }
   }
   </script>
+  <script src="https://www.google.com/recaptcha/api.js?render=6LdEmQwtAAAAAO6TlMUDf1UQbLokXKQM0qy4AAEE"></script>
 </head>
 <body>
   <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu"><span></span><span></span><span></span></button>
@@ -3907,6 +3908,14 @@
 
       const booking = { nome, canzone, artista };
       if (currentSerataId) booking.serata_id = currentSerataId;
+      try {
+        booking.recaptcha_token = await new Promise((resolve, reject) => {
+          grecaptcha.ready(() => {
+            grecaptcha.execute('6LdEmQwtAAAAAO6TlMUDf1UQbLokXKQM0qy4AAEE', { action: 'booking' })
+              .then(resolve).catch(reject);
+          });
+        });
+      } catch (_) { /* reCAPTCHA non disponibile: tenta comunque */ }
 
       let pendingExpiresAt = null;
       try {

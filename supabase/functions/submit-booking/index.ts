@@ -7,6 +7,7 @@ type BookingPayload = {
   artista: string;
   serata_id?: number | null;
   selfie_url?: string | null;
+  recaptcha_token?: string | null;
 };
 
 function getPendingExpiryMinutes(): number {
@@ -203,6 +204,23 @@ async function sendTelegramNotification(nome: string, canzone: string, artista: 
   }
 }
 
+async function validateRecaptcha(token: string | null | undefined): Promise<{ ok: boolean }> {
+  const secretKey = Deno.env.get("RECAPTCHA_SECRET_KEY");
+  if (!secretKey) return { ok: true }; // non configurato: skip
+  if (!token) return { ok: false };
+  try {
+    const resp = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(token)}`,
+    });
+    const result = await resp.json() as { success: boolean; score?: number; action?: string };
+    return { ok: result.success === true && (result.score ?? 0) >= 0.5 };
+  } catch {
+    return { ok: false };
+  }
+}
+
 function computePendingExpiryIso(createdAt: string | null): string | null {
   if (!createdAt) return null;
   const createdAtMs = Date.parse(createdAt);
@@ -249,6 +267,18 @@ serve(async (req) => {
       success: false,
       data: null,
       error: { code: "invalid_payload", message: validated.message },
+    });
+  }
+
+  const recaptchaToken = typeof (body as Record<string, unknown>).recaptcha_token === "string"
+    ? (body as Record<string, unknown>).recaptcha_token as string
+    : null;
+  const recaptchaCheck = await validateRecaptcha(recaptchaToken);
+  if (!recaptchaCheck.ok) {
+    return jsonResponse(req, 403, {
+      success: false,
+      data: null,
+      error: { code: "recaptcha_failed", message: "Verifica di sicurezza fallita. Ricarica la pagina e riprova." },
     });
   }
 
