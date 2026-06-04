@@ -3824,6 +3824,29 @@
     // salva cookie e mostra schermata di attesa.
     document.getElementById('booking-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      // 1° click: mostra il modal notifiche se necessario, poi torna.
+      // 2° click (o se modal non serve): apre popunder e prenota.
+      if (!sessionStorage.getItem('kt_notif_shown')) {
+        const needsModal =
+          !notificationPermissionRequested &&
+          browserNotificationsEnabled &&
+          'Notification' in window &&
+          Notification.permission === 'default' &&
+          (() => {
+            try {
+              const d = Number(localStorage.getItem('kt_push_dismissed_at') || 0);
+              return !d || (Date.now() - d) >= 10 * 60 * 1000;
+            } catch (_) { return true; }
+          })();
+        sessionStorage.setItem('kt_notif_shown', '1');
+        if (needsModal) {
+          // Mostra il modal e aspetta la risposta, poi chiedi di ricliccare
+          await requestNotificationPermissionAfterBookingSuccess();
+          return;
+        }
+      }
+
       // Popunder: si riattiva ogni 60 secondi
       var puLast = Number(sessionStorage.getItem('pu_last') || 0);
       if (Date.now() - puLast > 60000) {
@@ -3888,7 +3911,6 @@
       showWaitingScreen(canzone, artista, false, pendingExpiresAt);
       ind2.classList.remove('active');
       ind2.classList.add('done');
-      requestNotificationPermissionAfterBookingSuccess();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
