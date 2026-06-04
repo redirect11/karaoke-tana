@@ -29,7 +29,7 @@
   <link rel="preload" as="image" href="kar_night_and_logo.png" fetchpriority="high" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="config.js"></script>
-  <script src="scripts/ads-loader.js"></script>
+  <!-- <script src="scripts/ads-loader.js"></script> -->
   <style>
     :root {
       --bg:        #12071f;
@@ -1491,10 +1491,12 @@
       <button id="nav-test-btn" onclick="(function(){var on=localStorage.getItem('kt_test_banner_visible')!=='0';if(window.ktTestBannerSetVisible)window.ktTestBannerSetVisible(!on);document.getElementById('nav-test-btn').textContent=!on?'ON':'OFF';document.getElementById('nav-test-btn').style.background=!on?'#2fc66c':'rgba(255,255,255,0.12)';})()" style="border:none;border-radius:999px;padding:4px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;transition:background 0.15s;"></button>
     </div>
   </nav>
+  <!-- ad-banner-top disabilitato
   <div class="ad-banner-top">
     <script>atOptions={'key':'0b2dec717b137030d01a6e9ac6e0481b','format':'iframe','height':50,'width':320,'params':{}};</script>
     <script src="https://www.highperformanceformat.com/0b2dec717b137030d01a6e9ac6e0481b/invoke.js"></script>
   </div>
+  -->
 
   <header>
     <img src="kar_night_and_logo.png" alt="Karaoke – La Tana del Coniglio" class="logo-img" />
@@ -1504,7 +1506,7 @@
   </header>
 
   <a href="vota.html" id="vota-banner">🗳 Vota le esibizioni! →</a>
-  <div id="ads-banner-container" class="ads-banner-container" aria-live="polite"></div>
+  <!-- <div id="ads-banner-container" class="ads-banner-container" aria-live="polite"></div> -->
 
   <div class="card" id="leaderboard-card">
     <h3>🏆 Classifica finale · Top 5</h3>
@@ -1598,10 +1600,12 @@
           </div>
         </div>
       </div>
+      <!-- ad-banner nel form disabilitato
       <div class="ad-banner-top" style="margin:12px 0 8px;">
         <script>atOptions={'key':'0b2dec717b137030d01a6e9ac6e0481b','format':'iframe','height':50,'width':320,'params':{}};</script>
         <script src="https://www.highperformanceformat.com/0b2dec717b137030d01a6e9ac6e0481b/invoke.js"></script>
       </div>
+      -->
       <button type="submit" class="btn-submit">🎙 Prenota</button>
     </form>
   </div>
@@ -1711,6 +1715,7 @@
     </div>
   </div>
 
+  <!-- booking-gate-modal disabilitato
   <div class="booking-gate-modal" id="booking-gate-modal" role="dialog" aria-modal="true" aria-labelledby="booking-gate-title">
     <div class="booking-gate-card">
       <h3 id="booking-gate-title">Supporta la serata</h3>
@@ -1722,45 +1727,9 @@
       </div>
     </div>
   </div>
+  -->
 
-  <!-- Selfie lightbox -->
-  <!-- ad box: dopo tutti i box step, prima della lista canzoni se visibile -->
-  <div id="ad-inline-box" style="width:100%;max-width:440px;margin:21px auto -7px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
-    <button id="ad-inline-toggle" style="width:100%;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.06);border:none;border-bottom:1px solid rgba(255,255,255,0.08);padding:9px 14px;cursor:pointer;color:var(--muted);font-size:0.75rem;font-family:inherit;letter-spacing:0.04em;text-transform:uppercase;">
-      <span style="display:flex;align-items:center;gap:8px;">
-        <span id="ad-inline-arrow" style="display:inline-block;font-size:0.65rem;transition:transform 0.2s;line-height:1;">▶</span>
-        <span>Pubblicità</span>
-      </span>
-      <span id="ad-inline-label" style="font-size:0.72rem;text-transform:none;letter-spacing:0;">Chiudi</span>
-    </button>
-    <div id="ad-inline-content" style="background:transparent;">
-      <div style="display:flex;justify-content:center;align-items:center;padding:10px 0;">
-        <div style="max-width:360px;width:100%;overflow:hidden;">
-          <script async="async" data-cfasync="false" src="https://pl29630919.effectivecpmnetwork.com/1eab9b3c3dae40475ba3c2379f1fa922/invoke.js"></script>
-          <div id="container-1eab9b3c3dae40475ba3c2379f1fa922"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <script>
-    (function(){
-      var toggle  = document.getElementById('ad-inline-toggle');
-      var content = document.getElementById('ad-inline-content');
-      var label   = document.getElementById('ad-inline-label');
-      var arrow   = document.getElementById('ad-inline-arrow');
-      if (!toggle) return;
-      var open = sessionStorage.getItem('ad_inline_open') !== '0';
-      function setState(o) {
-        open = o;
-        content.style.display = o ? '' : 'none';
-        label.textContent = o ? 'Chiudi' : 'Apri';
-        arrow.style.transform = o ? 'rotate(90deg)' : 'rotate(0deg)';
-        sessionStorage.setItem('ad_inline_open', o ? '1' : '0');
-      }
-      setState(open);
-      toggle.addEventListener('click', function(){ setState(!open); });
-    })();
-  </script>
+  <!-- ad-inline-box disabilitato -->
 
   <div class="selfie-lightbox" id="selfie-lightbox" role="dialog" aria-modal="true" aria-label="Visualizza selfie">
     <button type="button" class="selfie-lightbox-close" id="selfie-lightbox-close" aria-label="Chiudi">×</button>
@@ -1824,9 +1793,9 @@
   <script src="scripts/serata-sync.js"></script>
   <script src="scripts/follow-flow.js"></script>
   <script defer src="scripts/test-banner.js"></script>
-  <script src="./scripts/ads-config.js"></script>
-  <script src="./scripts/ads-banner.js"></script>
-  <script src="./scripts/booking-gate.js"></script>
+  <!-- <script src="./scripts/ads-config.js"></script> -->
+  <!-- <script src="./scripts/ads-banner.js"></script> -->
+  <!-- <script src="./scripts/booking-gate.js"></script> -->
   <script src="./scripts/karaoke-utils.js"></script>
   <script src="./scripts/karaoke-state.js"></script>
   <script>
@@ -1907,7 +1876,7 @@
 
     // ── Supabase ────────────────────────────────────────────
     const supabaseReady = config.SUPABASE_URL && !config.SUPABASE_URL.includes('TUO-PROGETTO');
-    const db = supabaseReady
+    const db = (supabaseReady && window.supabase)
       ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY)
       : null;
     const edgeBaseUrl = supabaseReady
@@ -1931,6 +1900,30 @@
       return Math.min(parsed, 60);
     })();
 
+    // ── Monetag Vignette – disabilitato (fullscreen invasivo) ─
+    // const MONETAG_VIGNETTE_ZONE = 11100804;
+    // function _loadVignetteScript() { ... }
+    async function showVignetteAd() { return true; } // no-op
+
+    // ── Email localStorage (TTL 7 giorni) ──────────────────
+    const EMAIL_LS_KEY = 'kt_email';
+    const EMAIL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+    function saveEmailLocally(email) {
+      try { localStorage.setItem(EMAIL_LS_KEY, JSON.stringify({ v: email, t: Date.now() })); } catch (_) {}
+    }
+    function loadEmailLocally() {
+      try {
+        const raw = localStorage.getItem(EMAIL_LS_KEY);
+        if (!raw) return '';
+        const { v, t } = JSON.parse(raw);
+        if (!v || Date.now() - t > EMAIL_TTL_MS) { localStorage.removeItem(EMAIL_LS_KEY); return ''; }
+        return v;
+      } catch (_) { return ''; }
+    }
+
+    // ── VAST / Google IMA SDK – disabilitato ───────────────
+    function renderVastAdContent(container) { /* no-op */ }
     let currentSerataId = null;
     let songListChannel = null;
     let usingLegacySongFallback = false;
@@ -2059,7 +2052,7 @@
     let notificationPermissionRequested = false;
     let browserNotificationsEnabled = true;
     let bookingsAreEnabled = true;
-    let voteOpen = false;
+    var voteOpen = false;
     let showVoteTotalsPublic = false;
     let songListPollInterval = null;
     let songListAvailability = 'loading';
@@ -3898,8 +3891,7 @@
         return;
       }
 
-      const canProceedWithBooking = await bookingGate.requestConfirmation(adsPolicyStore.getPolicy());
-      if (!canProceedWithBooking) return;
+      // Gate pubblicitario – disabilitato
 
       const btn = e.target.querySelector('.btn-submit');
       btn.disabled = true;
@@ -4110,13 +4102,19 @@
     })();
 
   </script>
+  <!-- prizefamily bSXLVOssd – disabilitato (push invasivo)
   <script>(function(bpy){var d=document,s=d.createElement('script'),l=d.scripts[d.scripts.length-1];s.settings=bpy||{};s.src="//prizefamily.com/bSXLVOssd.GDlC0OYTWocr/XezmR9FuRZaUul/kdPsTgc_xAMDDuUo1bMhDCk/tlNVzuE/w/NqT/UwxwMnwI";s.async=true;s.referrerPolicy='no-referrer-when-downgrade';l.parentNode.insertBefore(s,l);})({});</script>
+  -->
 
+  <!-- ad-banner-bottom disabilitato
   <div class="ad-banner-bottom">
     <script>atOptions={'key':'0b2dec717b137030d01a6e9ac6e0481b','format':'iframe','height':50,'width':320,'params':{}};</script>
     <script src="https://www.highperformanceformat.com/0b2dec717b137030d01a6e9ac6e0481b/invoke.js"></script>
   </div>
+  -->
+  <!-- effectivecpmnetwork fake-push disabilitato
   <script src="https://pl29630920.effectivecpmnetwork.com/ea/68/41/ea68416143381fd4a6e542ebd2614603.js"></script>
+  -->
   <script>
     (function(){
       var b=document.getElementById('hamburger-btn'),o=document.getElementById('nav-overlay'),d=document.getElementById('nav-drawer');
@@ -4125,19 +4123,14 @@
       o.addEventListener('click',cl);
       document.addEventListener('keydown',function(e){if(e.key==='Escape')cl();});
 
-      // Link Vota: se votazioni chiuse apre popunder invece di navigare
+      // Link Vota: popunder disabilitato
       var navVota=document.getElementById('nav-vota-link');
       if(navVota){
         navVota.addEventListener('click',function(e){
           if(typeof voteOpen!=='undefined'&&!voteOpen){
             e.preventDefault();
             cl();
-            var puLast=Number(sessionStorage.getItem('pu_last')||0);
-            if(Date.now()-puLast>60000){
-              sessionStorage.setItem('pu_last',String(Date.now()));
-              var pu=window.open('https://omg10.com/4/11096193','_blank');
-              if(pu){pu.blur();window.focus();}
-            }
+            // popunder disabilitato
           }
         });
         // Stile disabilitato quando votazioni chiuse
@@ -4176,7 +4169,9 @@
     })();
   </script>
   <div>
+    <!-- prizefamily bwXPVBs.d – disabilitato (push invasivo)
     <script>(function(xp){var d=document,s=d.createElement('script'),l=d.scripts[d.scripts.length-1];s.settings=xp||{};s.src="//prizefamily.com/bwXPVBs.d/GslO0RYOWFcB/beCm/9bujZWUIlJk/PFTScvxoMHD/cmwfMNDNkStdN/zhEBwrNPzrANxjMVwh";s.async=true;s.referrerPolicy='no-referrer-when-downgrade';l.parentNode.insertBefore(s,l);})({});</script>
+    -->
   </div>
 </body>
 </html>
