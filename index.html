@@ -965,7 +965,7 @@
       background-position: center;
       background-repeat: no-repeat;
       opacity: 0.78;
-      filter: blur(1px) saturate(0.8) brightness(0.88);
+      filter: blur(0.3px) saturate(0.85) brightness(0.9);
       -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
               mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
       cursor: zoom-in;
@@ -1477,7 +1477,7 @@
     <div class="nav-drawer-title">Navigazione</div>
     <a href="index.html" class="active">🏠 Home</a>
     <a href="chi-siamo.html">👥 Chi siamo</a>
-    <a href="archive.html">🏆 Archivio karaoke</a>
+    <a href="archive.html" id="nav-archive-link">🏆 Archivio karaoke</a>
     <div class="nav-drawer-sep"></div>
     <a href="vota.html" id="nav-vota-link">🗳️ Vota</a>
     <a href="cookie-policy.html">🍪 Cookie Policy</a>
@@ -4065,6 +4065,18 @@
         }
         setInterval(updateVotaLink,2000);
         updateVotaLink();
+      }
+
+      // Nasconde link archivio se non abilitato pubblicamente
+      var navArchive=document.getElementById('nav-archive-link');
+      if(navArchive){
+        function updateArchiveLink(){
+          if(typeof publicSettings!=='undefined'){
+            navArchive.style.display=publicSettings&&publicSettings.archivio_pubblico_abilitato===true?'':'none';
+          }
+        }
+        setInterval(updateArchiveLink,2000);
+        updateArchiveLink();
       }
     })();
   </script>
