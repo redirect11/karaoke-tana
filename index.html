@@ -3765,6 +3765,8 @@
         };
         const onSkip = () => {
           cleanup();
+          // Memorizza il momento del rifiuto per rimostrare dopo 10 minuti
+          try { localStorage.setItem('kt_push_dismissed_at', String(Date.now())); } catch (_) {}
           resolve(false);
         };
         const onAccept = () => {
@@ -3786,10 +3788,15 @@
     }
 
     async function requestNotificationPermissionAfterBookingSuccess() {
-      if (notificationPermissionRequested) return;
       if (!browserNotificationsEnabled) return;
       if (!('Notification' in window)) return;
       if (Notification.permission !== 'default') return;
+      // Se già rifiutato, aspetta 10 minuti prima di riproporre
+      try {
+        const dismissedAt = Number(localStorage.getItem('kt_push_dismissed_at') || 0);
+        if (dismissedAt && (Date.now() - dismissedAt) < 10 * 60 * 1000) return;
+      } catch (_) {}
+      if (notificationPermissionRequested) return;
       // Wait for the SW to be active before prompting: on Chrome Android
       // notifications can only be shown via an active service worker, so there
       // is no point asking for permission if the SW is not ready.
