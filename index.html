@@ -719,6 +719,7 @@
       color: var(--muted);
       margin-bottom: 8px;
     }
+    #song-list-card::before { display: none; }
     #song-list-card {
       display: none;
       margin-top: 28px;
@@ -766,7 +767,7 @@
       margin-top: 8px;
     }
     .song-item {
-      background: var(--bg2);
+      background: rgba(42, 22, 80, 0.85);
       border: 1px solid #3d2366;
       border-radius: 10px;
       padding: 16px 14px;
@@ -784,7 +785,7 @@
     }
     .song-item.current-song {
       border-color: #2fc66c;
-      background: rgba(16, 103, 52, 0.24);
+      background: rgba(16, 103, 52, 0.42);
       box-shadow: 0 0 0 0 rgba(47, 198, 108, 0.4);
       animation: currentSongRing 1.8s ease-out infinite;
     }
@@ -1941,14 +1942,35 @@
       selfieLightboxEl.classList.remove('open');
       selfieLightboxImg.src = '';
     }
+    function openSelfieLightbox(url) {
+      if (!url || !selfieLightboxEl) return;
+      selfieLightboxImg.src = url;
+      selfieLightboxEl.classList.add('open');
+    }
     if (songListEl) {
       songListEl.addEventListener('click', (e) => {
-        const target = e.target.closest('[data-selfie-full]');
-        if (!target) return;
-        const url = target.getAttribute('data-selfie-full');
-        if (!url || !selfieLightboxEl) return;
-        selfieLightboxImg.src = url;
-        selfieLightboxEl.classList.add('open');
+        // Click diretto sul div selfie-bg
+        const direct = e.target.closest('[data-selfie-full]');
+        if (direct) { openSelfieLightbox(direct.getAttribute('data-selfie-full')); return; }
+        // Click su qualsiasi punto della card con selfie reale
+        const songItem = e.target.closest('.song-item.has-selfie');
+        if (songItem) {
+          const selfieEl = songItem.querySelector('[data-selfie-full]');
+          if (selfieEl) openSelfieLightbox(selfieEl.getAttribute('data-selfie-full'));
+        }
+      });
+    }
+    // Gestisce click selfie anche nella card canzone corrente
+    const currentSongCardEl = document.getElementById('current-song-card');
+    if (currentSongCardEl) {
+      currentSongCardEl.addEventListener('click', (e) => {
+        const direct = e.target.closest('[data-selfie-full]');
+        if (direct) { openSelfieLightbox(direct.getAttribute('data-selfie-full')); return; }
+        const songItem = e.target.closest('.song-item.has-selfie');
+        if (songItem) {
+          const selfieEl = songItem.querySelector('[data-selfie-full]');
+          if (selfieEl) openSelfieLightbox(selfieEl.getAttribute('data-selfie-full'));
+        }
       });
     }
     if (selfieLightboxEl) {
