@@ -217,6 +217,158 @@ requirements:
     labels: [winner-reveal, admin, automation]
     test_cases: [TC-REVEAL-003]
 
+  # ── Sincronizzazione realtime ────────────────────────────────────────────────
+
+  - id: REQ-SYNC-001
+    title: "Sync stato karaoke realtime-first con poll di fallback garantito"
+    area: "scripts/serata-sync.js, index.html, vota.html"
+    description: >
+      L'aggiornamento dello stato karaoke usa una strategia unica (createSerataSync):
+      iscrizione realtime agli eventi postgres_changes delle tabelle osservate più un
+      poll di fallback sempre attivo (pollMs > 0; pollMs = 0 abilita solo realtime).
+      Sia gli eventi realtime sia il poll richiamano lo stesso ciclo di sync che
+      ri-legge lo stato autorevole (fetchState) e lo passa a onChange. Gli eventi
+      realtime sono debounced/coalizzati e il ciclo di vita del canale è gestito
+      (removeChannel prima di ri-iscriversi) per evitare canali stale.
+    status: implemented
+    generate_issue: false
+    labels: [realtime, sync]
+    test_cases: [TC-SYNC-001, TC-SYNC-002, TC-SYNC-003]
+
+  # ── Manutenzione ─────────────────────────────────────────────────────────────
+
+  - id: REQ-MAINT-001
+    title: "Modalità manutenzione con redirect utenti e banner admin"
+    area: "scripts/maintenance-mode.js, admin-tools.html, supabase/functions/admin-bookings/index.ts, impostazioni_pubbliche.manutenzione_abilitata"
+    description: >
+      L'admin può attivare/disattivare la modalità manutenzione (flag
+      manutenzione_abilitata). Quando è attiva, gli utenti non admin vengono
+      reindirizzati alla home/pagina di manutenzione, mentre gli admin autenticati
+      continuano a navigare e vedono un banner che segnala lo stato di manutenzione.
+      Titolo e messaggio della pagina di manutenzione sono configurabili
+      (home_maintenance_title, home_maintenance_message).
+    status: implemented
+    generate_issue: false
+    labels: [maintenance, settings, admin]
+    test_cases: [TC-MAINT-001]
+
+  # ── Ads / monetizzazione ─────────────────────────────────────────────────────
+
+  - id: REQ-ADS-001
+    title: "Policy ads centralizzata con default sicuri"
+    area: "scripts/ads-config.js"
+    description: >
+      La configurazione ads (ADS_ENABLED, ADS_MODE off|soft|intrusive,
+      ADS_PROVIDER none|adsense|custom, id AdSense, ADS_REQUIRE_BEFORE_BOOKING)
+      viene normalizzata in un oggetto policy stabile con default sicuri se i valori
+      mancano o non sono validi. Il banner è abilitato solo se enabled e mode != off;
+      requireBeforeBooking solo se il banner è abilitato; adsenseReady solo se
+      provider=adsense e sono presenti sia client id sia slot.
+    status: implemented
+    generate_issue: false
+    labels: [ads, config]
+    test_cases: [TC-ADS-001, TC-ADS-002]
+
+  - id: REQ-ADS-002
+    title: "Rendering banner/inline ads con fallback placeholder"
+    area: "scripts/ads-banner.js, scripts/ads-loader.js, index.html"
+    description: >
+      Il rendering del banner sponsor isola il provider e non rompe mai la pagina:
+      con provider mancante o configurazione AdSense incompleta viene mostrato un
+      placeholder sicuro. La modalità intrusive applica la classe
+      ads-intrusive-active al body; il banner disabilitato pulisce il container e
+      rimuove la classe intrusive.
+    status: implemented
+    generate_issue: false
+    labels: [ads, ui]
+    test_cases: [TC-ADS-003, TC-ADS-004]
+
+  - id: REQ-ADS-003
+    title: "Booking gate opzionale prima della prenotazione"
+    area: "scripts/booking-gate.js, index.html"
+    description: >
+      Se ADS_REQUIRE_BEFORE_BOOKING è attivo e gli ads sono abilitati, il click su
+      "Prenota" mostra prima una modale sponsor con percorso esplicito "Continua".
+      Se gli ads sono off/disabilitati la prenotazione procede senza step aggiuntivi.
+    status: implemented
+    generate_issue: false
+    labels: [ads, booking, ui]
+    test_cases: [TC-ADS-005]
+
+  # ── Visibilità voti e notifiche ──────────────────────────────────────────────
+
+  - id: REQ-VOTE-001
+    title: "Visibilità pubblica dei totali voti configurabile"
+    area: "admin.html, admin-tools.html, vota.html, supabase/functions/admin-bookings/index.ts, impostazioni_pubbliche.mostra_voti_totali"
+    description: >
+      L'admin può attivare/disattivare la visibilità pubblica dei totali voti
+      (flag mostra_voti_totali). Quando attiva, vota.html mostra i totali a tutti
+      gli utenti; il campo viene comunque nascosto all'avvio del countdown di
+      proclamazione.
+    status: implemented
+    generate_issue: false
+    labels: [voting, settings, admin]
+    test_cases: [TC-VOTE-001]
+
+  - id: REQ-NOTIFY-001
+    title: "Toggle notifiche Telegram e browser per nuove prenotazioni"
+    area: "admin.html, admin-tools.html, supabase/functions/admin-bookings/index.ts, impostazioni_pubbliche"
+    description: >
+      L'admin può attivare/disattivare in modo indipendente le notifiche Telegram
+      (notifiche_telegram_abilitate) e le notifiche browser
+      (notifiche_browser_abilitate) per le nuove prenotazioni. Entrambe sono attive
+      di default all'apertura di una serata.
+    status: implemented
+    generate_issue: false
+    labels: [notifications, admin, settings]
+    test_cases: [TC-NOTIFY-001]
+
+  # ── Archivio serate ──────────────────────────────────────────────────────────
+
+  - id: REQ-ARCHIVE-001
+    title: "Archivio pubblico delle serate concluse"
+    area: "archive.html, supabase/functions/admin-bookings/index.ts (get_archive), impostazioni_pubbliche.archivio_pubblico_abilitato"
+    description: >
+      Le serate concluse sono consultabili in un archivio pubblico (archive.html)
+      quando l'archivio pubblico è abilitato. Il listing pubblico restituisce solo
+      le serate non nascoste.
+    status: implemented
+    generate_issue: false
+    labels: [archive, ui]
+    test_cases: [TC-ARCHIVE-001]
+
+  - id: REQ-ARCHIVE-002
+    title: "Controlli admin su visibilità e copertina delle serate archiviate"
+    area: "admin-tools.html, supabase/functions/admin-bookings/index.ts (set_archive_visibility, set_archive_cover)"
+    description: >
+      Per le serate concluse l'admin può nascondere/mostrare la serata
+      nell'archivio pubblico (archiviato_nascosto) e scegliere l'immagine di
+      copertina: copertina di default (cover_use_default), automatica
+      (vincitore/random) oppure il selfie di una prenotazione specifica
+      (cover_prenotazione_id), con validazione che la prenotazione appartenga alla
+      serata.
+    status: implemented
+    generate_issue: false
+    labels: [archive, admin, settings]
+    test_cases: [TC-ARCHIVE-002]
+
+  # ── Diretta proclamazione vincitore ──────────────────────────────────────────
+
+  - id: REQ-REVEAL-004
+    title: "Diretta proclamazione vincitore attivabile da admin"
+    area: "admin.html, vota.html, supabase/functions/admin-bookings/index.ts (enable_diretta, disable_diretta)"
+    description: >
+      A votazioni chiuse l'admin può abilitare la "diretta": vota.html mostra la
+      schermata "Il vincitore sta per essere rivelato…" e le prenotazioni vengono
+      disabilitate (winner_reveal_countdown_active=true). L'admin può disabilitare
+      la diretta prima del countdown. In modalità proclamazione è disponibile anche
+      la proclamazione diretta che pubblica subito il vincitore senza countdown
+      pubblico.
+    status: implemented
+    generate_issue: false
+    labels: [winner-reveal, admin, control]
+    test_cases: [TC-REVEAL-004]
+
   # ── Esempi di requisiti "da implementare" (generate_issue: true) ─────────────
   # Decommentare e impostare generate_issue: true per creare automaticamente
   # un'issue GitHub. Esempio:

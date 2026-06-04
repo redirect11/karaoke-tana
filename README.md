@@ -52,7 +52,13 @@ Questa repo include anche:
 
 Scopo:
 
-- `admin-bookings`: esegue lato server le mutazioni admin (approva/modifica/elimina/completata, apertura/chiusura serata, toggle votazioni, visibilità pubblica totali voti, toggle notifiche Telegram/browser, decreto vincitore, cleanup strumenti nascosti) solo con `Authorization: Bearer <supabase_access_token>`.
+- `admin-bookings`: esegue lato server tutte le mutazioni e le letture admin, solo con autenticazione admin valida (header `Authorization` con access token Supabase). Le azioni principali sono:
+  - **Gestione prenotazioni**: `approve_booking`, `update_booking`, `delete_booking`, `mark_done`, `start_current_booking` (avvia la canzone corrente), `set_current_preparing` (stato "si sta preparando").
+  - **Gestione serata**: `open_serata`, `close_serata`, `set_bookings` (abilita/disabilita prenotazioni), `set_voting` (apre/chiude le votazioni), `terminate_voting`, `delete_serata`.
+  - **Impostazioni pubbliche**: `get_state`, `get_public_settings`, `set_public_settings`, `set_show_vote_totals` (visibilità totali voti), `set_telegram_notifications` / `set_browser_notifications` (toggle notifiche), `ping`.
+  - **Reveal vincitore / diretta**: `start_winner_reveal_countdown`, `start_winner_reveal_only`, `advance_winner_reveal`, `enable_diretta`, `disable_diretta`, `decree_winner`.
+  - **Archivio**: `get_archive`, `set_archive_visibility` (mostra/nascondi serata archiviata), `set_archive_cover` (copertina serata archiviata).
+  - **Solo ambiente test** (`APP_ENV=test`): `cleanup_current_serata`, `cleanup_all_test_data`, `populate_awards_test_data`, `populate_archive_test_data`.
 
 ### Autenticazione admin: Supabase Auth
 
@@ -171,6 +177,32 @@ La UI gestisce loading/error sul bottone di submit.
   - al termine del countdown il vincitore viene decretato automaticamente.
 - In modalità proclamazione è disponibile anche **"Proclamazione diretta"**, che pubblica subito il vincitore senza far comparire alcun countdown sulla pagina pubblica.
 - Se si vuole annullare la diretta prima del countdown, premere **"Disabilita diretta"**.
+
+### Votazioni e classifica (`vota.html`)
+
+- Con votazioni aperte gli utenti votano le canzoni dalla pagina `vota.html`; i punteggi si aggiornano in realtime (eventi sulla tabella `voti`) con fallback a polling.
+- La visibilità pubblica dei **totali voti** è controllata dall'impostazione `mostra_voti_totali` (toggle admin). Durante il countdown di proclamazione i totali vengono comunque nascosti.
+- Se non esiste una serata aperta, `vota.html` reindirizza automaticamente alla home.
+
+### Flusso post-approvazione (preparazione → live)
+
+L'impostazione **"Cosa fare dopo approvazione"** (`modalita_post_approvazione`) determina cosa succede quando lo staff approva una canzone:
+
+- `direct_live`: la canzone approvata va direttamente "on air".
+- `prepare_then_live`: la canzone entra prima nello stato transitorio **"si sta preparando"**; in home e nella lista pubblica lo stato è visibile, mentre in `admin.html` la canzone corrente mostra il pulsante **"Inizia"** che la porta a "on air".
+
+### Modalità manutenzione
+
+- L'impostazione `manutenzione_abilitata` (toggle admin in `admin-tools.html`) attiva la modalità manutenzione del sito.
+- Quando è attiva, gli utenti non admin vengono reindirizzati alla pagina di manutenzione, mentre gli admin autenticati continuano a navigare e vedono un banner di stato (`scripts/maintenance-mode.js`).
+- Titolo e messaggio della pagina di manutenzione sono configurabili (`home_maintenance_title`, `home_maintenance_message`).
+
+### Archivio serate (`archive.html`)
+
+- Le serate concluse sono consultabili in un archivio pubblico (`archive.html`) quando `archivio_pubblico_abilitato` è attivo. Il listing pubblico mostra solo le serate non nascoste.
+- Per ogni serata conclusa l'admin può:
+  - nasconderla/mostrarla nell'archivio pubblico (`archiviato_nascosto`);
+  - scegliere l'immagine di copertina: copertina di default (`cover_use_default`), automatica (vincitore/random), oppure il selfie di una prenotazione specifica (`cover_prenotazione_id`).
 
 ## Promozione a produzione
 
