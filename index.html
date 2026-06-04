@@ -3875,13 +3875,7 @@
         }
       }
 
-      // Popunder: si riattiva ogni 60 secondi
-      var puLast = Number(sessionStorage.getItem('pu_last') || 0);
-      if (Date.now() - puLast > 60000) {
-        sessionStorage.setItem('pu_last', String(Date.now()));
-        var pu = window.open('https://omg10.com/4/11096193', '_blank');
-        if (pu) { pu.blur(); window.focus(); }
-      }
+      // Popunder – disabilitato
       const nome    = document.getElementById('nome').value.trim();
       const canzone = document.getElementById('canzone').value.trim();
       const artista = document.getElementById('artista').value.trim();
