@@ -205,29 +205,17 @@ async function sendTelegramNotification(nome: string, canzone: string, artista: 
 }
 
 async function validateRecaptcha(token: string | null | undefined): Promise<{ ok: boolean }> {
-  const apiKey = Deno.env.get("RECAPTCHA_SECRET_KEY");
-  const projectId = Deno.env.get("RECAPTCHA_PROJECT_ID");
-  if (!apiKey || !projectId) return { ok: true }; // non configurato: skip
+  const secretKey = Deno.env.get("RECAPTCHA_SECRET_KEY");
+  if (!secretKey) return { ok: true }; // non configurato: skip
   if (!token) return { ok: false };
   try {
-    const resp = await fetch(
-      `https://recaptchaenterprise.googleapis.com/v1/projects/${projectId}/assessments?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event: {
-            token,
-            siteKey: "6LdEmQwtAAAAAO6TlMUDf1UQbLokXKQM0qy4AAEE",
-            expectedAction: "booking",
-          },
-        }),
-      },
-    );
-    const result = await resp.json() as { riskAnalysis?: { score?: number }; tokenProperties?: { valid?: boolean } };
-    const valid = result.tokenProperties?.valid === true;
-    const score = result.riskAnalysis?.score ?? 0;
-    return { ok: valid && score >= 0.5 };
+    const resp = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(token)}`,
+    });
+    const result = await resp.json() as { success: boolean; score?: number };
+    return { ok: result.success === true && (result.score ?? 0) >= 0.5 };
   } catch {
     return { ok: false };
   }
