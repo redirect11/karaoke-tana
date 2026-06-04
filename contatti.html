@@ -444,7 +444,7 @@
   </div>
 
   <!-- reCAPTCHA v3 + form handler -->
-  <script src="https://www.google.com/recaptcha/api.js?render=6LdEmQwtAAAAAO6TlMUDf1UQbLokXKQM0qy4AAEE"></script>
+  <script src="https://www.google.com/recaptcha/enterprise.js?render=6LdEmQwtAAAAAO6TlMUDf1UQbLokXKQM0qy4AAEE"></script>
   <script>
     (function () {
       var SITE_KEY = '6LdEmQwtAAAAAO6TlMUDf1UQbLokXKQM0qy4AAEE';
@@ -461,8 +461,8 @@
         form.querySelectorAll('.form-field-error').forEach(function (el) { el.textContent = ''; });
         form.querySelectorAll('input, textarea').forEach(function (el) { el.removeAttribute('aria-invalid'); });
 
-        grecaptcha.ready(function () {
-          grecaptcha.execute(SITE_KEY, { action: 'contact' }).then(function (token) {
+        grecaptcha.enterprise.ready(function () {
+          grecaptcha.enterprise.execute(SITE_KEY, { action: 'contact' }).then(function (token) {
             var data = new FormData(form);
             data.append('g-recaptcha-response', token);
 
