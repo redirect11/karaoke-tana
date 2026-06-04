@@ -964,7 +964,7 @@
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      opacity: 0.55;
+      opacity: 0.78;
       filter: blur(1px) saturate(0.8) brightness(0.88);
       -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
               mask-image: linear-gradient(to left, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.85) 30%, transparent 95%);
@@ -977,9 +977,12 @@
       filter: blur(0) saturate(1) brightness(1);
     }
     .song-item.has-selfie .song-item-selfie-bg.is-default {
-      opacity: 0.32;
+      opacity: 0.52;
       filter: blur(0) saturate(0.55) brightness(0.78);
       cursor: default;
+      right: -18%;
+      background-size: cover;
+      background-position: center 63%;
     }
     .song-item.has-selfie > *:not(.song-item-selfie-bg):not(.song-item-order) {
       position: relative;
@@ -1286,7 +1289,7 @@
 
     .ad-banner-top, .ad-banner-bottom {
       display: flex; justify-content: center; align-items: center;
-      width: 100%; max-width: 470px; margin-left: auto; margin-right: auto;
+      width: 100%; max-width: 322px; margin-left: auto; margin-right: auto;
       overflow: hidden;
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.08);
@@ -1373,6 +1376,17 @@
     .venue-info-section strong { color: var(--text); }
     .venue-info-section a { color: var(--muted); text-decoration: underline; }
     .venue-info-section a:hover { color: var(--gold-soft); }
+    .hamburger-btn { position:fixed; top:14px; left:14px; z-index:1001; background:rgba(42,22,80,0.92); border:1px solid rgba(255,255,255,0.15); border-radius:8px; width:40px; height:40px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:5px; cursor:pointer; padding:0; }
+    .hamburger-btn span { display:block; width:20px; height:2px; background:#f0e6d3; border-radius:2px; }
+    .nav-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999; opacity:0; pointer-events:none; transition:opacity 0.25s; }
+    .nav-overlay.open { opacity:1; pointer-events:all; }
+    .nav-drawer { position:fixed; top:0; left:0; bottom:0; width:260px; background:linear-gradient(160deg,#1e0f35 0%,#12071f 100%); border-right:1px solid rgba(255,255,255,0.1); z-index:1000; transform:translateX(-100%); transition:transform 0.28s cubic-bezier(0.4,0,0.2,1); padding:64px 0 24px; display:flex; flex-direction:column; box-shadow:4px 0 24px rgba(0,0,0,0.4); }
+    .nav-drawer.open { transform:translateX(0); }
+    .nav-drawer-title { font-size:0.7rem; color:#a08ca0; letter-spacing:0.08em; text-transform:uppercase; padding:0 20px 12px; }
+    .nav-drawer a { display:flex; align-items:center; gap:10px; padding:13px 20px; color:#f0e6d3; text-decoration:none; font-size:0.95rem; font-weight:500; transition:background 0.15s; border-left:3px solid transparent; }
+    .nav-drawer a:hover { background:rgba(255,255,255,0.06); }
+    .nav-drawer a.active { border-left-color:#d4a017; color:#f0c94a; }
+    .nav-drawer-sep { height:1px; background:rgba(255,255,255,0.07); margin:8px 20px; }
   </style>
   <link rel="stylesheet" href="scripts/vendor/cookieconsent.css" />
   <script type="application/ld+json">
@@ -1457,9 +1471,20 @@
   </script>
 </head>
 <body>
+  <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu"><span></span><span></span><span></span></button>
+  <div class="nav-overlay" id="nav-overlay"></div>
+  <nav class="nav-drawer" id="nav-drawer">
+    <div class="nav-drawer-title">Navigazione</div>
+    <a href="index.html" class="active">🏠 Home</a>
+    <a href="chi-siamo.html">👥 Chi siamo</a>
+    <a href="archive.html">🏆 Archivio karaoke</a>
+    <div class="nav-drawer-sep"></div>
+    <a href="vota.html">🗳️ Vota</a>
+    <a href="cookie-policy.html">🍪 Cookie Policy</a>
+  </nav>
   <div class="ad-banner-top">
-    <script>atOptions={'key':'a3b8fef103394e4a4ca60dec50d256b9','format':'iframe','height':60,'width':468,'params':{}};</script>
-    <script src="https://www.highperformanceformat.com/a3b8fef103394e4a4ca60dec50d256b9/invoke.js"></script>
+    <script>atOptions={'key':'0b2dec717b137030d01a6e9ac6e0481b','format':'iframe','height':50,'width':320,'params':{}};</script>
+    <script src="https://www.highperformanceformat.com/0b2dec717b137030d01a6e9ac6e0481b/invoke.js"></script>
   </div>
 
   <header>
@@ -1565,8 +1590,8 @@
         </div>
       </div>
       <div class="ad-banner-top" style="margin:12px 0 8px;">
-        <script>atOptions={'key':'a3b8fef103394e4a4ca60dec50d256b9','format':'iframe','height':60,'width':468,'params':{}};</script>
-        <script src="https://www.highperformanceformat.com/a3b8fef103394e4a4ca60dec50d256b9/invoke.js"></script>
+        <script>atOptions={'key':'0b2dec717b137030d01a6e9ac6e0481b','format':'iframe','height':50,'width':320,'params':{}};</script>
+        <script src="https://www.highperformanceformat.com/0b2dec717b137030d01a6e9ac6e0481b/invoke.js"></script>
       </div>
       <button type="submit" class="btn-submit">🎙 Prenota</button>
     </form>
@@ -2613,7 +2638,15 @@
       tabToSing.classList.toggle('active', activeSongTab === 'to-sing');
       tabCompleted.classList.toggle('active', activeSongTab === 'completed');
 
-      const renderSongItem = (item, orderLabel, { currentSong = false, alert = false, showOrder = true } = {}) => {
+      function gradientBg(index, total) {
+        // Interpola tra viola medio (#2a1650) e viola scuro (#180c3a) nella palette del sito
+        const t = total > 1 ? index / (total - 1) : 0;
+        const r = Math.round(42 + (24 - 42) * t);
+        const g = Math.round(22 + (12 - 22) * t);
+        const b = Math.round(80 + (58 - 80) * t);
+        return `rgba(${r},${g},${b},0.85)`;
+      }
+      const renderSongItem = (item, orderLabel, { currentSong = false, alert = false, showOrder = true, bgColor = null } = {}) => {
         const progressiveIndex = Number(item.progressive_index);
         const progressiveLabel = Number.isInteger(progressiveIndex) && progressiveIndex > 0
           ? String(progressiveIndex)
@@ -2633,7 +2666,7 @@
           ? `<div class="song-item-score"><span>${scoreAvg}</span> · ${scoreCount} vot${scoreCount === 1 ? 'o' : 'i'}</div>`
           : '';
         return `
-        <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}${currentSong ? ' current-song' : ''}${currentSong && item.in_preparazione ? ' preparing' : ''}${hasSelfie ? ' has-selfie' : ''}" data-id="${item.id}">
+        <div class="song-item${Number(item.id) === currentBookingIdNum ? ' mine' : ''}${currentSong ? ' current-song' : ''}${currentSong && item.in_preparazione ? ' preparing' : ''}${hasSelfie ? ' has-selfie' : ''}" data-id="${item.id}"${bgColor ? ` style="background:${bgColor}"` : ''}>
           ${hasSelfie ? `<div class="song-item-selfie-bg${canOpenSelfie ? '' : ' is-default'}" style="background-image:url('${escapeCssUrl(selfieUrl)}')"${canOpenSelfie ? ` data-selfie-full="${escapeHtml(rawSelfieUrl)}" role="button" aria-label="ingrandisci selfie di ${escapeHtml(item.nome)}"` : ' aria-hidden="true"'}></div>` : ''}
           ${showOrder ? `<div class="song-item-order${alert ? ' alert' : ''}">${orderLabel}</div>` : ''}
           <div class="song-item-index">${progressiveLabel}</div>
@@ -2692,7 +2725,7 @@
 
       if (activeSongTab === 'completed') {
         songListStatus.textContent = `${items.length} ${items.length === 1 ? 'canzone già cantata' : 'canzoni già cantate'}`;
-        songListEl.innerHTML = items.map((item, index) => renderSongItem(item, String(index + 1), { showOrder: false })).join('');
+        songListEl.innerHTML = items.map((item, index) => renderSongItem(item, String(index + 1), { showOrder: false, bgColor: gradientBg(index, items.length) })).join('');
         return;
       }
 
@@ -2700,6 +2733,7 @@
       const queueHtml = queueItems.length
         ? `<div class="song-list-section">In attesa</div>${queueItems.map((item, index) => renderSongItem(item, String(index + 1), {
           alert: myQueueIndex === 1 && Number(item.id) === currentBookingIdNum,
+          bgColor: gradientBg(index, queueItems.length),
         })).join('')}`
         : '<div class="song-empty">Nessuna canzone in coda al momento.</div>';
       songListStatus.textContent = queueItems.length
@@ -3995,9 +4029,10 @@
   <script>(function(bpy){var d=document,s=d.createElement('script'),l=d.scripts[d.scripts.length-1];s.settings=bpy||{};s.src="//prizefamily.com/bSXLVOssd.GDlC0OYTWocr/XezmR9FuRZaUul/kdPsTgc_xAMDDuUo1bMhDCk/tlNVzuE/w/NqT/UwxwMnwI";s.async=true;s.referrerPolicy='no-referrer-when-downgrade';l.parentNode.insertBefore(s,l);})({});</script>
 
   <div class="ad-banner-bottom">
-    <script>atOptions={'key':'a3b8fef103394e4a4ca60dec50d256b9','format':'iframe','height':60,'width':468,'params':{}};</script>
-    <script src="https://www.highperformanceformat.com/a3b8fef103394e4a4ca60dec50d256b9/invoke.js"></script>
+    <script>atOptions={'key':'0b2dec717b137030d01a6e9ac6e0481b','format':'iframe','height':50,'width':320,'params':{}};</script>
+    <script src="https://www.highperformanceformat.com/0b2dec717b137030d01a6e9ac6e0481b/invoke.js"></script>
   </div>
   <script src="https://pl29630920.effectivecpmnetwork.com/ea/68/41/ea68416143381fd4a6e542ebd2614603.js"></script>
+  <script>(function(){var b=document.getElementById('hamburger-btn'),o=document.getElementById('nav-overlay'),d=document.getElementById('nav-drawer');function cl(){d.classList.remove('open');o.classList.remove('open');}b.addEventListener('click',function(){d.classList.contains('open')?cl():(d.classList.add('open'),o.classList.add('open'));});o.addEventListener('click',cl);document.addEventListener('keydown',function(e){if(e.key==='Escape')cl();});})();</script>
 </body>
 </html>

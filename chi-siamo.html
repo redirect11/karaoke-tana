@@ -142,6 +142,40 @@
     }
     .back-link a:hover { color: var(--text); }
 
+    /* ── Hamburger menu ── */
+    .hamburger-btn {
+      position: fixed; top: 14px; left: 14px; z-index: 1001;
+      background: rgba(42,22,80,0.92); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px; width: 40px; height: 40px;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      gap: 5px; cursor: pointer; padding: 0;
+    }
+    .hamburger-btn span { display: block; width: 20px; height: 2px; background: var(--text); border-radius: 2px; transition: 0.2s; }
+    .nav-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .nav-overlay.open { opacity: 1; pointer-events: all; }
+    .nav-drawer {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 260px;
+      background: linear-gradient(160deg, #1e0f35 0%, #12071f 100%);
+      border-right: 1px solid rgba(255,255,255,0.1);
+      z-index: 1000; transform: translateX(-100%);
+      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+      padding: 64px 0 24px; display: flex; flex-direction: column;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+    }
+    .nav-drawer.open { transform: translateX(0); }
+    .nav-drawer-title { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; padding: 0 20px 12px; }
+    .nav-drawer a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 20px; color: var(--text); text-decoration: none;
+      font-size: 0.95rem; font-weight: 500; transition: background 0.15s;
+      border-left: 3px solid transparent;
+    }
+    .nav-drawer a:hover { background: rgba(255,255,255,0.06); }
+    .nav-drawer a.active { border-left-color: var(--gold); color: var(--gold-soft); }
+    .nav-drawer-sep { height: 1px; background: rgba(255,255,255,0.07); margin: 8px 20px; }
     footer {
       margin-top: 40px;
       margin-bottom: 24px;
@@ -149,7 +183,7 @@
       color: #3d2366;
       text-align: center;
     }
-    .ad-banner-top, .ad-banner-bottom { display:flex; justify-content:center; align-items:center; width:100%; max-width:470px; margin-left:auto; margin-right:auto; overflow:hidden; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:1px; box-shadow:0 4px 18px rgba(0,0,0,0.28); }
+    .ad-banner-top, .ad-banner-bottom { display:flex; justify-content:center; align-items:center; width:100%; max-width:322px; margin-left:auto; margin-right:auto; overflow:hidden; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:1px; box-shadow:0 4px 18px rgba(0,0,0,0.28); }
     .ad-banner-top { margin-bottom: 24px; }
     .ad-banner-bottom { margin-top: 8px; }
   </style>
@@ -209,9 +243,23 @@
   </script>
 </head>
 <body>
+  <!-- Hamburger -->
+  <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="nav-overlay" id="nav-overlay"></div>
+  <nav class="nav-drawer" id="nav-drawer">
+    <div class="nav-drawer-title">Navigazione</div>
+    <a href="index.html">🏠 Home</a>
+    <a href="chi-siamo.html" class="active">👥 Chi siamo</a>
+    <a href="archive.html">🏆 Archivio karaoke</a>
+    <div class="nav-drawer-sep"></div>
+    <a href="cookie-policy.html">🍪 Cookie Policy</a>
+  </nav>
+
   <div class="ad-banner-top">
-    <script>atOptions={'key':'a3b8fef103394e4a4ca60dec50d256b9','format':'iframe','height':60,'width':468,'params':{}};</script>
-    <script src="https://www.highperformanceformat.com/a3b8fef103394e4a4ca60dec50d256b9/invoke.js"></script>
+    <script>atOptions={'key':'0b2dec717b137030d01a6e9ac6e0481b','format':'iframe','height':50,'width':320,'params':{}};</script>
+    <script src="https://www.highperformanceformat.com/0b2dec717b137030d01a6e9ac6e0481b/invoke.js"></script>
   </div>
 
   <header>
@@ -224,7 +272,7 @@
 
     <h2>Il locale</h2>
     <p>
-      La Tana del Coniglio è un lounge bar accogliente nel cuore di Nola, noto per la cura
+      La Tana del Coniglio è un cocktail bar accogliente nel cuore di Nola, noto per la cura
       degli ambienti, la selezione musicale di qualità e un'atmosfera autentica che mescola
       la cura maniacale per i cocktail con la buona compagnia. Il locale propone una selezione di
       drink curati e buona musica, serate a tema, mostre d'arte e, naturalmente, il nostro karaoke del
@@ -309,7 +357,7 @@
       </a>
     </div>
 
-    <div class="back-link">← <a href="index.html">Torna alla home</a></div>
+    <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;margin-top:24px;padding:10px 18px;background:rgba(212,160,23,0.15);border:1px solid rgba(212,160,23,0.35);border-radius:999px;color:var(--gold-soft);text-decoration:none;font-size:0.88rem;font-weight:600;">← Torna alla home</a>
   </div>
 
   <footer>
@@ -320,8 +368,18 @@
   <script>(function(bpy){var d=document,s=d.createElement('script'),l=d.scripts[d.scripts.length-1];s.settings=bpy||{};s.src="//prizefamily.com/bSXLVOssd.GDlC0OYTWocr/XezmR9FuRZaUul/kdPsTgc_xAMDDuUo1bMhDCk/tlNVzuE/w/NqT/UwxwMnwI";s.async=true;s.referrerPolicy='no-referrer-when-downgrade';l.parentNode.insertBefore(s,l);})({});</script>
 
   <div class="ad-banner-bottom">
-    <script>atOptions={'key':'a3b8fef103394e4a4ca60dec50d256b9','format':'iframe','height':60,'width':468,'params':{}};</script>
-    <script src="https://www.highperformanceformat.com/a3b8fef103394e4a4ca60dec50d256b9/invoke.js"></script>
+    <script>atOptions={'key':'0b2dec717b137030d01a6e9ac6e0481b','format':'iframe','height':50,'width':320,'params':{}};</script>
+    <script src="https://www.highperformanceformat.com/0b2dec717b137030d01a6e9ac6e0481b/invoke.js"></script>
   </div>
+  <script>
+    var btn = document.getElementById('hamburger-btn');
+    var overlay = document.getElementById('nav-overlay');
+    var drawer = document.getElementById('nav-drawer');
+    function openMenu() { drawer.classList.add('open'); overlay.classList.add('open'); }
+    function closeMenu() { drawer.classList.remove('open'); overlay.classList.remove('open'); }
+    btn.addEventListener('click', function(){ drawer.classList.contains('open') ? closeMenu() : openMenu(); });
+    overlay.addEventListener('click', closeMenu);
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeMenu(); });
+  </script>
 </body>
 </html>
