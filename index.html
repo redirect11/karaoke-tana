@@ -4074,7 +4074,8 @@
       // Toggle banner di test (solo APP_ENV=test)
       var testToggleWrap=document.getElementById('nav-test-toggle');
       var testBtn=document.getElementById('nav-test-btn');
-      if(testToggleWrap&&testBtn&&window.config&&window.config.APP_ENV==='test'){
+      var isTestHost=window.location.hostname!=='www.ilkaraokedellatana.it'&&window.location.hostname!=='';
+      if(testToggleWrap&&testBtn&&(isTestHost||(window.config&&window.config.APP_ENV==='test'))){
         testToggleWrap.style.display='flex';
         function syncTestBtn(){var on=localStorage.getItem('kt_test_banner_visible')!=='0';testBtn.textContent=on?'ON':'OFF';testBtn.style.background=on?'#2fc66c':'rgba(255,255,255,0.12)';}
         syncTestBtn();
