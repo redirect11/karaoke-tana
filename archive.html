@@ -380,6 +380,29 @@
       background: rgba(255,255,255,0.03);
       border: 1px solid var(--border);
       border-radius: 10px;
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .full-ranking-row > * { position: relative; z-index: 1; }
+    .full-ranking-selfie-bg {
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 55%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0.45;
+      filter: blur(0.5px) saturate(0.85) brightness(0.82);
+      -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.7) 30%, transparent 90%);
+              mask-image: linear-gradient(to left, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.7) 30%, transparent 90%);
+      z-index: 0;
+    }
+    .full-ranking-selfie-bg.is-logo {
+      background-size: 55%;
+      background-position: 85% 60%;
+      opacity: 0.3;
+      filter: blur(0) saturate(0.5) brightness(0.75);
     }
     .full-ranking-row.winner {
       border-color: rgba(212,160,23,0.45);
@@ -1001,10 +1024,10 @@
       if (!winner && top5.length) winner = top5[0];
 
       // Cover photo priority order:
-      //   1. cover_use_default=true            → logo.png (placeholder)
-      //   2. cover_prenotazione_id             → selfie specifico
+      //   1. cover_use_default=true            → logo.png
+      //   2. cover_prenotazione_id             → selfie specifico (override admin)
       //   3. selfie del vincitore
-      //   4. random tra i selfie caricati
+      //   4. logo.png (mai random come default)
       let coverUrl = '';
       if (serata.cover_use_default) {
         coverUrl = 'logo.png';
@@ -1015,13 +1038,6 @@
           if (coverBooking?.selfie_url) coverUrl = coverBooking.selfie_url;
         }
         if (!coverUrl) coverUrl = winner?.selfie_url || '';
-        if (!coverUrl) {
-          const withSelfies = allBookings.filter((b) => typeof b.selfie_url === 'string' && b.selfie_url.length > 0);
-          if (withSelfies.length) {
-            coverUrl = withSelfies[Math.floor(Math.random() * withSelfies.length)].selfie_url;
-          }
-        }
-        // Nessuna foto disponibile: usa il logo come fallback
         if (!coverUrl) coverUrl = 'logo.png';
       }
       return { songs, ranking, top5, winner, coverUrl, allBookings };
@@ -1183,8 +1199,12 @@
       const dateLabel = formatDateLabel(serata.archive_date || serata.data, true);
 
       const fullRankingHtml = view.ranking.length
-        ? `<div class="full-ranking-list">${view.ranking.map((item, idx) => `
+        ? `<div class="full-ranking-list">${view.ranking.map((item, idx) => {
+            const bgUrl = item.selfie_url ? resolveLanUrl(item.selfie_url) : 'logo.png';
+            const isLogo = !item.selfie_url;
+            return `
             <div class="full-ranking-row${Number(item.id) === Number(winner?.id) ? ' winner' : ''}">
+              <div class="full-ranking-selfie-bg${isLogo ? ' is-logo' : ''}" style="background-image:url('${esc(bgUrl)}')"></div>
               <div class="full-ranking-rank">${idx + 1}</div>
               <div class="full-ranking-info">
                 <div class="full-ranking-name">${esc(item.nome)}${Number(item.id) === Number(winner?.id) ? ' 👑' : ''}</div>
@@ -1194,8 +1214,8 @@
               ${isAdmin && item.selfie_url
                 ? `<button type="button" class="podium-download-btn" data-modal-admin-action="download-selfie" data-prenotazione-id="${Number(item.id)}">⬇️ Download</button>`
                 : ''}
-            </div>
-          `).join('')}</div>`
+            </div>`;
+          }).join('')}</div>`
         : '<div class="empty-section">Classifica non disponibile.</div>';
 
       modalContent.innerHTML = `
@@ -1398,7 +1418,7 @@
         <h3>Scegli la foto di copertina</h3>
         <div class="cover-picker-grid">
           <div class="cover-option-empty${!currentCoverId && !currentUseDefault ? ' selected' : ''}" data-cover-id="">
-            ↺ automatica (vincitore o random)
+            ↺ automatica (vincitore)
           </div>
           <div class="cover-option-empty${currentUseDefault ? ' selected' : ''}" data-cover-id="logo"
                style="background-image:url('logo.png'); background-size:contain; background-repeat:no-repeat; background-position:center; background-color:#1e0f35;">
