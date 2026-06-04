@@ -133,6 +133,18 @@
       font-size: 0.85rem;
     }
 
+    .photo-full {
+      width: 100%; border-radius: 10px; object-fit: cover;
+      display: block; margin: 16px 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .photo-pair {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0;
+    }
+    .photo-pair img {
+      width: 100%; border-radius: 10px; object-fit: cover; aspect-ratio: 3/4;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
     .back-link {
       margin-top: 28px;
       font-size: 0.85rem;
@@ -288,6 +300,8 @@
       della serata.
     </p>
 
+    <img src="il_locale.png" alt="Interno de La Tana del Coniglio, Nola" class="photo-full" loading="lazy" />
+
     <div class="info-grid">
       <div class="info-box">
         <div class="label">Indirizzo</div>
@@ -305,6 +319,11 @@
         <div class="label">Karaoke</div>
         <div class="value">Ogni <strong>giovedì sera</strong><br>a partire dalle 22:00</div>
       </div>
+    </div>
+
+    <div class="photo-pair">
+      <img src="bartender.png" alt="Cocktail preparato al banco de La Tana del Coniglio" loading="lazy" />
+      <img src="bartender_2.png" alt="Il bartender de La Tana del Coniglio al lavoro" loading="lazy" />
     </div>
 
     <h2>Il karaoke</h2>
